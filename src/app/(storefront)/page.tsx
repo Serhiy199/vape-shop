@@ -1,9 +1,13 @@
+import { auth } from "@/lib/auth/auth";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
+import { SessionCard } from "@/features/auth/components/session-card";
 
-export default function StorefrontHomePage() {
+export default async function StorefrontHomePage() {
+  const session = await auth();
+
   return (
     <main className="mx-auto flex min-h-screen w-full max-w-6xl flex-col justify-center px-6 py-16">
       <Card className="border-border/70 bg-card/90 shadow-sm backdrop-blur">
@@ -27,6 +31,7 @@ export default function StorefrontHomePage() {
           </div>
         </CardHeader>
         <CardContent className="space-y-8" id="phase-1">
+          <SessionCard session={session} />
           <div className="grid gap-4 md:grid-cols-3">
             {[
               "src/app for routes, layouts, and route handlers",
@@ -46,10 +51,20 @@ export default function StorefrontHomePage() {
             <a className={buttonVariants()} href="/admin">
               Open admin shell
             </a>
-            <a
-              className={buttonVariants({ variant: "outline" })}
-              href="#phase-1"
-            >
+            {!session?.user ? (
+              <>
+                <a className={buttonVariants({ variant: "outline" })} href="/login">
+                  Login
+                </a>
+                <a
+                  className={buttonVariants({ variant: "secondary" })}
+                  href="/register"
+                >
+                  Create client account
+                </a>
+              </>
+            ) : null}
+            <a className={buttonVariants({ variant: "outline" })} href="#phase-1">
               Review bootstrap scope
             </a>
           </div>

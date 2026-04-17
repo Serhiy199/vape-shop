@@ -8,7 +8,23 @@ import {
 } from "@/server/repositories/user.repository";
 
 export async function POST(request: Request) {
-  const json = await request.json();
+  let json: unknown;
+
+  try {
+    json = await request.json();
+  } catch {
+    return NextResponse.json(
+      {
+        success: false,
+        error: {
+          code: "INVALID_JSON",
+          message: "Request body must be valid JSON.",
+        },
+      },
+      { status: 400 },
+    );
+  }
+
   const parsed = registerSchema.safeParse(json);
 
   if (!parsed.success) {

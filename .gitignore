@@ -11,3 +11,5 @@ build
 *.log
 package-lock.json
 generated
+
+.vercel

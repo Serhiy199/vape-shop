@@ -1,3 +1,4 @@
+import { UserRole } from "@prisma/client";
 import type { NextAuthConfig } from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 
@@ -9,7 +10,7 @@ export const authConfig = {
     signIn: "/login",
   },
   session: {
-    strategy: "database",
+    strategy: "jwt",
   },
   providers: [
     Credentials({
@@ -56,12 +57,21 @@ export const authConfig = {
     }),
   ],
   callbacks: {
-    async session({ session, user }) {
+    async jwt({ token, user }) {
+      if (user) {
+        token.role = user.role;
+        token.firstName = user.firstName;
+        token.lastName = user.lastName;
+      }
+
+      return token;
+    },
+    async session({ session, token }) {
       if (session.user) {
-        session.user.id = user.id;
-        session.user.role = user.role;
-        session.user.firstName = user.firstName;
-        session.user.lastName = user.lastName;
+        session.user.id = token.sub ?? "";
+        session.user.role = (token.role as UserRole | undefined) ?? UserRole.CLIENT;
+        session.user.firstName = (token.firstName as string | null | undefined) ?? null;
+        session.user.lastName = (token.lastName as string | null | undefined) ?? null;
       }
 
       return session;

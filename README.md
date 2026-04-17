@@ -25,19 +25,21 @@ npm install
 cp .env.example .env.local
 ```
 
-3. Generate Prisma client:
+3. Make sure local PostgreSQL is running and matches `DATABASE_URL` from `.env` or `.env.local`.
+
+4. Generate Prisma client:
 
 ```bash
 npm run prisma:generate
 ```
 
-4. Start the dev server:
+5. Start the dev server:
 
 ```bash
 npm run dev
 ```
 
-5. Open [http://localhost:3000](http://localhost:3000).
+6. Open [http://localhost:3000](http://localhost:3000).
 
 ## Project Structure
 

@@ -1,8 +1,12 @@
+import { auth } from "@/lib/auth/auth";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table";
+import { SessionCard } from "@/features/auth/components/session-card";
 
-export default function AdminHomePage() {
+export default async function AdminHomePage() {
+  const session = await auth();
+
   return (
     <main className="mx-auto flex min-h-screen w-full max-w-6xl flex-col justify-center px-6 py-16">
       <Card className="border-border/70 max-w-3xl shadow-sm">
@@ -24,7 +28,8 @@ export default function AdminHomePage() {
             </p>
           </div>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-6">
+          <SessionCard session={session} variant="admin" />
           <Table>
             <TableBody>
               <TableRow>
