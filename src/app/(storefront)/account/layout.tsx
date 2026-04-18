@@ -1,5 +1,5 @@
-import { SessionCard } from "@/features/auth/components/session-card";
 import { AccessShell } from "@/features/auth/components/access-shell";
+import { SessionCard } from "@/features/auth/components/session-card";
 import { requireAuthPage } from "@/lib/auth/permissions";
 
 export default async function AccountLayout({
@@ -11,11 +11,11 @@ export default async function AccountLayout({
 
   return (
     <AccessShell
-      badge="Account"
+      badge="Кабінет"
       description="Приватна зона клієнта. Цей розділ відкривається лише авторизованому користувачу."
       links={[
-        { href: "/account", label: "Account home" },
-        { href: "/", label: "Storefront" },
+        { href: "/account", label: "Головна кабінету" },
+        { href: "/", label: "Магазин" },
       ]}
       title="Кабінет клієнта"
     >

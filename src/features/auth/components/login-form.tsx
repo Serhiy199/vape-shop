@@ -15,10 +15,11 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  initialLoginFormState,
-  loginAction,
-} from "@/features/auth/actions/login";
+import { loginAction } from "@/features/auth/actions/login";
+
+const initialLoginFormState = {
+  error: null,
+};
 
 function SubmitButton() {
   const { pending } = useFormStatus();
@@ -37,7 +38,7 @@ export function LoginForm({ redirectTo = "/" }: { redirectTo?: string }) {
     <Card className="border-border/70 bg-card/95 w-full max-w-lg shadow-sm backdrop-blur">
       <CardHeader className="space-y-5">
         <div className="flex flex-wrap items-center gap-3">
-          <Badge variant="secondary">Auth</Badge>
+          <Badge variant="secondary">Авторизація</Badge>
           <Badge variant="outline">Крок 3</Badge>
         </div>
         <div className="space-y-3">
@@ -48,7 +49,8 @@ export function LoginForm({ redirectTo = "/" }: { redirectTo?: string }) {
             Вхід до акаунта
           </CardTitle>
           <CardDescription className="max-w-lg text-sm leading-6 sm:text-base">
-            Увійдіть за email і паролем, які ви створили на попередньому кроці.
+            Увійдіть за електронною поштою та паролем, які ви створили на
+            попередньому кроці.
           </CardDescription>
         </div>
       </CardHeader>
@@ -57,7 +59,7 @@ export function LoginForm({ redirectTo = "/" }: { redirectTo?: string }) {
           <input type="hidden" name="redirectTo" value={redirectTo} />
 
           <div className="space-y-2">
-            <Label htmlFor="email">Email</Label>
+            <Label htmlFor="email">Електронна пошта</Label>
             <Input
               id="email"
               name="email"

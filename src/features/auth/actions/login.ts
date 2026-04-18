@@ -11,10 +11,6 @@ export type LoginFormState = {
   error: string | null;
 };
 
-export const initialLoginFormState: LoginFormState = {
-  error: null,
-};
-
 export async function loginAction(
   _previousState: LoginFormState,
   formData: FormData,
@@ -44,7 +40,7 @@ export async function loginAction(
       redirectTo,
     });
 
-    return initialLoginFormState;
+    return { error: null };
   } catch (error) {
     if (error instanceof AuthError) {
       if (error.type === "CredentialsSignin") {

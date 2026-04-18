@@ -4,8 +4,6 @@ import Link from "next/link";
 import type { ChangeEvent, FormEvent } from "react";
 import { useState, useTransition } from "react";
 
-import type { RegisterInput } from "@/features/auth/schemas";
-import { registerSchema } from "@/features/auth/schemas";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -17,6 +15,8 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import type { RegisterInput } from "@/features/auth/schemas";
+import { registerSchema } from "@/features/auth/schemas";
 
 type RegisterFormValues = {
   email: string;
@@ -116,7 +116,9 @@ export function RegisterForm() {
         setValues(initialValues);
         setIsSuccess(true);
       } catch {
-        setErrorMessage("Не вдалося створити акаунт. Перевірте з'єднання і повторіть спробу.");
+        setErrorMessage(
+          "Не вдалося створити акаунт. Перевірте з'єднання і повторіть спробу.",
+        );
       }
     });
   };
@@ -125,7 +127,7 @@ export function RegisterForm() {
     <Card className="border-border/70 bg-card/95 w-full max-w-xl shadow-sm backdrop-blur">
       <CardHeader className="space-y-5">
         <div className="flex flex-wrap items-center gap-3">
-          <Badge variant="secondary">Auth</Badge>
+          <Badge variant="secondary">Авторизація</Badge>
           <Badge variant="outline">Крок 2</Badge>
         </div>
         <div className="space-y-3">
@@ -136,7 +138,7 @@ export function RegisterForm() {
             Створення клієнтського акаунта
           </CardTitle>
           <CardDescription className="max-w-lg text-sm leading-6 sm:text-base">
-            Після реєстрації акаунт буде збережений з роллю <b>CLIENT</b>. Вхід
+            Після реєстрації акаунт буде збережений з роллю <b>Клієнт</b>. Вхід
             та сесію підключимо на наступному кроці.
           </CardDescription>
         </div>
@@ -145,7 +147,7 @@ export function RegisterForm() {
         <form className="space-y-5" onSubmit={handleSubmit} noValidate>
           <div className="grid gap-5 sm:grid-cols-2">
             <div className="space-y-2">
-              <Label htmlFor="firstName">Ім'я</Label>
+              <Label htmlFor="firstName">Ім&apos;я</Label>
               <Input
                 id="firstName"
                 name="firstName"
@@ -177,7 +179,7 @@ export function RegisterForm() {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="email">Email</Label>
+            <Label htmlFor="email">Електронна пошта</Label>
             <Input
               id="email"
               name="email"

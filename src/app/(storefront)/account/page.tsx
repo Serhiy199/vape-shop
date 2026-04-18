@@ -1,12 +1,12 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 export default function AccountPage() {
   return (
     <Card className="border-border/70 bg-background/80 shadow-none">
       <CardHeader className="space-y-3">
         <div className="flex flex-wrap items-center gap-3">
-          <Badge variant="secondary">Client only</Badge>
+          <Badge variant="secondary">Лише для клієнта</Badge>
           <Badge variant="outline">/account</Badge>
         </div>
         <CardTitle className="text-2xl font-semibold tracking-tight">

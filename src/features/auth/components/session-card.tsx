@@ -14,7 +14,7 @@ function getDisplayName(session: Session | null) {
     return fullName;
   }
 
-  return session?.user?.email ?? "Guest";
+  return session?.user?.email ?? "Гість";
 }
 
 export function SessionCard({
@@ -40,7 +40,7 @@ export function SessionCard({
       <CardHeader className="space-y-3">
         <div className="flex flex-wrap items-center gap-2">
           <Badge variant={isAuthenticated ? "secondary" : "outline"}>
-            {isAuthenticated ? "Authenticated" : "Guest"}
+            {isAuthenticated ? "Авторизовано" : "Гість"}
           </Badge>
           {session?.user?.role ? (
             <Badge variant={isAdminRole(session.user.role) ? "default" : "outline"}>
@@ -62,7 +62,7 @@ export function SessionCard({
               </div>
               <div className="rounded-2xl border border-border/70 bg-card px-4 py-3">
                 <p className="text-muted-foreground text-xs uppercase tracking-[0.18em]">
-                  Email
+                  Електронна пошта
                 </p>
                 <p className="mt-2 break-all font-medium">{session?.user?.email}</p>
               </div>
@@ -79,8 +79,8 @@ export function SessionCard({
           </>
         ) : (
           <p className="text-muted-foreground text-sm leading-6">
-            Користувач ще не увійшов у систему. Після login тут з&apos;являться
-            роль, email і кнопка виходу.
+            Користувач ще не увійшов у систему. Після входу тут з&apos;являться
+            роль, електронна пошта й кнопка виходу.
           </p>
         )}
       </CardContent>

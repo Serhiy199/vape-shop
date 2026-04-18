@@ -16,7 +16,7 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Voodoo Vape",
   description:
-    "Phase 1 bootstrap for the Voodoo Vape storefront and admin platform.",
+    "Технічний фундамент Voodoo Vape для storefront і адмін-панелі.",
 };
 
 export default function RootLayout({

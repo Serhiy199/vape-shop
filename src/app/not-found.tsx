@@ -5,10 +5,11 @@ export default function NotFound() {
         <p className="text-muted-foreground text-sm uppercase tracking-[0.24em]">
           404
         </p>
-        <h1 className="text-3xl font-semibold tracking-tight">Page not found</h1>
+        <h1 className="text-3xl font-semibold tracking-tight">
+          Сторінку не знайдено
+        </h1>
         <p className="text-muted-foreground">
-          The app shell is working, but this route segment has not been built
-          yet.
+          Каркас застосунку працює, але цей маршрут ще не реалізований.
         </p>
       </div>
     </main>

@@ -36,7 +36,7 @@ export function AccessShell({
         <CardHeader className="space-y-4">
           <div className="flex flex-wrap items-center gap-3">
             <Badge variant="secondary">{badge}</Badge>
-            <Badge variant="outline">Protected Area</Badge>
+            <Badge variant="outline">Захищена зона</Badge>
           </div>
           <div className="space-y-2">
             <CardTitle className="text-3xl font-semibold tracking-tight">
