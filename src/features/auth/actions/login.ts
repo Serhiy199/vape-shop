@@ -4,6 +4,8 @@ import { AuthError } from "next-auth";
 
 import { signIn } from "@/lib/auth/auth";
 import { loginSchema } from "@/features/auth/schemas";
+import { getUserByEmail } from "@/server/repositories/user.repository";
+import { getRoleHomePath } from "@/lib/auth/roles";
 
 export type LoginFormState = {
   error: string | null;
@@ -30,10 +32,16 @@ export async function loginAction(
   }
 
   try {
+    const user = await getUserByEmail(parsed.data.email);
+    const redirectTo =
+      parsed.data.redirectTo === "/"
+        ? getRoleHomePath(user?.role)
+        : parsed.data.redirectTo;
+
     await signIn("credentials", {
       email: parsed.data.email,
       password: parsed.data.password,
-      redirectTo: parsed.data.redirectTo,
+      redirectTo,
     });
 
     return initialLoginFormState;

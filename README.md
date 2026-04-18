@@ -33,13 +33,37 @@ cp .env.example .env.local
 npm run prisma:generate
 ```
 
-5. Start the dev server:
+5. Seed initial data, including the admin account:
+
+```bash
+npm run prisma:seed
+```
+
+Default admin credentials come from `.env.example`:
+
+- `SEED_ADMIN_EMAIL`
+- `SEED_ADMIN_PASSWORD`
+- `SEED_ADMIN_FIRST_NAME`
+- `SEED_ADMIN_LAST_NAME`
+
+6. Start the dev server:
 
 ```bash
 npm run dev
 ```
 
-6. Open [http://localhost:3000](http://localhost:3000).
+7. Open [http://localhost:3000](http://localhost:3000).
+
+## Auth Smoke Test
+
+After seeding and starting the app, verify the auth flow:
+
+1. Open `/register` and create a new client account.
+2. Open `/login` and sign in with the new client account.
+3. Confirm `/account` is accessible for the client.
+4. Confirm `/admin` redirects the client away.
+5. Sign in with the seeded admin credentials.
+6. Confirm `/admin` and `/admin/users` are accessible only for the admin.
 
 ## Project Structure
 

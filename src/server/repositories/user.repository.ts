@@ -1,3 +1,5 @@
+import { UserRole } from "@prisma/client";
+
 import { prisma } from "@/lib/prisma/client";
 
 export async function getUserByEmail(email: string) {
@@ -14,6 +16,7 @@ export async function createUser(input: {
   firstName?: string;
   lastName?: string;
   phone?: string;
+  role?: UserRole;
 }) {
   return prisma.user.create({
     data: {
@@ -22,6 +25,7 @@ export async function createUser(input: {
       firstName: input.firstName,
       lastName: input.lastName,
       phone: input.phone,
+      role: input.role ?? UserRole.CLIENT,
     },
   });
 }

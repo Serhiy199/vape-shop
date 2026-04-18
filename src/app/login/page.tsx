@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 
 import { LoginForm } from "@/features/auth/components/login-form";
 import { auth } from "@/lib/auth/auth";
+import { getRoleHomePath } from "@/lib/auth/roles";
 
 type SearchParams = Record<string, string | string[] | undefined>;
 
@@ -28,7 +29,7 @@ export default async function LoginPage(props: {
   ]);
 
   if (session?.user) {
-    redirect(session.user.role === "ADMIN" ? "/admin" : "/");
+    redirect(getRoleHomePath(session.user.role));
   }
 
   const redirectTo = normalizeRedirectTo(searchParams.callbackUrl);

@@ -1,3 +1,4 @@
+import { UserRole } from "@prisma/client";
 import { NextResponse } from "next/server";
 
 import { registerSchema } from "@/features/auth/schemas";
@@ -63,6 +64,7 @@ export async function POST(request: Request) {
     firstName: parsed.data.firstName,
     lastName: parsed.data.lastName,
     phone: parsed.data.phone,
+    role: UserRole.CLIENT,
   });
 
   return NextResponse.json(

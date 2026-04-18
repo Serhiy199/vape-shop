@@ -3,6 +3,7 @@ import type { Session } from "next-auth";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { LogoutButton } from "@/features/auth/components/logout-button";
+import { getRoleLabel, isAdminRole } from "@/lib/auth/roles";
 
 function getDisplayName(session: Session | null) {
   const firstName = session?.user?.firstName?.trim();
@@ -42,7 +43,9 @@ export function SessionCard({
             {isAuthenticated ? "Authenticated" : "Guest"}
           </Badge>
           {session?.user?.role ? (
-            <Badge variant="outline">{session.user.role}</Badge>
+            <Badge variant={isAdminRole(session.user.role) ? "default" : "outline"}>
+              {getRoleLabel(session.user.role)}
+            </Badge>
           ) : null}
         </div>
         <CardTitle className="text-lg">{title}</CardTitle>
@@ -62,6 +65,14 @@ export function SessionCard({
                   Email
                 </p>
                 <p className="mt-2 break-all font-medium">{session?.user?.email}</p>
+              </div>
+              <div className="rounded-2xl border border-border/70 bg-card px-4 py-3 sm:col-span-2">
+                <p className="text-muted-foreground text-xs uppercase tracking-[0.18em]">
+                  Роль
+                </p>
+                <p className="mt-2 font-medium">
+                  {getRoleLabel(session?.user?.role)}
+                </p>
               </div>
             </div>
             <LogoutButton />

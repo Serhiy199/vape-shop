@@ -4,6 +4,7 @@ import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { SessionCard } from "@/features/auth/components/session-card";
+import { isAdminRole } from "@/lib/auth/roles";
 
 export default async function StorefrontHomePage() {
   const session = await auth();
@@ -48,9 +49,25 @@ export default async function StorefrontHomePage() {
           </div>
           <Separator />
           <div className="flex flex-wrap gap-3">
-            <a className={buttonVariants()} href="/admin">
-              Open admin shell
-            </a>
+            {isAdminRole(session?.user?.role) ? (
+              <a className={buttonVariants()} href="/admin">
+                Open admin shell
+              </a>
+            ) : (
+              <a className={buttonVariants()} href="/account">
+                Open account
+              </a>
+            )}
+            {session?.user && !isAdminRole(session.user.role) ? (
+              <a className={buttonVariants({ variant: "outline" })} href="/account">
+                Client cabinet
+              </a>
+            ) : null}
+            {isAdminRole(session?.user?.role) ? (
+              <a className={buttonVariants({ variant: "outline" })} href="/admin/users">
+                Manage users
+              </a>
+            ) : null}
             {!session?.user ? (
               <>
                 <a className={buttonVariants({ variant: "outline" })} href="/login">
