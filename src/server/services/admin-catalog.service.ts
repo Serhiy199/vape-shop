@@ -2,24 +2,31 @@ import { SubcategoryFieldType } from "@prisma/client";
 
 import {
   createBrandSchema,
+  createProductSchema,
   createSubcategoryFieldSchema,
   createSubcategorySchema,
   deleteBrandSchema,
+  deleteProductSchema,
   deleteSubcategoryFieldSchema,
   deleteSubcategorySchema,
   updateBrandSchema,
   updateCategorySchema,
+  updateProductSchema,
   updateSubcategoryFieldSchema,
   updateSubcategorySchema,
   type CreateBrandInput,
+  type CreateProductInput,
   type CreateSubcategoryFieldInput,
   type CreateSubcategoryInput,
   type DeleteBrandInput,
+  type DeleteProductInput,
   type DeleteSubcategoryFieldInput,
   type DeleteSubcategoryInput,
   type ProductFieldValueInput,
+  type ProductImageInput,
   type UpdateBrandInput,
   type UpdateCategoryInput,
+  type UpdateProductInput,
   type UpdateSubcategoryFieldInput,
   type UpdateSubcategoryInput,
   type ValidateProductFieldValuesInput,
@@ -27,6 +34,7 @@ import {
 } from "@/features/catalog/schemas";
 import {
   createBrand,
+  createProduct,
   createSubcategoryField,
   createSubcategory,
   deleteBrand,
@@ -35,6 +43,8 @@ import {
   getBrandById,
   getBrandByName,
   getBrandBySlug,
+  getProductById,
+  getProductBySlug,
   getAdminSubcategoryFieldById,
   getCategoryById,
   getCategoryByName,
@@ -45,8 +55,10 @@ import {
   getSubcategoryByScopedName,
   getSubcategoryByScopedSlug,
   listSubcategoryFields,
+  softDeleteProduct,
   updateBrand,
   updateFixedCategory,
+  updateProduct,
   updateSubcategoryField,
   updateSubcategory,
 } from "@/server/repositories/catalog.repository";
@@ -70,6 +82,26 @@ type NormalizedProductFieldValue = {
   valueBoolean?: boolean;
   valueNumber?: number;
   valueText?: string;
+};
+
+type NormalizedProductWritePayload = {
+  availability: CreateProductInput["availability"];
+  brandId?: string;
+  categoryId: string;
+  description?: string;
+  fieldValues: NormalizedProductFieldValue[];
+  id?: string;
+  images: ProductImageInput[];
+  isActive: boolean;
+  isFeaturedHit: boolean;
+  isFeaturedNew: boolean;
+  isFeaturedSale: boolean;
+  price: number;
+  seoDescription?: string;
+  seoTitle?: string;
+  slug: string;
+  subcategoryId: string;
+  title: string;
 };
 
 function validationError(fieldErrors: Record<string, string[] | undefined>) {
@@ -724,6 +756,142 @@ export async function validateProductFieldValuesCompatibility(
   });
 }
 
+async function normalizeProductFieldValues(input: {
+  categoryId: string;
+  subcategoryId: string;
+  fieldValues: ProductFieldValueInput[];
+}) {
+  const compatibility = await validateProductFieldValuesCompatibility(input);
+
+  if (!compatibility.ok) {
+    return compatibility;
+  }
+
+  return compatibility.data.fieldValues;
+}
+
+async function validateProductRelations(input: {
+  categoryId: string;
+  subcategoryId: string;
+  brandId?: string;
+}) {
+  const category = await ensureFixedCategory(input.categoryId);
+
+  if (!category) {
+    return {
+      ok: false as const,
+      error: "Потрібно вибрати існуючу fixed category для товару.",
+      fieldErrors: {
+        categoryId: ["Потрібно вибрати існуючу fixed category."],
+      },
+    };
+  }
+
+  const subcategory = await getSubcategoryById(input.subcategoryId);
+
+  if (!subcategory) {
+    return {
+      ok: false as const,
+      error: "Підкатегорію товару не знайдено.",
+      fieldErrors: {
+        subcategoryId: ["Потрібно вибрати існуючу підкатегорію."],
+      },
+    };
+  }
+
+  if (subcategory.categoryId !== input.categoryId) {
+    return {
+      ok: false as const,
+      error:
+        "Підкатегорія не належить до вибраної категорії, тому товар не можна зберегти.",
+      fieldErrors: {
+        subcategoryId: ["Підкатегорія не належить до вибраної категорії."],
+      },
+    };
+  }
+
+  if (!input.brandId) {
+    return null;
+  }
+
+  const brand = await getBrandById(input.brandId);
+
+  if (!brand) {
+    return {
+      ok: false as const,
+      error: "Бренд товару не знайдено.",
+      fieldErrors: {
+        brandId: ["Потрібно вибрати існуючий бренд або залишити поле порожнім."],
+      },
+    };
+  }
+
+  return null;
+}
+
+async function validateProductSlugUniqueness(
+  payload: CreateProductInput | UpdateProductInput,
+  currentId?: string,
+) {
+  const duplicatedSlug = await getProductBySlug(payload.slug);
+
+  if (duplicatedSlug && duplicatedSlug.id !== currentId) {
+    return {
+      ok: false as const,
+      error: "Товар з таким slug вже існує.",
+      fieldErrors: {
+        slug: ["Товар з таким slug вже існує."],
+      },
+    };
+  }
+
+  return null;
+}
+
+async function normalizeProductWritePayload(
+  payload: CreateProductInput | UpdateProductInput,
+): Promise<MutationResult<NormalizedProductWritePayload>> {
+  const relationError = await validateProductRelations({
+    categoryId: payload.categoryId,
+    subcategoryId: payload.subcategoryId,
+    brandId: payload.brandId,
+  });
+
+  if (relationError) {
+    return relationError;
+  }
+
+  const normalizedFieldValues = await normalizeProductFieldValues({
+    categoryId: payload.categoryId,
+    subcategoryId: payload.subcategoryId,
+    fieldValues: payload.fieldValues,
+  });
+
+  if (!Array.isArray(normalizedFieldValues)) {
+    return normalizedFieldValues;
+  }
+
+  return ok({
+    availability: payload.availability,
+    brandId: payload.brandId,
+    categoryId: payload.categoryId,
+    description: payload.description,
+    fieldValues: normalizedFieldValues,
+    id: "id" in payload ? payload.id : undefined,
+    images: payload.images,
+    isActive: payload.isActive,
+    isFeaturedHit: payload.isFeaturedHit,
+    isFeaturedNew: payload.isFeaturedNew,
+    isFeaturedSale: payload.isFeaturedSale,
+    price: payload.price,
+    seoDescription: payload.seoDescription,
+    seoTitle: payload.seoTitle,
+    slug: payload.slug,
+    subcategoryId: payload.subcategoryId,
+    title: payload.title,
+  });
+}
+
 async function validateBrandUniqueness(
   payload: CreateBrandInput | UpdateBrandInput,
   currentId?: string,
@@ -842,4 +1010,113 @@ export async function deleteAdminBrand(input: unknown): Promise<
   const deletedBrand = await deleteBrand(payload.id);
 
   return ok(deletedBrand);
+}
+
+export async function createAdminProduct(input: unknown): Promise<
+  MutationResult<{
+    id: string;
+    slug: string;
+    title: string;
+  }>
+> {
+  const parsed = createProductSchema.safeParse(input);
+
+  if (!parsed.success) {
+    return validationError(parsed.error.flatten().fieldErrors);
+  }
+
+  const payload: CreateProductInput = parsed.data;
+  const uniquenessError = await validateProductSlugUniqueness(payload);
+
+  if (uniquenessError) {
+    return uniquenessError;
+  }
+
+  const normalizedPayload = await normalizeProductWritePayload(payload);
+
+  if (!normalizedPayload.ok) {
+    return normalizedPayload;
+  }
+
+  const product = await createProduct(normalizedPayload.data);
+
+  return ok({
+    id: product.id,
+    slug: product.slug,
+    title: product.title,
+  });
+}
+
+export async function updateAdminProduct(input: unknown): Promise<
+  MutationResult<{
+    id: string;
+    slug: string;
+    title: string;
+  }>
+> {
+  const parsed = updateProductSchema.safeParse(input);
+
+  if (!parsed.success) {
+    return validationError(parsed.error.flatten().fieldErrors);
+  }
+
+  const payload: UpdateProductInput = parsed.data;
+  const existingProduct = await getProductById(payload.id);
+
+  if (!existingProduct) {
+    return {
+      ok: false,
+      error: "Товар не знайдено.",
+    };
+  }
+
+  const uniquenessError = await validateProductSlugUniqueness(payload, payload.id);
+
+  if (uniquenessError) {
+    return uniquenessError;
+  }
+
+  const normalizedPayload = await normalizeProductWritePayload(payload);
+
+  if (!normalizedPayload.ok) {
+    return normalizedPayload;
+  }
+
+  const product = await updateProduct({
+    ...normalizedPayload.data,
+    id: payload.id,
+  });
+
+  return ok({
+    id: product.id,
+    slug: product.slug,
+    title: product.title,
+  });
+}
+
+export async function deleteAdminProduct(input: unknown): Promise<
+  MutationResult<{
+    id: string;
+    isActive: boolean;
+  }>
+> {
+  const parsed = deleteProductSchema.safeParse(input);
+
+  if (!parsed.success) {
+    return validationError(parsed.error.flatten().fieldErrors);
+  }
+
+  const payload: DeleteProductInput = parsed.data;
+  const existingProduct = await getProductById(payload.id);
+
+  if (!existingProduct) {
+    return {
+      ok: false,
+      error: "Товар не знайдено.",
+    };
+  }
+
+  const deletedProduct = await softDeleteProduct(payload.id);
+
+  return ok(deletedProduct);
 }
