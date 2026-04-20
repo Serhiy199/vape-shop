@@ -5,10 +5,13 @@ import { revalidatePath } from "next/cache";
 import { requireAdmin } from "@/lib/auth/permissions";
 import {
   createAdminBrand,
+  createAdminSubcategoryField,
   createAdminSubcategory,
   deleteAdminBrand,
+  deleteAdminSubcategoryField,
   deleteAdminSubcategory,
   updateAdminBrand,
+  updateAdminSubcategoryField,
   updateAdminSubcategory,
   updateCategory,
   type MutationResult,
@@ -17,6 +20,7 @@ import {
 function revalidateCatalogAdminPaths() {
   revalidatePath("/admin/categories");
   revalidatePath("/admin/subcategories");
+  revalidatePath("/admin/fields");
   revalidatePath("/admin/brands");
 }
 
@@ -66,6 +70,42 @@ export async function updateSubcategoryAction(input: unknown) {
 export async function deleteSubcategoryAction(input: unknown) {
   return withAdminAccess(async () => {
     const result = await deleteAdminSubcategory(input);
+
+    if (result.ok) {
+      revalidateCatalogAdminPaths();
+    }
+
+    return result;
+  });
+}
+
+export async function createSubcategoryFieldAction(input: unknown) {
+  return withAdminAccess(async () => {
+    const result = await createAdminSubcategoryField(input);
+
+    if (result.ok) {
+      revalidateCatalogAdminPaths();
+    }
+
+    return result;
+  });
+}
+
+export async function updateSubcategoryFieldAction(input: unknown) {
+  return withAdminAccess(async () => {
+    const result = await updateAdminSubcategoryField(input);
+
+    if (result.ok) {
+      revalidateCatalogAdminPaths();
+    }
+
+    return result;
+  });
+}
+
+export async function deleteSubcategoryFieldAction(input: unknown) {
+  return withAdminAccess(async () => {
+    const result = await deleteAdminSubcategoryField(input);
 
     if (result.ok) {
       revalidateCatalogAdminPaths();

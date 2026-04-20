@@ -1,35 +1,49 @@
+import { SubcategoryFieldType } from "@prisma/client";
+
 import {
   createBrandSchema,
+  createSubcategoryFieldSchema,
   createSubcategorySchema,
   deleteBrandSchema,
+  deleteSubcategoryFieldSchema,
   deleteSubcategorySchema,
   updateBrandSchema,
   updateCategorySchema,
+  updateSubcategoryFieldSchema,
   updateSubcategorySchema,
   type CreateBrandInput,
+  type CreateSubcategoryFieldInput,
   type CreateSubcategoryInput,
   type DeleteBrandInput,
+  type DeleteSubcategoryFieldInput,
   type DeleteSubcategoryInput,
   type UpdateBrandInput,
   type UpdateCategoryInput,
+  type UpdateSubcategoryFieldInput,
   type UpdateSubcategoryInput,
 } from "@/features/catalog/schemas";
 import {
   createBrand,
+  createSubcategoryField,
   createSubcategory,
   deleteBrand,
+  deleteSubcategoryField,
   deleteSubcategory,
   getBrandById,
   getBrandByName,
   getBrandBySlug,
+  getAdminSubcategoryFieldById,
   getCategoryById,
   getCategoryByName,
   getCategoryBySlug,
+  getSubcategoryFieldById,
+  getSubcategoryFieldByScopedKey,
   getSubcategoryById,
   getSubcategoryByScopedName,
   getSubcategoryByScopedSlug,
   updateBrand,
   updateFixedCategory,
+  updateSubcategoryField,
   updateSubcategory,
 } from "@/server/repositories/catalog.repository";
 
@@ -158,6 +172,111 @@ async function validateSubcategoryUniqueness(
   return null;
 }
 
+async function validateSubcategoryFieldUniqueness(
+  payload: CreateSubcategoryFieldInput | UpdateSubcategoryFieldInput,
+  currentId?: string,
+) {
+  const duplicatedField = await getSubcategoryFieldByScopedKey({
+    subcategoryId: payload.subcategoryId,
+    key: payload.key,
+  });
+
+  if (duplicatedField && duplicatedField.id !== currentId) {
+    return {
+      ok: false as const,
+      error: "У цій підкатегорії вже існує поле з таким ключем.",
+      fieldErrors: {
+        key: ["У цій підкатегорії вже існує поле з таким ключем."],
+      },
+    };
+  }
+
+  return null;
+}
+
+function validateFieldUsageCompatibility(input: {
+  currentSubcategoryId: string;
+  nextSubcategoryId: string;
+  currentType: SubcategoryFieldType;
+  nextType: SubcategoryFieldType;
+  productValuesCount: number;
+  currentOptions: Array<{
+    value: string;
+    _count?: {
+      valuesUsed: true | number;
+    };
+  }>;
+  nextOptions: Array<{
+    value: string;
+  }>;
+}) {
+  if (input.productValuesCount === 0) {
+    return null;
+  }
+
+  if (input.currentSubcategoryId !== input.nextSubcategoryId) {
+    return {
+      ok: false as const,
+      error:
+        "Не можна переносити поле в іншу підкатегорію, поки воно використовується товарами.",
+      fieldErrors: {
+        subcategoryId: [
+          "Не можна переносити поле в іншу підкатегорію, поки воно використовується товарами.",
+        ],
+      },
+    };
+  }
+
+  if (input.currentType !== input.nextType) {
+    return {
+      ok: false as const,
+      error:
+        "Не можна змінити тип поля, поки воно вже використовується в товарах.",
+      fieldErrors: {
+        type: ["Не можна змінити тип поля, поки воно вже використовується в товарах."],
+      },
+    };
+  }
+
+  if (input.nextType !== SubcategoryFieldType.SELECT) {
+    return null;
+  }
+
+  const nextOptionValues = new Set(
+    input.nextOptions.map((option) => option.value.trim().toLowerCase()),
+  );
+
+  const removedUsedOption = input.currentOptions.some((option) => {
+    const usageCount =
+      typeof option._count?.valuesUsed === "number"
+        ? option._count.valuesUsed
+        : option._count?.valuesUsed
+          ? 1
+          : 0;
+
+    if (usageCount === 0) {
+      return false;
+    }
+
+    return !nextOptionValues.has(option.value.trim().toLowerCase());
+  });
+
+  if (removedUsedOption) {
+    return {
+      ok: false as const,
+      error:
+        "Не можна видаляти або замінювати select-опції, які вже використовуються товарами.",
+      fieldErrors: {
+        options: [
+          "Не можна видаляти або замінювати select-опції, які вже використовуються товарами.",
+        ],
+      },
+    };
+  }
+
+  return null;
+}
+
 export async function createAdminSubcategory(input: unknown): Promise<
   MutationResult<{
     id: string;
@@ -192,6 +311,42 @@ export async function createAdminSubcategory(input: unknown): Promise<
   const subcategory = await createSubcategory(payload);
 
   return ok(subcategory);
+}
+
+export async function createAdminSubcategoryField(input: unknown): Promise<
+  MutationResult<{
+    id: string;
+    label: string;
+    key: string;
+  }>
+> {
+  const parsed = createSubcategoryFieldSchema.safeParse(input);
+
+  if (!parsed.success) {
+    return validationError(parsed.error.flatten().fieldErrors);
+  }
+
+  const payload: CreateSubcategoryFieldInput = parsed.data;
+  const subcategory = await getSubcategoryById(payload.subcategoryId);
+
+  if (!subcategory) {
+    return {
+      ok: false,
+      error: "Підкатегорію для поля не знайдено.",
+      fieldErrors: {
+        subcategoryId: ["Потрібно вибрати існуючу підкатегорію."],
+      },
+    };
+  }
+
+  const uniquenessError = await validateSubcategoryFieldUniqueness(payload);
+  if (uniquenessError) {
+    return uniquenessError;
+  }
+
+  const field = await createSubcategoryField(payload);
+
+  return ok(field);
 }
 
 export async function updateAdminSubcategory(input: unknown): Promise<
@@ -238,6 +393,68 @@ export async function updateAdminSubcategory(input: unknown): Promise<
   return ok(updatedSubcategory);
 }
 
+export async function updateAdminSubcategoryField(input: unknown): Promise<
+  MutationResult<{
+    id: string;
+    label: string;
+    key: string;
+  }>
+> {
+  const parsed = updateSubcategoryFieldSchema.safeParse(input);
+
+  if (!parsed.success) {
+    return validationError(parsed.error.flatten().fieldErrors);
+  }
+
+  const payload: UpdateSubcategoryFieldInput = parsed.data;
+  const existingField = await getAdminSubcategoryFieldById(payload.id);
+
+  if (!existingField) {
+    return {
+      ok: false,
+      error: "Поле підкатегорії не знайдено.",
+    };
+  }
+
+  const subcategory = await getSubcategoryById(payload.subcategoryId);
+
+  if (!subcategory) {
+    return {
+      ok: false,
+      error: "Підкатегорію для поля не знайдено.",
+      fieldErrors: {
+        subcategoryId: ["Потрібно вибрати існуючу підкатегорію."],
+      },
+    };
+  }
+
+  const uniquenessError = await validateSubcategoryFieldUniqueness(
+    payload,
+    payload.id,
+  );
+  if (uniquenessError) {
+    return uniquenessError;
+  }
+
+  const usageCompatibilityError = validateFieldUsageCompatibility({
+    currentSubcategoryId: existingField.subcategoryId,
+    nextSubcategoryId: payload.subcategoryId,
+    currentType: existingField.type,
+    nextType: payload.type,
+    productValuesCount: existingField._count.productValues,
+    currentOptions: existingField.options,
+    nextOptions: payload.options,
+  });
+
+  if (usageCompatibilityError) {
+    return usageCompatibilityError;
+  }
+
+  const updatedField = await updateSubcategoryField(payload);
+
+  return ok(updatedField);
+}
+
 export async function deleteAdminSubcategory(input: unknown): Promise<
   MutationResult<{
     id: string;
@@ -270,6 +487,40 @@ export async function deleteAdminSubcategory(input: unknown): Promise<
   const deletedSubcategory = await deleteSubcategory(payload.id);
 
   return ok(deletedSubcategory);
+}
+
+export async function deleteAdminSubcategoryField(input: unknown): Promise<
+  MutationResult<{
+    id: string;
+  }>
+> {
+  const parsed = deleteSubcategoryFieldSchema.safeParse(input);
+
+  if (!parsed.success) {
+    return validationError(parsed.error.flatten().fieldErrors);
+  }
+
+  const payload: DeleteSubcategoryFieldInput = parsed.data;
+  const field = await getSubcategoryFieldById(payload.id);
+
+  if (!field) {
+    return {
+      ok: false,
+      error: "Поле підкатегорії не знайдено.",
+    };
+  }
+
+  if (field._count.productValues > 0) {
+    return {
+      ok: false,
+      error:
+        "Не можна видалити поле, поки воно використовується в товарах цієї підкатегорії.",
+    };
+  }
+
+  const deletedField = await deleteSubcategoryField(payload.id);
+
+  return ok(deletedField);
 }
 
 async function validateBrandUniqueness(
