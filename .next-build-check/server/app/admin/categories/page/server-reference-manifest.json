@@ -1,0 +1,35 @@
+{
+  "node": {
+    "0000c0dc674aa768b3a10ababb04ff76285b55343e": {
+      "workers": {
+        "app/admin/categories/page": {
+          "moduleId": 53163,
+          "async": false,
+          "exportedName": "logoutAction",
+          "filename": "src/features/auth/actions/logout.ts"
+        }
+      },
+      "layer": {
+        "app/admin/categories/page": "rsc"
+      },
+      "exportedName": "logoutAction",
+      "filename": "src/features/auth/actions/logout.ts"
+    },
+    "40d5895812e8931bfb8e43143740033da7ae0a55d9": {
+      "workers": {
+        "app/admin/categories/page": {
+          "moduleId": 53163,
+          "async": false,
+          "exportedName": "updateCategoryAction",
+          "filename": "src/features/catalog/actions/admin-catalog.ts"
+        }
+      },
+      "layer": {
+        "app/admin/categories/page": "action-browser"
+      },
+      "exportedName": "updateCategoryAction",
+      "filename": "src/features/catalog/actions/admin-catalog.ts"
+    }
+  },
+  "edge": {}
+}

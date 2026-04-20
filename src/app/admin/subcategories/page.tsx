@@ -14,6 +14,7 @@ import {
   AdminStatsGrid,
 } from "@/components/admin/admin-primitives";
 import { Badge } from "@/components/ui/badge";
+import { AdminSubcategoryCrud } from "@/features/catalog/components/admin-subcategory-crud";
 import { getAdminSubcategoriesPageData } from "@/server/queries/admin-catalog.query";
 
 type SearchParams = Promise<{ selected?: string }>;
@@ -24,7 +25,7 @@ export default async function AdminSubcategoriesPage({
   searchParams?: SearchParams;
 }) {
   const params = searchParams ? await searchParams : {};
-  const { subcategories, selectedSubcategory } =
+  const { categories, subcategories, selectedSubcategory } =
     await getAdminSubcategoriesPageData(params.selected);
 
   const activeCount = subcategories.filter(
@@ -43,9 +44,9 @@ export default async function AdminSubcategoriesPage({
     <div className="space-y-6">
       <AdminPageHeader
         eyebrow="Підкатегорії"
-        title="Підкатегорії вже підключені до каталожного дерева"
-        description="Екран читає реальні підкатегорії разом із батьківською категорією, порядком сортування, SEO та кількістю полів. Це основа для наступного CRUD-кроку."
-        badges={["Етап 5", "CRUD наступним кроком"]}
+        title="CRUD для підкатегорій уже працює в адмінці"
+        description="Тепер адміністратор може створювати, редагувати й видаляти підкатегорії всередині fixed categories, не торкаючись коду. Усі дії проходять через валідацію та write-side."
+        badges={["Етап 5", "CRUD готовий"]}
       />
 
       <AdminStatsGrid
@@ -58,7 +59,7 @@ export default async function AdminSubcategoriesPage({
           {
             label: "Активні",
             value: activeCount.toString(),
-            note: "Це майбутня база для швидкого toggle активності прямо зі списку.",
+            note: "Активність уже керується прямо з CRUD-форми, без ручних змін у коді.",
           },
           {
             label: "Поля",
@@ -68,7 +69,7 @@ export default async function AdminSubcategoriesPage({
           {
             label: "Товари",
             value: totalProducts.toString(),
-            note: "Допомагає бачити, які гілки каталогу вже використовуються товарами.",
+            note: "Допомагає бачити, які гілки каталогу вже реально використовуються.",
           },
         ]}
       />
@@ -82,12 +83,12 @@ export default async function AdminSubcategoriesPage({
           },
           { href: "/admin/fields", label: "Відкрити поля", variant: "outline" },
         ]}
-        note="На наступному кроці тут з'являться create/edit/delete для підкатегорій, але вже поверх готового read-side і прив'язки до category."
+        note="Створення, оновлення і видалення вже працюють на цій сторінці; адміну не потрібно лізти в код, щоб керувати структурою підкатегорій."
       />
 
       <AdminSectionCard
         title="Список і деталі підкатегорій"
-        description="Ліва колонка показує структуру дерева з батьківською категорією, права — деталі обраної підкатегорії й пов'язані поля."
+        description="Ліва колонка показує структуру дерева з батьківською категорією, права — деталі обраної підкатегорії та CRUD-інструменти."
       >
         <AdminSplitLayout
           list={
@@ -156,8 +157,8 @@ export default async function AdminSubcategoriesPage({
                 <div>
                   <p className="text-sm font-medium">Деталі підкатегорії</p>
                   <p className="text-muted-foreground text-sm leading-6">
-                    Detail panel уже готовий під наступну форму create/edit без
-                    повторної верстки.
+                    Detail panel уже показує реальні дані, а нижче розміщена
+                    робоча форма update/delete.
                   </p>
                 </div>
 
@@ -199,6 +200,27 @@ export default async function AdminSubcategoriesPage({
                   ]}
                 />
 
+                <AdminSubcategoryCrud
+                  categories={categories.map((category) => ({
+                    id: category.id,
+                    name: category.name,
+                    slug: category.slug,
+                  }))}
+                  selectedSubcategory={{
+                    id: selectedSubcategory.id,
+                    category: {
+                      id: selectedSubcategory.category.id,
+                    },
+                    description: selectedSubcategory.description,
+                    isActive: selectedSubcategory.isActive,
+                    name: selectedSubcategory.name,
+                    seoDescription: selectedSubcategory.seoDescription,
+                    seoTitle: selectedSubcategory.seoTitle,
+                    slug: selectedSubcategory.slug,
+                    sortOrder: selectedSubcategory.sortOrder,
+                  }}
+                />
+
                 <AdminSectionCard
                   title="Пов'язані поля"
                   description="Можемо одразу побачити, наскільки підкатегорія підготовлена для характеристик товару."
@@ -238,11 +260,22 @@ export default async function AdminSubcategoriesPage({
                 </AdminSectionCard>
               </div>
             ) : (
-              <AdminEmptyState
-                icon={getAdminModuleIcon("subcategories")}
-                title="Немає обраної підкатегорії"
-                description="Після появи хоча б одного запису тут автоматично з'явиться детальний перегляд."
-              />
+              <div className="space-y-4">
+                <AdminEmptyState
+                  icon={getAdminModuleIcon("subcategories")}
+                  title="Немає обраної підкатегорії"
+                  description="Можна одразу створити нову підкатегорію нижче, або вибрати існуючу зі списку для редагування."
+                />
+
+                <AdminSubcategoryCrud
+                  categories={categories.map((category) => ({
+                    id: category.id,
+                    name: category.name,
+                    slug: category.slug,
+                  }))}
+                  selectedSubcategory={null}
+                />
+              </div>
             )
           }
         />

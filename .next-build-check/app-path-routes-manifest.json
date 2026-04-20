@@ -1,0 +1,22 @@
+{
+  "/(storefront)/account/page": "/account",
+  "/(storefront)/page": "/",
+  "/_global-error/page": "/_global-error",
+  "/_not-found/page": "/_not-found",
+  "/admin/brands/page": "/admin/brands",
+  "/admin/categories/page": "/admin/categories",
+  "/admin/fields/page": "/admin/fields",
+  "/admin/orders/page": "/admin/orders",
+  "/admin/page": "/admin",
+  "/admin/products/page": "/admin/products",
+  "/admin/promo-codes/page": "/admin/promo-codes",
+  "/admin/seo/page": "/admin/seo",
+  "/admin/subcategories/page": "/admin/subcategories",
+  "/admin/users/page": "/admin/users",
+  "/api/auth/[...nextauth]/route": "/api/auth/[...nextauth]",
+  "/api/auth/register/route": "/api/auth/register",
+  "/login/page": "/login",
+  "/register/page": "/register",
+  "/robots.txt/route": "/robots.txt",
+  "/sitemap.xml/route": "/sitemap.xml"
+}

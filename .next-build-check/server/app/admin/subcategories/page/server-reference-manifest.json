@@ -1,0 +1,65 @@
+{
+  "node": {
+    "0000c0dc674aa768b3a10ababb04ff76285b55343e": {
+      "workers": {
+        "app/admin/subcategories/page": {
+          "moduleId": 57236,
+          "async": false,
+          "exportedName": "logoutAction",
+          "filename": "src/features/auth/actions/logout.ts"
+        }
+      },
+      "layer": {
+        "app/admin/subcategories/page": "rsc"
+      },
+      "exportedName": "logoutAction",
+      "filename": "src/features/auth/actions/logout.ts"
+    },
+    "405a19ffbec9a8582733fd8088327c85043e32de2c": {
+      "workers": {
+        "app/admin/subcategories/page": {
+          "moduleId": 57236,
+          "async": false,
+          "exportedName": "createSubcategoryAction",
+          "filename": "src/features/catalog/actions/admin-catalog.ts"
+        }
+      },
+      "layer": {
+        "app/admin/subcategories/page": "action-browser"
+      },
+      "exportedName": "createSubcategoryAction",
+      "filename": "src/features/catalog/actions/admin-catalog.ts"
+    },
+    "40fb3d787a79e48da9774ec97ca3890ab72b0cf0b6": {
+      "workers": {
+        "app/admin/subcategories/page": {
+          "moduleId": 57236,
+          "async": false,
+          "exportedName": "deleteSubcategoryAction",
+          "filename": "src/features/catalog/actions/admin-catalog.ts"
+        }
+      },
+      "layer": {
+        "app/admin/subcategories/page": "action-browser"
+      },
+      "exportedName": "deleteSubcategoryAction",
+      "filename": "src/features/catalog/actions/admin-catalog.ts"
+    },
+    "406197d9d36434d6346e537ee64dd3d8c3cec1af3c": {
+      "workers": {
+        "app/admin/subcategories/page": {
+          "moduleId": 57236,
+          "async": false,
+          "exportedName": "updateSubcategoryAction",
+          "filename": "src/features/catalog/actions/admin-catalog.ts"
+        }
+      },
+      "layer": {
+        "app/admin/subcategories/page": "action-browser"
+      },
+      "exportedName": "updateSubcategoryAction",
+      "filename": "src/features/catalog/actions/admin-catalog.ts"
+    }
+  },
+  "edge": {}
+}

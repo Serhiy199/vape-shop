@@ -1,0 +1,173 @@
+{
+  "node": {
+    "0000c0dc674aa768b3a10ababb04ff76285b55343e": {
+      "workers": {
+        "app/(storefront)/account/page": {
+          "moduleId": 30653,
+          "async": false,
+          "exportedName": "logoutAction",
+          "filename": "src/features/auth/actions/logout.ts"
+        },
+        "app/(storefront)/page": {
+          "moduleId": 49678,
+          "async": false,
+          "exportedName": "logoutAction",
+          "filename": "src/features/auth/actions/logout.ts"
+        },
+        "app/admin/brands/page": {
+          "moduleId": 19358,
+          "async": false,
+          "exportedName": "logoutAction",
+          "filename": "src/features/auth/actions/logout.ts"
+        },
+        "app/admin/categories/page": {
+          "moduleId": 53163,
+          "async": false,
+          "exportedName": "logoutAction",
+          "filename": "src/features/auth/actions/logout.ts"
+        },
+        "app/admin/fields/page": {
+          "moduleId": 43576,
+          "async": false,
+          "exportedName": "logoutAction",
+          "filename": "src/features/auth/actions/logout.ts"
+        },
+        "app/admin/orders/page": {
+          "moduleId": 42227,
+          "async": false,
+          "exportedName": "logoutAction",
+          "filename": "src/features/auth/actions/logout.ts"
+        },
+        "app/admin/page": {
+          "moduleId": 45717,
+          "async": false,
+          "exportedName": "logoutAction",
+          "filename": "src/features/auth/actions/logout.ts"
+        },
+        "app/admin/products/page": {
+          "moduleId": 41438,
+          "async": false,
+          "exportedName": "logoutAction",
+          "filename": "src/features/auth/actions/logout.ts"
+        },
+        "app/admin/promo-codes/page": {
+          "moduleId": 81368,
+          "async": false,
+          "exportedName": "logoutAction",
+          "filename": "src/features/auth/actions/logout.ts"
+        },
+        "app/admin/seo/page": {
+          "moduleId": 40611,
+          "async": false,
+          "exportedName": "logoutAction",
+          "filename": "src/features/auth/actions/logout.ts"
+        },
+        "app/admin/subcategories/page": {
+          "moduleId": 57236,
+          "async": false,
+          "exportedName": "logoutAction",
+          "filename": "src/features/auth/actions/logout.ts"
+        },
+        "app/admin/users/page": {
+          "moduleId": 95662,
+          "async": false,
+          "exportedName": "logoutAction",
+          "filename": "src/features/auth/actions/logout.ts"
+        }
+      },
+      "layer": {
+        "app/(storefront)/account/page": "rsc",
+        "app/(storefront)/page": "rsc",
+        "app/admin/brands/page": "rsc",
+        "app/admin/categories/page": "rsc",
+        "app/admin/fields/page": "rsc",
+        "app/admin/orders/page": "rsc",
+        "app/admin/page": "rsc",
+        "app/admin/products/page": "rsc",
+        "app/admin/promo-codes/page": "rsc",
+        "app/admin/seo/page": "rsc",
+        "app/admin/subcategories/page": "rsc",
+        "app/admin/users/page": "rsc"
+      },
+      "filename": "src/features/auth/actions/logout.ts",
+      "exportedName": "logoutAction"
+    },
+    "40d5895812e8931bfb8e43143740033da7ae0a55d9": {
+      "workers": {
+        "app/admin/categories/page": {
+          "moduleId": 53163,
+          "async": false,
+          "exportedName": "updateCategoryAction",
+          "filename": "src/features/catalog/actions/admin-catalog.ts"
+        }
+      },
+      "layer": {
+        "app/admin/categories/page": "action-browser"
+      },
+      "filename": "src/features/catalog/actions/admin-catalog.ts",
+      "exportedName": "updateCategoryAction"
+    },
+    "405a19ffbec9a8582733fd8088327c85043e32de2c": {
+      "workers": {
+        "app/admin/subcategories/page": {
+          "moduleId": 57236,
+          "async": false,
+          "exportedName": "createSubcategoryAction",
+          "filename": "src/features/catalog/actions/admin-catalog.ts"
+        }
+      },
+      "layer": {
+        "app/admin/subcategories/page": "action-browser"
+      },
+      "filename": "src/features/catalog/actions/admin-catalog.ts",
+      "exportedName": "createSubcategoryAction"
+    },
+    "40fb3d787a79e48da9774ec97ca3890ab72b0cf0b6": {
+      "workers": {
+        "app/admin/subcategories/page": {
+          "moduleId": 57236,
+          "async": false,
+          "exportedName": "deleteSubcategoryAction",
+          "filename": "src/features/catalog/actions/admin-catalog.ts"
+        }
+      },
+      "layer": {
+        "app/admin/subcategories/page": "action-browser"
+      },
+      "filename": "src/features/catalog/actions/admin-catalog.ts",
+      "exportedName": "deleteSubcategoryAction"
+    },
+    "406197d9d36434d6346e537ee64dd3d8c3cec1af3c": {
+      "workers": {
+        "app/admin/subcategories/page": {
+          "moduleId": 57236,
+          "async": false,
+          "exportedName": "updateSubcategoryAction",
+          "filename": "src/features/catalog/actions/admin-catalog.ts"
+        }
+      },
+      "layer": {
+        "app/admin/subcategories/page": "action-browser"
+      },
+      "filename": "src/features/catalog/actions/admin-catalog.ts",
+      "exportedName": "updateSubcategoryAction"
+    },
+    "60ddc4638423c6739a7ad3c8e75db5bc9058c72fb4": {
+      "workers": {
+        "app/login/page": {
+          "moduleId": 32974,
+          "async": false,
+          "exportedName": "loginAction",
+          "filename": "src/features/auth/actions/login.ts"
+        }
+      },
+      "layer": {
+        "app/login/page": "action-browser"
+      },
+      "filename": "src/features/auth/actions/login.ts",
+      "exportedName": "loginAction"
+    }
+  },
+  "edge": {},
+  "encryptionKey": "1qtXyE72vaUjwV2hOm1qmpoH96KQ3KUaTb/5IY9A6dU="
+}

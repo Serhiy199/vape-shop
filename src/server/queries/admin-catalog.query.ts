@@ -32,6 +32,7 @@ export async function getAdminCategoriesPageData(selectedId?: string) {
 }
 
 export async function getAdminSubcategoriesPageData(selectedId?: string) {
+  const categories = await listFixedAdminCategories();
   const subcategories = await listAdminSubcategories();
   const resolvedSelectedId = resolveSelectedId(subcategories, selectedId);
   const selectedSubcategory = resolvedSelectedId
@@ -39,6 +40,7 @@ export async function getAdminSubcategoriesPageData(selectedId?: string) {
     : null;
 
   return {
+    categories,
     selectedSubcategory,
     subcategories,
   };

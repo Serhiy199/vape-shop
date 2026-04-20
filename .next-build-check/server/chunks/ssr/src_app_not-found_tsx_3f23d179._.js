@@ -1,0 +1,3 @@
+module.exports=[62713,a=>{"use strict";var b=a.i(7997);function c(){return(0,b.jsx)("main",{className:"flex min-h-screen items-center justify-center px-6",children:(0,b.jsxs)("div",{className:"border-border/70 bg-card max-w-md space-y-3 rounded-3xl border p-10 text-center shadow-sm",children:[(0,b.jsx)("p",{className:"text-muted-foreground text-sm uppercase tracking-[0.24em]",children:"404"}),(0,b.jsx)("h1",{className:"text-3xl font-semibold tracking-tight",children:"Сторінку не знайдено"}),(0,b.jsx)("p",{className:"text-muted-foreground",children:"Каркас застосунку працює, але цей маршрут ще не реалізований."})]})})}a.s(["default",()=>c])}];
+
+//# sourceMappingURL=src_app_not-found_tsx_3f23d179._.js.map
