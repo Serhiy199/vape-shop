@@ -1,8 +1,10 @@
 import {
   getAdminBrandById,
+  getAdminSubcategoryFieldById,
   getAdminSubcategoryById,
   getFixedAdminCategoryById,
   listAdminBrands,
+  listAdminSubcategoryFields,
   listAdminSubcategories,
   listFixedAdminCategories,
 } from "@/server/repositories/catalog.repository";
@@ -56,5 +58,22 @@ export async function getAdminBrandsPageData(selectedId?: string) {
   return {
     brands,
     selectedBrand,
+  };
+}
+
+export async function getAdminFieldsPageData(selectedId?: string) {
+  const categories = await listFixedAdminCategories();
+  const subcategories = await listAdminSubcategories();
+  const fields = await listAdminSubcategoryFields();
+  const resolvedSelectedId = resolveSelectedId(fields, selectedId);
+  const selectedField = resolvedSelectedId
+    ? await getAdminSubcategoryFieldById(resolvedSelectedId)
+    : null;
+
+  return {
+    categories,
+    subcategories,
+    fields,
+    selectedField,
   };
 }
