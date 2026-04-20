@@ -92,6 +92,7 @@ export async function getAdminProductsPageData(
   const categories = await listFixedAdminCategories();
   const subcategories = await listAdminSubcategories();
   const brands = await listAdminBrands();
+  const fields = await listAdminSubcategoryFields();
   const products = await listAdminProducts(filters);
   const resolvedSelectedId = resolveSelectedId(products, selectedId);
   const selectedProduct = resolvedSelectedId
@@ -101,6 +102,7 @@ export async function getAdminProductsPageData(
   return {
     brands,
     categories,
+    fields,
     products,
     selectedProduct,
     subcategories,
