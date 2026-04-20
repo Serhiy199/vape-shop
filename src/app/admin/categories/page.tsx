@@ -14,7 +14,7 @@ import {
   AdminStatsGrid,
 } from "@/components/admin/admin-primitives";
 import { Badge } from "@/components/ui/badge";
-import { getAdminCategoriesPageData } from "@/server/queries/admin-catalog-core.query";
+import { getAdminCategoriesPageData } from "@/server/queries/admin-catalog.query";
 
 type SearchParams = Promise<{ selected?: string }>;
 
