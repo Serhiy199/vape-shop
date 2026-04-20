@@ -14,6 +14,7 @@ import {
   AdminStatsGrid,
 } from "@/components/admin/admin-primitives";
 import { Badge } from "@/components/ui/badge";
+import { AdminCategoryUpdateForm } from "@/features/catalog/components/admin-category-update-form";
 import { getAdminCategoriesPageData } from "@/server/queries/admin-catalog.query";
 
 type SearchParams = Promise<{ selected?: string }>;
@@ -195,6 +196,17 @@ export default async function AdminCategoriesPage({
                         "Create/delete для категорій не буде. На наступному кроці додамо лише safe update fixed categories.",
                     },
                   ]}
+                />
+
+                <AdminCategoryUpdateForm
+                  category={{
+                    id: selectedCategory.id,
+                    name: selectedCategory.name,
+                    slug: selectedCategory.slug,
+                    sortOrder: selectedCategory.sortOrder,
+                    seoTitle: selectedCategory.seoTitle,
+                    seoDescription: selectedCategory.seoDescription,
+                  }}
                 />
 
                 <AdminSectionCard
