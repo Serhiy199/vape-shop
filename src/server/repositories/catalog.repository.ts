@@ -382,6 +382,300 @@ export async function deleteSubcategory(subcategoryId: string) {
   });
 }
 
+export async function listAdminSubcategoryFields() {
+  return prisma.subcategoryField.findMany({
+    orderBy: [
+      { subcategory: { category: { sortOrder: "asc" } } },
+      { subcategory: { sortOrder: "asc" } },
+      { sortOrder: "asc" },
+      { label: "asc" },
+    ],
+    select: {
+      id: true,
+      subcategoryId: true,
+      label: true,
+      key: true,
+      type: true,
+      sortOrder: true,
+      isRequired: true,
+      isFilterable: true,
+      helpText: true,
+      subcategory: {
+        select: {
+          id: true,
+          name: true,
+          slug: true,
+          category: {
+            select: {
+              id: true,
+              name: true,
+              slug: true,
+            },
+          },
+        },
+      },
+      options: {
+        orderBy: [{ sortOrder: "asc" }, { label: "asc" }],
+        select: {
+          id: true,
+          label: true,
+          value: true,
+          sortOrder: true,
+        },
+      },
+      _count: {
+        select: {
+          options: true,
+          productValues: true,
+        },
+      },
+    },
+  });
+}
+
+export async function listSubcategoryFields(subcategoryId: string) {
+  return prisma.subcategoryField.findMany({
+    where: {
+      subcategoryId,
+    },
+    orderBy: [{ sortOrder: "asc" }, { label: "asc" }],
+    select: {
+      id: true,
+      subcategoryId: true,
+      label: true,
+      key: true,
+      type: true,
+      sortOrder: true,
+      isRequired: true,
+      isFilterable: true,
+      helpText: true,
+      options: {
+        orderBy: [{ sortOrder: "asc" }, { label: "asc" }],
+        select: {
+          id: true,
+          label: true,
+          value: true,
+          sortOrder: true,
+        },
+      },
+      _count: {
+        select: {
+          options: true,
+          productValues: true,
+        },
+      },
+    },
+  });
+}
+
+export async function getAdminSubcategoryFieldById(fieldId: string) {
+  return prisma.subcategoryField.findUnique({
+    where: {
+      id: fieldId,
+    },
+    select: {
+      id: true,
+      subcategoryId: true,
+      label: true,
+      key: true,
+      type: true,
+      sortOrder: true,
+      isRequired: true,
+      isFilterable: true,
+      helpText: true,
+      createdAt: true,
+      updatedAt: true,
+      subcategory: {
+        select: {
+          id: true,
+          name: true,
+          slug: true,
+          category: {
+            select: {
+              id: true,
+              name: true,
+              slug: true,
+              isFixed: true,
+            },
+          },
+        },
+      },
+      options: {
+        orderBy: [{ sortOrder: "asc" }, { label: "asc" }],
+        select: {
+          id: true,
+          label: true,
+          value: true,
+          sortOrder: true,
+          _count: {
+            select: {
+              valuesUsed: true,
+            },
+          },
+        },
+      },
+      _count: {
+        select: {
+          options: true,
+          productValues: true,
+        },
+      },
+    },
+  });
+}
+
+export async function getSubcategoryFieldById(fieldId: string) {
+  return prisma.subcategoryField.findUnique({
+    where: {
+      id: fieldId,
+    },
+    select: {
+      id: true,
+      subcategoryId: true,
+      label: true,
+      key: true,
+      type: true,
+      sortOrder: true,
+      isRequired: true,
+      isFilterable: true,
+      helpText: true,
+      options: {
+        orderBy: [{ sortOrder: "asc" }, { label: "asc" }],
+        select: {
+          id: true,
+          label: true,
+          value: true,
+          sortOrder: true,
+        },
+      },
+      _count: {
+        select: {
+          options: true,
+          productValues: true,
+        },
+      },
+    },
+  });
+}
+
+export async function getSubcategoryFieldByScopedKey(input: {
+  subcategoryId: string;
+  key: string;
+}) {
+  return prisma.subcategoryField.findUnique({
+    where: {
+      subcategoryId_key: {
+        subcategoryId: input.subcategoryId,
+        key: input.key,
+      },
+    },
+    select: {
+      id: true,
+      subcategoryId: true,
+      key: true,
+      type: true,
+    },
+  });
+}
+
+export async function createSubcategoryField(input: {
+  subcategoryId: string;
+  label: string;
+  key: string;
+  type: "TEXT" | "NUMBER" | "TEXTAREA" | "SELECT" | "BOOLEAN";
+  isRequired: boolean;
+  sortOrder: number;
+  helpText?: string;
+  isFilterable?: boolean;
+  options?: Array<{
+    label: string;
+    value: string;
+    sortOrder: number;
+  }>;
+}) {
+  return prisma.subcategoryField.create({
+    data: {
+      subcategoryId: input.subcategoryId,
+      label: input.label,
+      key: input.key,
+      type: input.type,
+      isRequired: input.isRequired,
+      sortOrder: input.sortOrder,
+      helpText: input.helpText,
+      isFilterable: input.isFilterable ?? false,
+      options: {
+        create: (input.options ?? []).map((option) => ({
+          label: option.label,
+          value: option.value,
+          sortOrder: option.sortOrder,
+        })),
+      },
+    },
+    select: {
+      id: true,
+      label: true,
+      key: true,
+    },
+  });
+}
+
+export async function updateSubcategoryField(input: {
+  id: string;
+  subcategoryId: string;
+  label: string;
+  key: string;
+  type: "TEXT" | "NUMBER" | "TEXTAREA" | "SELECT" | "BOOLEAN";
+  isRequired: boolean;
+  sortOrder: number;
+  helpText?: string;
+  isFilterable?: boolean;
+  options?: Array<{
+    label: string;
+    value: string;
+    sortOrder: number;
+  }>;
+}) {
+  return prisma.subcategoryField.update({
+    where: {
+      id: input.id,
+    },
+    data: {
+      subcategoryId: input.subcategoryId,
+      label: input.label,
+      key: input.key,
+      type: input.type,
+      isRequired: input.isRequired,
+      sortOrder: input.sortOrder,
+      helpText: input.helpText,
+      isFilterable: input.isFilterable ?? false,
+      options: {
+        deleteMany: {},
+        create: (input.options ?? []).map((option) => ({
+          label: option.label,
+          value: option.value,
+          sortOrder: option.sortOrder,
+        })),
+      },
+    },
+    select: {
+      id: true,
+      label: true,
+      key: true,
+    },
+  });
+}
+
+export async function deleteSubcategoryField(fieldId: string) {
+  return prisma.subcategoryField.delete({
+    where: {
+      id: fieldId,
+    },
+    select: {
+      id: true,
+    },
+  });
+}
+
 export async function getBrandById(brandId: string) {
   return prisma.brand.findUnique({
     where: {
