@@ -17,10 +17,13 @@ import {
   type DeleteBrandInput,
   type DeleteSubcategoryFieldInput,
   type DeleteSubcategoryInput,
+  type ProductFieldValueInput,
   type UpdateBrandInput,
   type UpdateCategoryInput,
   type UpdateSubcategoryFieldInput,
   type UpdateSubcategoryInput,
+  type ValidateProductFieldValuesInput,
+  validateProductFieldValuesSchema,
 } from "@/features/catalog/schemas";
 import {
   createBrand,
@@ -41,6 +44,7 @@ import {
   getSubcategoryById,
   getSubcategoryByScopedName,
   getSubcategoryByScopedSlug,
+  listSubcategoryFields,
   updateBrand,
   updateFixedCategory,
   updateSubcategoryField,
@@ -59,6 +63,14 @@ type MutationFailure = {
 };
 
 export type MutationResult<TData> = MutationSuccess<TData> | MutationFailure;
+
+type NormalizedProductFieldValue = {
+  fieldId: string;
+  optionId?: string;
+  valueBoolean?: boolean;
+  valueNumber?: number;
+  valueText?: string;
+};
 
 function validationError(fieldErrors: Record<string, string[] | undefined>) {
   return {
@@ -521,6 +533,195 @@ export async function deleteAdminSubcategoryField(input: unknown): Promise<
   const deletedField = await deleteSubcategoryField(payload.id);
 
   return ok(deletedField);
+}
+
+function hasTextValue(value: ProductFieldValueInput) {
+  return typeof value.valueText === "string" && value.valueText.trim().length > 0;
+}
+
+function hasNumberValue(value: ProductFieldValueInput) {
+  return typeof value.valueNumber === "number" && Number.isFinite(value.valueNumber);
+}
+
+function hasBooleanValue(value: ProductFieldValueInput) {
+  return typeof value.valueBoolean === "boolean";
+}
+
+function getNumberValue(value: ProductFieldValueInput) {
+  return typeof value.valueNumber === "number" ? value.valueNumber : undefined;
+}
+
+function getBooleanValue(value: ProductFieldValueInput) {
+  return typeof value.valueBoolean === "boolean"
+    ? value.valueBoolean
+    : undefined;
+}
+
+function mapProductFieldValueErrors(
+  errors: Array<{ fieldId: string; message: string }>,
+): Record<string, string[] | undefined> {
+  return {
+    fieldValues: errors.map((error) => `${error.fieldId}: ${error.message}`),
+  };
+}
+
+export async function validateProductFieldValuesCompatibility(
+  input: unknown,
+): Promise<MutationResult<{ fieldValues: NormalizedProductFieldValue[] }>> {
+  const parsed = validateProductFieldValuesSchema.safeParse(input);
+
+  if (!parsed.success) {
+    return validationError(parsed.error.flatten().fieldErrors);
+  }
+
+  const payload: ValidateProductFieldValuesInput = parsed.data;
+  const subcategory = await getSubcategoryById(payload.subcategoryId);
+
+  if (!subcategory) {
+    return {
+      ok: false,
+      error: "Підкатегорію товару не знайдено.",
+      fieldErrors: {
+        subcategoryId: ["Потрібно вибрати існуючу підкатегорію."],
+      },
+    };
+  }
+
+  if (subcategory.categoryId !== payload.categoryId) {
+    return {
+      ok: false,
+      error:
+        "Підкатегорія не належить до вибраної категорії, тому товар не можна зберегти.",
+      fieldErrors: {
+        subcategoryId: [
+          "Підкатегорія не належить до вибраної категорії.",
+        ],
+      },
+    };
+  }
+
+  const allowedFields = await listSubcategoryFields(payload.subcategoryId);
+  const allowedFieldMap = new Map(
+    allowedFields.map((field) => [
+      field.id,
+      {
+        ...field,
+        optionMap: new Map(field.options.map((option) => [option.id, option])),
+      },
+    ]),
+  );
+
+  const normalizedValues: NormalizedProductFieldValue[] = [];
+  const fieldValueErrors: Array<{ fieldId: string; message: string }> = [];
+
+  for (const fieldValue of payload.fieldValues) {
+    const field = allowedFieldMap.get(fieldValue.fieldId);
+
+    if (!field) {
+      fieldValueErrors.push({
+        fieldId: fieldValue.fieldId,
+        message:
+          "Поле не належить до вибраної підкатегорії та не може бути збережене для цього товару.",
+      });
+      continue;
+    }
+
+    if (field.type === SubcategoryFieldType.SELECT) {
+      if (!fieldValue.optionId) {
+        fieldValueErrors.push({
+          fieldId: field.key,
+          message: "Для SELECT-поля потрібно вибрати одну з дозволених опцій.",
+        });
+        continue;
+      }
+
+      if (!field.optionMap.has(fieldValue.optionId)) {
+        fieldValueErrors.push({
+          fieldId: field.key,
+          message:
+            "Обрана опція не належить до цього поля підкатегорії.",
+        });
+        continue;
+      }
+
+      normalizedValues.push({
+        fieldId: field.id,
+        optionId: fieldValue.optionId,
+      });
+      continue;
+    }
+
+    if (field.type === SubcategoryFieldType.NUMBER) {
+      if (!hasNumberValue(fieldValue)) {
+        fieldValueErrors.push({
+          fieldId: field.key,
+          message: "Для поля типу NUMBER потрібно передати числове значення.",
+        });
+        continue;
+      }
+
+      normalizedValues.push({
+        fieldId: field.id,
+        valueNumber: getNumberValue(fieldValue),
+      });
+      continue;
+    }
+
+    if (field.type === SubcategoryFieldType.BOOLEAN) {
+      if (!hasBooleanValue(fieldValue)) {
+        fieldValueErrors.push({
+          fieldId: field.key,
+          message: "Для поля типу BOOLEAN потрібно передати true або false.",
+        });
+        continue;
+      }
+
+      normalizedValues.push({
+        fieldId: field.id,
+        valueBoolean: getBooleanValue(fieldValue),
+      });
+      continue;
+    }
+
+    if (!hasTextValue(fieldValue)) {
+      fieldValueErrors.push({
+        fieldId: field.key,
+        message:
+          "Для текстового поля потрібно передати непорожнє текстове значення.",
+      });
+      continue;
+    }
+
+    normalizedValues.push({
+      fieldId: field.id,
+      valueText: fieldValue.valueText,
+    });
+  }
+
+  const providedFieldIds = new Set(payload.fieldValues.map((value) => value.fieldId));
+  const missingRequiredFields = allowedFields.filter(
+    (field) => field.isRequired && !providedFieldIds.has(field.id),
+  );
+
+  for (const field of missingRequiredFields) {
+    fieldValueErrors.push({
+      fieldId: field.key,
+      message: "Обов'язкове поле не заповнене для цього товару.",
+    });
+  }
+
+  if (fieldValueErrors.length > 0) {
+    return {
+      ok: false,
+      error:
+        "Значення характеристик товару не сумісні з вибраною підкатегорією.",
+      fieldErrors: mapProductFieldValueErrors(fieldValueErrors),
+    };
+  }
+
+  return ok({
+    fieldValues: normalizedValues,
+  });
 }
 
 async function validateBrandUniqueness(

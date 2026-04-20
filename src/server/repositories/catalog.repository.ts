@@ -1,3 +1,5 @@
+import { ProductAvailability, type Prisma } from "@prisma/client";
+
 import { prisma } from "@/lib/prisma/client";
 
 export async function listFixedAdminCategories() {
@@ -767,6 +769,418 @@ export async function deleteBrand(brandId: string) {
     },
     select: {
       id: true,
+    },
+  });
+}
+
+type ProductFieldValueWriteInput = {
+  fieldId: string;
+  optionId?: string;
+  valueBoolean?: boolean;
+  valueNumber?: number;
+  valueText?: string;
+};
+
+type ProductImageWriteInput = {
+  url: string;
+  publicId: string;
+  alt?: string;
+  sortOrder: number;
+  isPrimary: boolean;
+};
+
+type ProductWriteInput = {
+  categoryId: string;
+  subcategoryId: string;
+  brandId?: string;
+  title: string;
+  slug: string;
+  description?: string;
+  price: number;
+  availability: ProductAvailability;
+  isActive: boolean;
+  isFeaturedNew: boolean;
+  isFeaturedSale: boolean;
+  isFeaturedHit: boolean;
+  seoTitle?: string;
+  seoDescription?: string;
+  images: ProductImageWriteInput[];
+  fieldValues: ProductFieldValueWriteInput[];
+};
+
+const adminProductListSelect = {
+    id: true,
+    title: true,
+    slug: true,
+    price: true,
+    availability: true,
+    isActive: true,
+    isFeaturedNew: true,
+    isFeaturedSale: true,
+    isFeaturedHit: true,
+    createdAt: true,
+    updatedAt: true,
+    category: {
+      select: {
+        id: true,
+        name: true,
+        slug: true,
+      },
+    },
+    subcategory: {
+      select: {
+        id: true,
+        name: true,
+        slug: true,
+      },
+    },
+    brand: {
+      select: {
+        id: true,
+        name: true,
+        slug: true,
+      },
+    },
+    images: {
+      where: {
+        isPrimary: true,
+      },
+      take: 1,
+      select: {
+        id: true,
+        url: true,
+        alt: true,
+        publicId: true,
+      },
+    },
+    _count: {
+      select: {
+        images: true,
+        fieldValues: true,
+        orderItems: true,
+        wishlistItems: true,
+      },
+    },
+  } satisfies Prisma.ProductSelect;
+
+const adminProductDetailSelect = {
+    id: true,
+    categoryId: true,
+    subcategoryId: true,
+    brandId: true,
+    title: true,
+    slug: true,
+    description: true,
+    price: true,
+    availability: true,
+    isActive: true,
+    isFeaturedNew: true,
+    isFeaturedSale: true,
+    isFeaturedHit: true,
+    seoTitle: true,
+    seoDescription: true,
+    createdAt: true,
+    updatedAt: true,
+    category: {
+      select: {
+        id: true,
+        name: true,
+        slug: true,
+        isFixed: true,
+      },
+    },
+    subcategory: {
+      select: {
+        id: true,
+        name: true,
+        slug: true,
+        categoryId: true,
+      },
+    },
+    brand: {
+      select: {
+        id: true,
+        name: true,
+        slug: true,
+        isActive: true,
+      },
+    },
+    images: {
+      orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
+      select: {
+        id: true,
+        url: true,
+        publicId: true,
+        alt: true,
+        sortOrder: true,
+        isPrimary: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    },
+    fieldValues: {
+      select: {
+        id: true,
+        fieldId: true,
+        optionId: true,
+        valueText: true,
+        valueNumber: true,
+        valueBoolean: true,
+        field: {
+          select: {
+            id: true,
+            subcategoryId: true,
+            label: true,
+            key: true,
+            type: true,
+            isRequired: true,
+            sortOrder: true,
+            options: {
+              orderBy: [{ sortOrder: "asc" }, { label: "asc" }],
+              select: {
+                id: true,
+                label: true,
+                value: true,
+                sortOrder: true,
+              },
+            },
+          },
+        },
+        option: {
+          select: {
+            id: true,
+            label: true,
+            value: true,
+            sortOrder: true,
+          },
+        },
+      },
+    },
+    _count: {
+      select: {
+        images: true,
+        fieldValues: true,
+        orderItems: true,
+        wishlistItems: true,
+      },
+    },
+  } satisfies Prisma.ProductSelect;
+
+const productIdentitySelect = {
+    id: true,
+    categoryId: true,
+    subcategoryId: true,
+    brandId: true,
+    title: true,
+    slug: true,
+    isActive: true,
+    _count: {
+      select: {
+        images: true,
+        fieldValues: true,
+        orderItems: true,
+        wishlistItems: true,
+      },
+    },
+  } satisfies Prisma.ProductSelect;
+
+export async function listAdminProducts(input?: {
+  categoryId?: string;
+  subcategoryId?: string;
+  brandId?: string;
+  search?: string;
+}) {
+  const search = input?.search?.trim();
+
+  return prisma.product.findMany({
+    where: {
+      categoryId: input?.categoryId,
+      subcategoryId: input?.subcategoryId,
+      brandId: input?.brandId,
+      ...(search
+        ? {
+            OR: [
+              {
+                title: {
+                  contains: search,
+                  mode: "insensitive",
+                },
+              },
+              {
+                slug: {
+                  contains: search,
+                  mode: "insensitive",
+                },
+              },
+            ],
+          }
+        : {}),
+    },
+    orderBy: [{ createdAt: "desc" }, { title: "asc" }],
+    select: adminProductListSelect,
+  });
+}
+
+export async function getAdminProductById(productId: string) {
+  return prisma.product.findUnique({
+    where: {
+      id: productId,
+    },
+    select: adminProductDetailSelect,
+  });
+}
+
+export async function getProductById(productId: string) {
+  return prisma.product.findUnique({
+    where: {
+      id: productId,
+    },
+    select: productIdentitySelect,
+  });
+}
+
+export async function getProductBySlug(slug: string) {
+  return prisma.product.findUnique({
+    where: {
+      slug,
+    },
+    select: productIdentitySelect,
+  });
+}
+
+export async function createProduct(input: ProductWriteInput) {
+  return prisma.$transaction(async (tx) => {
+    const createdProduct = await tx.product.create({
+      data: {
+        categoryId: input.categoryId,
+        subcategoryId: input.subcategoryId,
+        brandId: input.brandId,
+        title: input.title,
+        slug: input.slug,
+        description: input.description,
+        price: input.price,
+        availability: input.availability,
+        isActive: input.isActive,
+        isFeaturedNew: input.isFeaturedNew,
+        isFeaturedSale: input.isFeaturedSale,
+        isFeaturedHit: input.isFeaturedHit,
+        seoTitle: input.seoTitle,
+        seoDescription: input.seoDescription,
+        images: {
+          create: input.images.map((image) => ({
+            url: image.url,
+            publicId: image.publicId,
+            alt: image.alt,
+            sortOrder: image.sortOrder,
+            isPrimary: image.isPrimary,
+          })),
+        },
+        fieldValues: {
+          create: input.fieldValues.map((fieldValue) => ({
+            fieldId: fieldValue.fieldId,
+            optionId: fieldValue.optionId,
+            valueText: fieldValue.valueText,
+            valueNumber: fieldValue.valueNumber,
+            valueBoolean: fieldValue.valueBoolean,
+          })),
+        },
+      },
+      select: {
+        id: true,
+      },
+    });
+
+    return tx.product.findUniqueOrThrow({
+      where: {
+        id: createdProduct.id,
+      },
+      select: adminProductDetailSelect,
+    });
+  });
+}
+
+export async function updateProduct(input: ProductWriteInput & { id: string }) {
+  return prisma.$transaction(async (tx) => {
+    await tx.product.update({
+      where: {
+        id: input.id,
+      },
+      data: {
+        categoryId: input.categoryId,
+        subcategoryId: input.subcategoryId,
+        brandId: input.brandId,
+        title: input.title,
+        slug: input.slug,
+        description: input.description,
+        price: input.price,
+        availability: input.availability,
+        isActive: input.isActive,
+        isFeaturedNew: input.isFeaturedNew,
+        isFeaturedSale: input.isFeaturedSale,
+        isFeaturedHit: input.isFeaturedHit,
+        seoTitle: input.seoTitle,
+        seoDescription: input.seoDescription,
+      },
+    });
+
+    await tx.productImage.deleteMany({
+      where: {
+        productId: input.id,
+      },
+    });
+
+    await tx.productFieldValue.deleteMany({
+      where: {
+        productId: input.id,
+      },
+    });
+
+    if (input.images.length > 0) {
+      await tx.productImage.createMany({
+        data: input.images.map((image) => ({
+          productId: input.id,
+          url: image.url,
+          publicId: image.publicId,
+          alt: image.alt,
+          sortOrder: image.sortOrder,
+          isPrimary: image.isPrimary,
+        })),
+      });
+    }
+
+    if (input.fieldValues.length > 0) {
+      await tx.productFieldValue.createMany({
+        data: input.fieldValues.map((fieldValue) => ({
+          productId: input.id,
+          fieldId: fieldValue.fieldId,
+          optionId: fieldValue.optionId,
+          valueText: fieldValue.valueText,
+          valueNumber: fieldValue.valueNumber,
+          valueBoolean: fieldValue.valueBoolean,
+        })),
+      });
+    }
+
+    return tx.product.findUniqueOrThrow({
+      where: {
+        id: input.id,
+      },
+      select: adminProductDetailSelect,
+    });
+  });
+}
+
+export async function softDeleteProduct(productId: string) {
+  return prisma.product.update({
+    where: {
+      id: productId,
+    },
+    data: {
+      isActive: false,
+    },
+    select: {
+      id: true,
+      isActive: true,
     },
   });
 }

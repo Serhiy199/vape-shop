@@ -1,4 +1,4 @@
-import { SubcategoryFieldType } from "@prisma/client";
+import { ProductAvailability, SubcategoryFieldType } from "@prisma/client";
 import { z } from "zod";
 
 function optionalTrimmedString(max: number) {
@@ -49,10 +49,186 @@ function fieldType() {
   return z.nativeEnum(SubcategoryFieldType);
 }
 
+function availabilityField() {
+  return z.nativeEnum(ProductAvailability);
+}
+
+function optionalIdField() {
+  return z
+    .string()
+    .trim()
+    .transform((value) => (value.length === 0 ? undefined : value))
+    .pipe(z.string().max(191).optional());
+}
+
+function priceField() {
+  return z
+    .union([z.number(), z.string()])
+    .transform((value) => {
+      if (typeof value === "number") {
+        return value;
+      }
+
+      const trimmed = value.trim();
+      if (trimmed.length === 0) {
+        return value;
+      }
+
+      const normalized = trimmed.replace(",", ".");
+      const parsed = Number(normalized);
+      return Number.isFinite(parsed) ? parsed : value;
+    })
+    .pipe(
+      z
+        .number({
+          invalid_type_error: "Ціна має бути числом.",
+        })
+        .min(0, "Ціна не може бути меншою за 0.")
+        .max(999999.99, "Ціна перевищує дозволений ліміт.")
+        .refine(
+          (value) => Number.isInteger(value * 100),
+          "Ціна може містити не більше 2 знаків після коми.",
+        ),
+    );
+}
+
 const subcategoryFieldOptionSchema = z.object({
   label: requiredName(120),
   value: z.string().trim().min(1).max(120),
   sortOrder: sortOrderField(),
+});
+
+const productFieldValueSchema = z.object({
+  fieldId: idField(),
+  optionId: z
+    .string()
+    .trim()
+    .transform((value) => (value.length === 0 ? undefined : value))
+    .pipe(z.string().max(191).optional()),
+  valueBoolean: z
+    .union([z.boolean(), z.string()])
+    .optional()
+    .transform((value) => {
+      if (typeof value === "boolean" || value === undefined) {
+        return value;
+      }
+
+      const normalized = value.trim().toLowerCase();
+      if (normalized === "true") {
+        return true;
+      }
+
+      if (normalized === "false") {
+        return false;
+      }
+
+      return value;
+    })
+    .pipe(z.union([z.boolean(), z.string(), z.undefined()])),
+  valueNumber: z
+    .union([z.number(), z.string()])
+    .optional()
+    .transform((value) => {
+      if (typeof value === "number" || value === undefined) {
+        return value;
+      }
+
+      const trimmed = value.trim();
+      if (trimmed.length === 0) {
+        return undefined;
+      }
+
+      const parsed = Number(trimmed);
+      return Number.isFinite(parsed) ? parsed : value;
+    })
+    .pipe(z.union([z.number(), z.string(), z.undefined()])),
+  valueText: z
+    .string()
+    .trim()
+    .transform((value) => (value.length === 0 ? undefined : value))
+    .pipe(z.string().max(2000).optional()),
+});
+
+const productFieldValuesSchema = z.array(productFieldValueSchema).superRefine(
+  (values, ctx) => {
+    const seenFieldIds = new Set<string>();
+
+    values.forEach((value, index) => {
+      if (seenFieldIds.has(value.fieldId)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Одне поле товару не можна передавати більше одного разу.",
+          path: [index, "fieldId"],
+        });
+        return;
+      }
+
+      seenFieldIds.add(value.fieldId);
+    });
+  },
+);
+
+const productImageSchema = z.object({
+  id: optionalIdField(),
+  url: z.string().trim().url().max(2048),
+  publicId: requiredName(255),
+  alt: optionalTrimmedString(160),
+  sortOrder: sortOrderField(),
+  isPrimary: z.coerce.boolean().default(false),
+});
+
+const productImagesSchema = z.array(productImageSchema).superRefine((images, ctx) => {
+  const primaryImages = images.filter((image) => image.isPrimary);
+  const galleryImagesCount = images.filter((image) => !image.isPrimary).length;
+
+  if (images.length === 0) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Потрібно додати головне фото товару.",
+      path: [],
+    });
+  }
+
+  if (primaryImages.length !== 1) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Товар повинен мати рівно одне головне фото.",
+      path: [],
+    });
+  }
+
+  if (galleryImagesCount > 10) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "У галереї може бути не більше 10 фото.",
+      path: [],
+    });
+  }
+
+  if (images.length > 11) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Товар може містити максимум 11 фото разом із головним.",
+      path: [],
+    });
+  }
+
+  const seenPublicIds = new Set<string>();
+
+  images.forEach((image, index) => {
+    const normalizedPublicId = image.publicId.trim().toLowerCase();
+
+    if (seenPublicIds.has(normalizedPublicId)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Одне й те саме зображення не можна додавати двічі.",
+        path: [index, "publicId"],
+      });
+      return;
+    }
+
+    seenPublicIds.add(normalizedPublicId);
+  });
 });
 
 const subcategoryFieldBaseSchema = z.object({
@@ -162,6 +338,41 @@ export const deleteSubcategoryFieldSchema = z.object({
   id: idField(),
 });
 
+export const validateProductFieldValuesSchema = z.object({
+  categoryId: idField(),
+  subcategoryId: idField(),
+  fieldValues: productFieldValuesSchema.default([]),
+});
+
+const productBaseSchema = z.object({
+  categoryId: idField(),
+  subcategoryId: idField(),
+  brandId: optionalIdField(),
+  title: requiredName(160),
+  slug: slugField(),
+  description: optionalTrimmedString(5000),
+  price: priceField(),
+  availability: availabilityField().default(ProductAvailability.IN_STOCK),
+  isActive: z.coerce.boolean().default(true),
+  isFeaturedNew: z.coerce.boolean().default(false),
+  isFeaturedSale: z.coerce.boolean().default(false),
+  isFeaturedHit: z.coerce.boolean().default(false),
+  seoTitle: optionalTrimmedString(160),
+  seoDescription: optionalTrimmedString(320),
+  images: productImagesSchema,
+  fieldValues: productFieldValuesSchema.default([]),
+});
+
+export const createProductSchema = productBaseSchema;
+
+export const updateProductSchema = productBaseSchema.extend({
+  id: idField(),
+});
+
+export const deleteProductSchema = z.object({
+  id: idField(),
+});
+
 export type UpdateCategoryInput = z.infer<typeof updateCategorySchema>;
 export type CreateSubcategoryInput = z.infer<typeof createSubcategorySchema>;
 export type UpdateSubcategoryInput = z.infer<typeof updateSubcategorySchema>;
@@ -181,3 +392,11 @@ export type UpdateSubcategoryFieldInput = z.infer<
 export type DeleteSubcategoryFieldInput = z.infer<
   typeof deleteSubcategoryFieldSchema
 >;
+export type ProductFieldValueInput = z.infer<typeof productFieldValueSchema>;
+export type ProductImageInput = z.infer<typeof productImageSchema>;
+export type ValidateProductFieldValuesInput = z.infer<
+  typeof validateProductFieldValuesSchema
+>;
+export type CreateProductInput = z.infer<typeof createProductSchema>;
+export type UpdateProductInput = z.infer<typeof updateProductSchema>;
+export type DeleteProductInput = z.infer<typeof deleteProductSchema>;
