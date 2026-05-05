@@ -10,6 +10,7 @@ import { prisma } from "@/lib/prisma/client";
 import type {
   CatalogAvailabilityFilter,
   CatalogBadgeFilter,
+  CatalogOption,
   CatalogPriceRangeFilter,
   CatalogSortFilter,
 } from "@/lib/storefront/catalog-filters";
@@ -60,6 +61,22 @@ const storefrontCategorySelect = {
   },
 } satisfies Prisma.CategorySelect;
 
+const storefrontBrandSelect = {
+  id: true,
+  name: true,
+  slug: true,
+  description: true,
+  _count: {
+    select: {
+      products: {
+        where: {
+          isActive: true,
+        },
+      },
+    },
+  },
+} satisfies Prisma.BrandSelect;
+
 const storefrontProductListSelect = {
   id: true,
   title: true,
@@ -91,7 +108,11 @@ const storefrontProductListSelect = {
     },
   },
   images: {
-    orderBy: [{ isPrimary: "desc" }, { sortOrder: "asc" }, { createdAt: "asc" }],
+    orderBy: [
+      { isPrimary: "desc" },
+      { sortOrder: "asc" },
+      { createdAt: "asc" },
+    ],
     take: 1,
     select: {
       id: true,
@@ -114,7 +135,11 @@ const storefrontProductDetailSelect = {
   seoTitle: true,
   seoDescription: true,
   images: {
-    orderBy: [{ isPrimary: "desc" }, { sortOrder: "asc" }, { createdAt: "asc" }],
+    orderBy: [
+      { isPrimary: "desc" },
+      { sortOrder: "asc" },
+      { createdAt: "asc" },
+    ],
     select: {
       id: true,
       url: true,
@@ -158,6 +183,10 @@ type StorefrontCategoryRecord = Prisma.CategoryGetPayload<{
   select: typeof storefrontCategorySelect;
 }>;
 
+type StorefrontBrandRecord = Prisma.BrandGetPayload<{
+  select: typeof storefrontBrandSelect;
+}>;
+
 type StorefrontProductListRecord = Prisma.ProductGetPayload<{
   select: typeof storefrontProductListSelect;
 }>;
@@ -169,7 +198,8 @@ const fallbackCategoryIcons = storefrontCategories.map((category) => ({
 
 function resolveCategoryVisual(slug: string, index: number) {
   const configuredCategory = storefrontCategories.find(
-    (category) => category.href.endsWith(`/${slug}`) || category.href.includes(slug),
+    (category) =>
+      category.href.endsWith(`/${slug}`) || category.href.includes(slug),
   );
 
   if (configuredCategory) {
@@ -204,6 +234,39 @@ function mapCategoryToCard(
   };
 }
 
+function mapCategoryToOption(
+  category: StorefrontCategoryRecord,
+): CatalogOption {
+  return {
+    count: category._count.products,
+    href: `/category/${category.slug}`,
+    label: category.name,
+    value: category.slug,
+  };
+}
+
+function mapSubcategoryToOption(
+  category: StorefrontCategoryRecord,
+  subcategory: StorefrontCategoryRecord["subcategories"][number],
+): CatalogOption {
+  return {
+    count: subcategory._count.products,
+    href: `/category/${category.slug}/${subcategory.slug}`,
+    label: subcategory.name,
+    parentSlug: category.slug,
+    value: subcategory.slug,
+  };
+}
+
+function mapBrandToOption(brand: StorefrontBrandRecord): CatalogOption {
+  return {
+    count: brand._count.products,
+    href: `/catalog?brand=${brand.slug}`,
+    label: brand.name,
+    value: brand.slug,
+  };
+}
+
 function mapProductBadges(
   product: Pick<
     StorefrontProductListRecord,
@@ -217,7 +280,9 @@ function mapProductBadges(
   ].filter((badge): badge is StorefrontProductBadge => Boolean(badge));
 }
 
-function mapProductToCard(product: StorefrontProductListRecord): StorefrontProductCardItem {
+function mapProductToCard(
+  product: StorefrontProductListRecord,
+): StorefrontProductCardItem {
   const primaryImage = product.images[0];
 
   return {
@@ -298,7 +363,9 @@ function resolveAvailability(
   return undefined;
 }
 
-function resolveProductOrderBy(sort?: CatalogSortFilter): Prisma.ProductOrderByWithRelationInput[] {
+function resolveProductOrderBy(
+  sort?: CatalogSortFilter,
+): Prisma.ProductOrderByWithRelationInput[] {
   if (sort === "price-asc") {
     return [{ price: "asc" }, { title: "asc" }];
   }
@@ -319,7 +386,9 @@ function resolveProductOrderBy(sort?: CatalogSortFilter): Prisma.ProductOrderByW
   return [{ createdAt: "desc" }, { title: "asc" }];
 }
 
-function productBaseWhere(input?: StorefrontProductQueryInput): Prisma.ProductWhereInput {
+function productBaseWhere(
+  input?: StorefrontProductQueryInput,
+): Prisma.ProductWhereInput {
   const search = input?.search?.trim();
 
   return {
@@ -380,6 +449,59 @@ export async function listActiveStorefrontCategories() {
   });
 
   return categories.map(mapCategoryToCard);
+}
+
+async function listActiveStorefrontCategoryRecords() {
+  return prisma.category.findMany({
+    where: {
+      isActive: true,
+    },
+    orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
+    select: storefrontCategorySelect,
+  });
+}
+
+export async function listActiveStorefrontBrands(limit?: number) {
+  const brands = await prisma.brand.findMany({
+    where: {
+      isActive: true,
+      products: {
+        some: {
+          isActive: true,
+        },
+      },
+    },
+    orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
+    take: limit,
+    select: storefrontBrandSelect,
+  });
+
+  return brands.map(mapBrandToOption);
+}
+
+export async function getStorefrontCatalogFilterOptions(input?: {
+  categorySlug?: string;
+}) {
+  const [categories, brands] = await Promise.all([
+    listActiveStorefrontCategoryRecords(),
+    listActiveStorefrontBrands(),
+  ]);
+
+  const selectedCategory =
+    input?.categorySlug &&
+    categories.find((category) => category.slug === input.categorySlug);
+
+  const subcategorySource = selectedCategory ? [selectedCategory] : categories;
+
+  return {
+    brands,
+    categories: categories.map(mapCategoryToOption),
+    subcategories: subcategorySource.flatMap((category) =>
+      category.subcategories.map((subcategory) =>
+        mapSubcategoryToOption(category, subcategory),
+      ),
+    ),
+  };
 }
 
 export async function getActiveStorefrontCategoryBySlug(slug: string) {
@@ -493,6 +615,22 @@ export async function getStorefrontFeaturedProducts(limit = 10) {
   return listActiveStorefrontProducts({ limit });
 }
 
+export async function getStorefrontNewProducts(limit = 8) {
+  return listActiveStorefrontProducts({
+    badge: "new",
+    limit,
+    sort: "newest",
+  });
+}
+
+export async function getStorefrontSaleProducts(limit = 8) {
+  return listActiveStorefrontProducts({
+    badge: "sale",
+    limit,
+    sort: "newest",
+  });
+}
+
 export async function getActiveStorefrontProductBySlug(slug: string) {
   const product = await prisma.product.findFirst({
     where: {
@@ -534,13 +672,20 @@ export async function getActiveStorefrontProductBySlug(slug: string) {
 }
 
 export async function getStorefrontHomePageData() {
-  const [categories, featuredProducts] = await Promise.all([
-    listActiveStorefrontCategories(),
-    getStorefrontFeaturedProducts(10),
-  ]);
+  const [categories, featuredProducts, newProducts, saleProducts, brands] =
+    await Promise.all([
+      listActiveStorefrontCategories(),
+      getStorefrontFeaturedProducts(10),
+      getStorefrontNewProducts(8),
+      getStorefrontSaleProducts(8),
+      listActiveStorefrontBrands(12),
+    ]);
 
   return {
+    brands,
     categories,
     featuredProducts,
+    newProducts,
+    saleProducts,
   };
 }

@@ -1,7 +1,10 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
-import { CatalogFilterSidebar, CatalogToolbar } from "@/components/storefront/catalog-controls";
+import {
+  CatalogFilterSidebar,
+  CatalogToolbar,
+} from "@/components/storefront/catalog-controls";
 import { StorefrontProductGrid } from "@/components/storefront/product-grid";
 import {
   StorefrontActionLink,
@@ -14,6 +17,7 @@ import {
 import { normalizeCatalogFilters } from "@/lib/storefront/catalog-filters";
 import {
   getActiveStorefrontCategoryBySlug,
+  getStorefrontCatalogFilterOptions,
   listActiveStorefrontProducts,
 } from "@/server/queries/storefront-catalog.query";
 
@@ -32,9 +36,14 @@ export default async function CategoryPage({
 }: CategoryPageProps) {
   const { categorySlug } = await params;
   const filters = normalizeCatalogFilters(await searchParams);
-  const [category, products] = await Promise.all([
+  const routeFilters = {
+    ...filters,
+    categorySlug,
+  };
+  const [category, filterOptions, products] = await Promise.all([
     getActiveStorefrontCategoryBySlug(categorySlug),
-    listActiveStorefrontProducts({ ...filters, categorySlug }),
+    getStorefrontCatalogFilterOptions({ categorySlug }),
+    listActiveStorefrontProducts(routeFilters),
   ]);
 
   if (!category) {
@@ -55,7 +64,11 @@ export default async function CategoryPage({
         title={category.label}
         description={category.description}
         actions={
-          <StorefrontActionLink href="/catalog" variant="outline" size="default">
+          <StorefrontActionLink
+            href="/catalog"
+            variant="outline"
+            size="default"
+          >
             Увесь каталог
           </StorefrontActionLink>
         }
@@ -78,12 +91,17 @@ export default async function CategoryPage({
 
       <StorefrontSection>
         <div className="grid gap-6 lg:grid-cols-[280px_minmax(0,1fr)]">
-          <CatalogFilterSidebar basePath={basePath} filters={filters} />
+          <CatalogFilterSidebar
+            basePath={basePath}
+            filterOptions={filterOptions}
+            filters={routeFilters}
+          />
           <div>
             <CatalogToolbar
               basePath={basePath}
               count={products.length}
-              filters={filters}
+              filterOptions={filterOptions}
+              filters={routeFilters}
               title={category.label}
             />
             <StorefrontProductGrid

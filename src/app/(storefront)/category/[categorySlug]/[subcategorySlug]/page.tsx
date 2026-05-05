@@ -1,6 +1,9 @@
 import { notFound } from "next/navigation";
 
-import { CatalogFilterSidebar, CatalogToolbar } from "@/components/storefront/catalog-controls";
+import {
+  CatalogFilterSidebar,
+  CatalogToolbar,
+} from "@/components/storefront/catalog-controls";
 import { StorefrontProductGrid } from "@/components/storefront/product-grid";
 import {
   StorefrontBadge,
@@ -12,6 +15,7 @@ import {
 import { normalizeCatalogFilters } from "@/lib/storefront/catalog-filters";
 import {
   getActiveStorefrontSubcategoryBySlug,
+  getStorefrontCatalogFilterOptions,
   listActiveStorefrontProducts,
 } from "@/server/queries/storefront-catalog.query";
 
@@ -31,9 +35,15 @@ export default async function SubcategoryPage({
 }: SubcategoryPageProps) {
   const { categorySlug, subcategorySlug } = await params;
   const filters = normalizeCatalogFilters(await searchParams);
-  const [subcategory, products] = await Promise.all([
+  const routeFilters = {
+    ...filters,
+    categorySlug,
+    subcategorySlug,
+  };
+  const [subcategory, filterOptions, products] = await Promise.all([
     getActiveStorefrontSubcategoryBySlug({ categorySlug, subcategorySlug }),
-    listActiveStorefrontProducts({ ...filters, categorySlug, subcategorySlug }),
+    getStorefrontCatalogFilterOptions({ categorySlug }),
+    listActiveStorefrontProducts(routeFilters),
   ]);
 
   if (!subcategory) {
@@ -69,7 +79,9 @@ export default async function SubcategoryPage({
               <StorefrontCard key={field.id} className="p-4">
                 <div className="space-y-3">
                   <div className="flex items-start justify-between gap-3">
-                    <h2 className="font-semibold tracking-tight">{field.label}</h2>
+                    <h2 className="font-semibold tracking-tight">
+                      {field.label}
+                    </h2>
                     <StorefrontBadge tone="muted">{field.type}</StorefrontBadge>
                   </div>
                   {field.options.length > 0 ? (
@@ -77,7 +89,7 @@ export default async function SubcategoryPage({
                       {field.options.slice(0, 6).map((option) => (
                         <span
                           key={option.id}
-                          className="text-muted-foreground rounded-md bg-muted px-2.5 py-1 text-xs"
+                          className="text-muted-foreground bg-muted rounded-md px-2.5 py-1 text-xs"
                         >
                           {option.label}
                         </span>
@@ -97,12 +109,17 @@ export default async function SubcategoryPage({
 
       <StorefrontSection>
         <div className="grid gap-6 lg:grid-cols-[280px_minmax(0,1fr)]">
-          <CatalogFilterSidebar basePath={basePath} filters={filters} />
+          <CatalogFilterSidebar
+            basePath={basePath}
+            filterOptions={filterOptions}
+            filters={routeFilters}
+          />
           <div>
             <CatalogToolbar
               basePath={basePath}
               count={products.length}
-              filters={filters}
+              filterOptions={filterOptions}
+              filters={routeFilters}
               title={subcategory.name}
             />
             <StorefrontProductGrid

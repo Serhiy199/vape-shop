@@ -1,11 +1,17 @@
-import { CatalogFilterSidebar, CatalogToolbar } from "@/components/storefront/catalog-controls";
+import {
+  CatalogFilterSidebar,
+  CatalogToolbar,
+} from "@/components/storefront/catalog-controls";
 import { StorefrontProductGrid } from "@/components/storefront/product-grid";
 import {
   StorefrontPageHeader,
   StorefrontSection,
 } from "@/components/storefront/storefront-primitives";
 import { normalizeCatalogFilters } from "@/lib/storefront/catalog-filters";
-import { listActiveStorefrontProducts } from "@/server/queries/storefront-catalog.query";
+import {
+  getStorefrontCatalogFilterOptions,
+  listActiveStorefrontProducts,
+} from "@/server/queries/storefront-catalog.query";
 
 export const dynamic = "force-dynamic";
 
@@ -15,7 +21,12 @@ type CatalogPageProps = {
 
 export default async function CatalogPage({ searchParams }: CatalogPageProps) {
   const filters = normalizeCatalogFilters(await searchParams);
-  const products = await listActiveStorefrontProducts(filters);
+  const [filterOptions, products] = await Promise.all([
+    getStorefrontCatalogFilterOptions({
+      categorySlug: filters.categorySlug,
+    }),
+    listActiveStorefrontProducts(filters),
+  ]);
 
   return (
     <>
@@ -28,11 +39,16 @@ export default async function CatalogPage({ searchParams }: CatalogPageProps) {
 
       <StorefrontSection>
         <div className="grid gap-6 lg:grid-cols-[280px_minmax(0,1fr)]">
-          <CatalogFilterSidebar basePath="/catalog" filters={filters} />
+          <CatalogFilterSidebar
+            basePath="/catalog"
+            filterOptions={filterOptions}
+            filters={filters}
+          />
           <div>
             <CatalogToolbar
               basePath="/catalog"
               count={products.length}
+              filterOptions={filterOptions}
               filters={filters}
               title="Каталог товарів"
             />

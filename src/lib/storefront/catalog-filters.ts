@@ -29,21 +29,30 @@ export const catalogSortOptions = [
   { label: "Ціна за спаданням", value: "price-desc" },
 ] as const;
 
+export type CatalogOption = {
+  count?: number;
+  href?: string;
+  label: string;
+  parentSlug?: string;
+  value: string;
+};
+
 export type CatalogAvailabilityFilter =
   (typeof catalogAvailabilityOptions)[number]["value"];
 export type CatalogBadgeFilter = (typeof catalogBadgeOptions)[number]["value"];
 export type CatalogPriceRangeFilter =
   (typeof catalogPriceRangeOptions)[number]["value"];
-export type CatalogBrandFilter = (typeof catalogBrandOptions)[number]["value"];
 export type CatalogSortFilter = (typeof catalogSortOptions)[number]["value"];
 
 export type CatalogFilterState = {
   availability?: CatalogAvailabilityFilter;
   badge?: CatalogBadgeFilter;
-  brandSlug?: CatalogBrandFilter;
+  brandSlug?: string;
+  categorySlug?: string;
   priceRange?: CatalogPriceRangeFilter;
   search?: string;
   sort?: CatalogSortFilter;
+  subcategorySlug?: string;
 };
 
 type CatalogSearchParams = Record<string, string | string[] | undefined>;
@@ -65,24 +74,34 @@ export function normalizeCatalogFilters(
   params: CatalogSearchParams,
 ): CatalogFilterState {
   const search = readParam(params, "search")?.trim();
+  const brandSlug = readParam(params, "brand")?.trim();
+  const categorySlug = readParam(params, "category")?.trim();
+  const subcategorySlug = readParam(params, "subcategory")?.trim();
 
   return {
-    availability: oneOf(catalogAvailabilityOptions, readParam(params, "availability")),
+    availability: oneOf(
+      catalogAvailabilityOptions,
+      readParam(params, "availability"),
+    ),
     badge: oneOf(catalogBadgeOptions, readParam(params, "badge")),
-    brandSlug: oneOf(catalogBrandOptions, readParam(params, "brand")),
+    brandSlug: brandSlug || undefined,
+    categorySlug: categorySlug || undefined,
     priceRange: oneOf(catalogPriceRangeOptions, readParam(params, "price")),
     search: search || undefined,
     sort: oneOf(catalogSortOptions, readParam(params, "sort")),
+    subcategorySlug: subcategorySlug || undefined,
   };
 }
 
 export function hasActiveCatalogFilters(filters: CatalogFilterState) {
   return Boolean(
     filters.availability ||
-      filters.badge ||
-      filters.brandSlug ||
-      filters.priceRange ||
-      filters.search ||
-      filters.sort,
+    filters.badge ||
+    filters.brandSlug ||
+    filters.categorySlug ||
+    filters.priceRange ||
+    filters.search ||
+    filters.sort ||
+    filters.subcategorySlug,
   );
 }

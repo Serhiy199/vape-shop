@@ -37,6 +37,14 @@ export default async function ProductPage({ params }: ProductPageProps) {
       limit: 6,
     })
   ).filter((item) => item.slug !== product.slug);
+  const purchaseHighlights = [
+    { label: "Категорія", value: product.category.name },
+    { label: "Підкатегорія", value: product.subcategory.name },
+    ...product.fieldValues.slice(0, 4).map((fieldValue) => ({
+      label: fieldValue.label,
+      value: fieldValue.value,
+    })),
+  ].filter((highlight) => highlight.value);
 
   return (
     <>
@@ -61,8 +69,14 @@ export default async function ProductPage({ params }: ProductPageProps) {
 
       <StorefrontSection>
         <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_420px]">
-          <StorefrontProductGallery images={product.images} title={product.title} />
-          <StorefrontProductPurchasePanel product={product.card} />
+          <StorefrontProductGallery
+            images={product.images}
+            title={product.title}
+          />
+          <StorefrontProductPurchasePanel
+            highlights={purchaseHighlights}
+            product={product.card}
+          />
         </div>
       </StorefrontSection>
 
@@ -80,10 +94,18 @@ export default async function ProductPage({ params }: ProductPageProps) {
 
           <StorefrontCard className="p-5">
             <div className="space-y-4">
-              <h2 className={storefrontPatterns.sectionTitle}>Доставка та оплата</h2>
-              <div className="grid gap-3 text-sm text-muted-foreground">
-                <p>Доставка по Україні. Детальні сценарії будуть підключені в checkout.</p>
-                <p>Оплата та промокоди будуть активовані на наступних e-commerce етапах.</p>
+              <h2 className={storefrontPatterns.sectionTitle}>
+                Доставка та оплата
+              </h2>
+              <div className="text-muted-foreground grid gap-3 text-sm">
+                <p>
+                  Доставка по Україні. Детальні сценарії будуть підключені в
+                  checkout.
+                </p>
+                <p>
+                  Оплата та промокоди будуть активовані на наступних e-commerce
+                  етапах.
+                </p>
               </div>
             </div>
           </StorefrontCard>
@@ -102,9 +124,11 @@ export default async function ProductPage({ params }: ProductPageProps) {
               {product.fieldValues.map((fieldValue) => (
                 <div
                   key={fieldValue.id}
-                  className="rounded-lg border border-border/70 bg-background p-4"
+                  className="border-border/70 bg-background rounded-lg border p-4"
                 >
-                  <dt className="text-muted-foreground text-sm">{fieldValue.label}</dt>
+                  <dt className="text-muted-foreground text-sm">
+                    {fieldValue.label}
+                  </dt>
                   <dd className="mt-1 font-medium">{fieldValue.value}</dd>
                 </div>
               ))}
