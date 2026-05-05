@@ -61,7 +61,7 @@ export function AgeGate() {
     };
   }, [isConfirmed, isReady]);
 
-  if (isReady && isConfirmed) {
+  if (!isReady || isConfirmed) {
     return null;
   }
 
