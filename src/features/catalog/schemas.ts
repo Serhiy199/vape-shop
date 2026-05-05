@@ -67,6 +67,20 @@ function optionalIdField() {
   );
 }
 
+function optionalTextField(max: number) {
+  return z.preprocess(
+    (value) => {
+      if (typeof value !== "string") {
+        return value;
+      }
+
+      const trimmed = value.trim();
+      return trimmed.length === 0 ? undefined : trimmed;
+    },
+    z.string().max(max).optional(),
+  );
+}
+
 function priceField() {
   return z
     .union([z.number(), z.string()])
@@ -106,11 +120,7 @@ const subcategoryFieldOptionSchema = z.object({
 
 const productFieldValueSchema = z.object({
   fieldId: idField(),
-  optionId: z
-    .string()
-    .trim()
-    .transform((value) => (value.length === 0 ? undefined : value))
-    .pipe(z.string().max(191).optional()),
+  optionId: optionalIdField(),
   valueBoolean: z
     .union([z.boolean(), z.string()])
     .optional()
@@ -148,11 +158,7 @@ const productFieldValueSchema = z.object({
       return Number.isFinite(parsed) ? parsed : value;
     })
     .pipe(z.union([z.number(), z.string(), z.undefined()])),
-  valueText: z
-    .string()
-    .trim()
-    .transform((value) => (value.length === 0 ? undefined : value))
-    .pipe(z.string().max(2000).optional()),
+  valueText: optionalTextField(2000),
 });
 
 const productFieldValuesSchema = z.array(productFieldValueSchema).superRefine(

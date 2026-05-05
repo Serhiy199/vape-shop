@@ -230,6 +230,17 @@ function findFirstSubcategoryId(
   );
 }
 
+function getServerValidationMessage(
+  result: Extract<Awaited<ReturnType<typeof createProductAction>>, { ok: false }>,
+) {
+  const fieldErrors = result.fieldErrors ?? {};
+  const messages = Object.values(fieldErrors)
+    .flatMap((errors) => errors ?? [])
+    .filter(Boolean);
+
+  return messages[0] ?? result.error;
+}
+
 function buildCreateValues(
   categories: CategoryOption[],
   subcategories: SubcategoryOption[],
@@ -1120,7 +1131,7 @@ function ProductWizard({
         if (imageErrors.length > 0) {
           setGeneralMessage(imageErrors[0]);
         } else {
-          setGeneralMessage(result.error);
+          setGeneralMessage(getServerValidationMessage(result));
         }
 
         return;
