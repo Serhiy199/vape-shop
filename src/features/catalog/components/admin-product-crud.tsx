@@ -777,8 +777,16 @@ function ProductWizard({
       return;
     }
 
+    const productSlug = values.slug.trim();
+
+    if (!productSlug) {
+      setGeneralMessage("Вкажіть slug товару перед upload фото.");
+      return;
+    }
+
     const uploadFormData = new FormData();
     uploadFormData.append("existingCount", images.length.toString());
+    uploadFormData.append("productSlug", productSlug);
 
     selectedUploadFiles.forEach((file) => {
       uploadFormData.append("files", file);

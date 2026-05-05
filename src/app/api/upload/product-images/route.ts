@@ -47,6 +47,9 @@ export async function POST(request: Request) {
 
   const existingCountValue = formData.get("existingCount");
   const existingCount = Number(existingCountValue ?? 0);
+  const productSlugValue = formData.get("productSlug");
+  const productSlug =
+    typeof productSlugValue === "string" ? productSlugValue.trim() : "";
   const files = formData
     .getAll("files")
     .filter((value): value is File => value instanceof File && value.size > 0);
@@ -58,6 +61,14 @@ export async function POST(request: Request) {
       400,
       "INVALID_EXISTING_COUNT",
       "existingCount must be a non-negative number.",
+    );
+  }
+
+  if (!productSlug) {
+    return jsonError(
+      400,
+      "PRODUCT_SLUG_REQUIRED",
+      "Product slug is required before image upload.",
     );
   }
 
@@ -101,8 +112,12 @@ export async function POST(request: Request) {
 
   try {
     const uploadedFiles = await Promise.all(
-      files.map(async (file) => {
-        const uploaded = await uploadProductImageToCloudinary(file);
+      files.map(async (file, index) => {
+        const uploaded = await uploadProductImageToCloudinary({
+          file,
+          imageNumber: existingCount + index + 1,
+          productSlug,
+        });
 
         return {
           publicId: uploaded.publicId,
@@ -126,6 +141,8 @@ export async function POST(request: Request) {
       error instanceof Error
         ? error.message === "CLOUDINARY_CONFIG_MISSING"
           ? "Cloudinary environment variables are not configured."
+          : error.message === "PRODUCT_SLUG_REQUIRED"
+            ? "Product slug is required before image upload."
           : error.message
         : "Image upload failed.";
 
