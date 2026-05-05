@@ -62,10 +62,14 @@ export function AdminProductFilters({
   const [brandId, setBrandId] = useState(initialFilters.brandId ?? ALL_VALUE);
 
   useEffect(() => {
-    setSearch(initialFilters.search ?? "");
-    setCategoryId(initialFilters.categoryId ?? ALL_VALUE);
-    setSubcategoryId(initialFilters.subcategoryId ?? ALL_VALUE);
-    setBrandId(initialFilters.brandId ?? ALL_VALUE);
+    const timeoutId = window.setTimeout(() => {
+      setSearch(initialFilters.search ?? "");
+      setCategoryId(initialFilters.categoryId ?? ALL_VALUE);
+      setSubcategoryId(initialFilters.subcategoryId ?? ALL_VALUE);
+      setBrandId(initialFilters.brandId ?? ALL_VALUE);
+    }, 0);
+
+    return () => window.clearTimeout(timeoutId);
   }, [initialFilters.brandId, initialFilters.categoryId, initialFilters.search, initialFilters.subcategoryId]);
 
   const availableSubcategories = useMemo(() => {
@@ -77,6 +81,39 @@ export function AdminProductFilters({
       (subcategory) => subcategory.category.id === categoryId,
     );
   }, [categoryId, subcategories]);
+
+  const categoryItems = useMemo(
+    () => [
+      { value: ALL_VALUE, label: "Усі категорії" },
+      ...categories.map((category) => ({
+        value: category.id,
+        label: category.name,
+      })),
+    ],
+    [categories],
+  );
+
+  const subcategoryItems = useMemo(
+    () => [
+      { value: ALL_VALUE, label: "Усі підкатегорії" },
+      ...availableSubcategories.map((subcategory) => ({
+        value: subcategory.id,
+        label: subcategory.name,
+      })),
+    ],
+    [availableSubcategories],
+  );
+
+  const brandItems = useMemo(
+    () => [
+      { value: ALL_VALUE, label: "Усі бренди" },
+      ...brands.map((brand) => ({
+        value: brand.id,
+        label: brand.name,
+      })),
+    ],
+    [brands],
+  );
 
   const applyFilters = () => {
     const params = new URLSearchParams();
@@ -120,6 +157,7 @@ export function AdminProductFilters({
       />
 
       <Select
+        items={categoryItems}
         value={categoryId}
         onValueChange={(value) => {
           if (!value) {
@@ -144,6 +182,7 @@ export function AdminProductFilters({
       </Select>
 
       <Select
+        items={subcategoryItems}
         value={subcategoryId}
         onValueChange={(value) => {
           if (!value) {
@@ -167,6 +206,7 @@ export function AdminProductFilters({
       </Select>
 
       <Select
+        items={brandItems}
         value={brandId}
         onValueChange={(value) => {
           if (!value) {

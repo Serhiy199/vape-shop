@@ -293,6 +293,10 @@ function FieldFormFields({
             required
           >
             <Select
+              items={subcategories.map((subcategory) => ({
+                value: subcategory.id,
+                label: `${subcategory.categoryName} / ${subcategory.name}`,
+              }))}
               value={values.subcategoryId}
               onValueChange={onSubcategoryChange}
             >
@@ -330,6 +334,7 @@ function FieldFormFields({
 
           <AdminField label="Type" error={errors.type} required>
             <Select
+              items={FIELD_TYPE_OPTIONS}
               value={values.type}
               onValueChange={(value) => onTypeChange(value as FieldType)}
             >
@@ -417,17 +422,25 @@ export function AdminFieldCrud({
   const [editSuccess, setEditSuccess] = useState<string | null>(null);
 
   useEffect(() => {
-    setCreateValues(buildCreateValues(subcategories));
-    setCreateErrors({});
-    setCreateMessage(null);
-    setCreateSuccess(null);
+    const timeoutId = window.setTimeout(() => {
+      setCreateValues(buildCreateValues(subcategories));
+      setCreateErrors({});
+      setCreateMessage(null);
+      setCreateSuccess(null);
+    }, 0);
+
+    return () => window.clearTimeout(timeoutId);
   }, [subcategories]);
 
   useEffect(() => {
-    setEditValues(selectedField ? buildEditValues(selectedField) : null);
-    setEditErrors({});
-    setEditMessage(null);
-    setEditSuccess(null);
+    const timeoutId = window.setTimeout(() => {
+      setEditValues(selectedField ? buildEditValues(selectedField) : null);
+      setEditErrors({});
+      setEditMessage(null);
+      setEditSuccess(null);
+    }, 0);
+
+    return () => window.clearTimeout(timeoutId);
   }, [selectedField]);
 
   const clearCreateFeedback = () => {

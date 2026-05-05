@@ -171,7 +171,7 @@ export function AdminSelectField({
       required={required}
       className={className}
     >
-      <Select defaultValue={value}>
+      <Select defaultValue={value} items={options}>
         <SelectTrigger className="w-full" aria-invalid={Boolean(error)}>
           <SelectValue placeholder={placeholder} />
         </SelectTrigger>

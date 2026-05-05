@@ -54,11 +54,17 @@ function availabilityField() {
 }
 
 function optionalIdField() {
-  return z
-    .string()
-    .trim()
-    .transform((value) => (value.length === 0 ? undefined : value))
-    .pipe(z.string().max(191).optional());
+  return z.preprocess(
+    (value) => {
+      if (typeof value !== "string") {
+        return value;
+      }
+
+      const trimmed = value.trim();
+      return trimmed.length === 0 ? undefined : trimmed;
+    },
+    z.string().max(191).optional(),
+  );
 }
 
 function priceField() {

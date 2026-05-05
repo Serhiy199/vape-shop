@@ -201,6 +201,16 @@ type AdminProductCrudProps = {
 
 const NO_BRAND_VALUE = "__none__";
 
+const AVAILABILITY_OPTIONS = [
+  { value: "IN_STOCK", label: "В наявності" },
+  { value: "OUT_OF_STOCK", label: "Немає в наявності" },
+] as const;
+
+const BOOLEAN_OPTIONS = [
+  { value: "true", label: "Так" },
+  { value: "false", label: "Ні" },
+] as const;
+
 const PRODUCT_STEPS: Array<{ id: ProductStepId; label: string }> = [
   { id: "category", label: "1. Category" },
   { id: "subcategory", label: "2. Subcategory" },
@@ -638,28 +648,64 @@ function ProductWizard({
     [subcategories, values.categoryId],
   );
 
+  const categoryItems = useMemo(
+    () =>
+      categories.map((category) => ({
+        value: category.id,
+        label: category.name,
+      })),
+    [categories],
+  );
+
+  const subcategoryItems = useMemo(
+    () =>
+      availableSubcategories.map((subcategory) => ({
+        value: subcategory.id,
+        label: subcategory.name,
+      })),
+    [availableSubcategories],
+  );
+
+  const brandItems = useMemo(
+    () => [
+      { value: NO_BRAND_VALUE, label: "Без бренду" },
+      ...brands.map((brand) => ({
+        value: brand.id,
+        label: brand.name,
+      })),
+    ],
+    [brands],
+  );
+
   const currentFieldDefinitions = useMemo(
     () => getSubcategoryFields(fields, values.subcategoryId),
     [fields, values.subcategoryId],
   );
 
   useEffect(() => {
-    setValues(initialValues);
-    setDynamicValues(initialDynamicValues);
-    setImages(initialImages);
-    setCurrentStep("category");
-    setFieldErrors({});
-    setDynamicErrors({});
-    setImageItemErrors({});
-    setSelectedUploadFiles([]);
-    setGeneralMessage(null);
-    setSuccessMessage(null);
+    const timeoutId = window.setTimeout(() => {
+      setValues(initialValues);
+      setDynamicValues(initialDynamicValues);
+      setImages(initialImages);
+      setCurrentStep("category");
+      setFieldErrors({});
+      setDynamicErrors({});
+      setImageItemErrors({});
+      setSelectedUploadFiles([]);
+      setGeneralMessage(null);
+      setSuccessMessage(null);
+    }, 0);
+
+    return () => window.clearTimeout(timeoutId);
   }, [initialDynamicValues, initialImages, initialValues, productId]);
 
   useEffect(() => {
     if (selectedUploadFiles.length === 0) {
-      setSelectedUploadPreviews([]);
-      return;
+      const timeoutId = window.setTimeout(() => {
+        setSelectedUploadPreviews([]);
+      }, 0);
+
+      return () => window.clearTimeout(timeoutId);
     }
 
     const previews = selectedUploadFiles.map((file) => ({
@@ -667,9 +713,12 @@ function ProductWizard({
       url: URL.createObjectURL(file),
     }));
 
-    setSelectedUploadPreviews(previews);
+    const timeoutId = window.setTimeout(() => {
+      setSelectedUploadPreviews(previews);
+    }, 0);
 
     return () => {
+      window.clearTimeout(timeoutId);
       previews.forEach((preview) => {
         URL.revokeObjectURL(preview.url);
       });
@@ -950,6 +999,18 @@ function ProductWizard({
       const validation = validateImages(images);
       setImageItemErrors(validation.itemErrors);
 
+      if (
+        selectedUploadFiles.length > 0 &&
+        images.length === 0 &&
+        (validation.generalError || Object.keys(validation.itemErrors).length > 0)
+      ) {
+        setGeneralMessage(
+          "Файли вже вибрані, але ще не завантажені. Натисніть «Завантажити в Cloudinary», дочекайтесь появи картки фото, потім переходьте далі.",
+        );
+        isValid = false;
+        return isValid;
+      }
+
       if (validation.generalError || Object.keys(validation.itemErrors).length > 0) {
         setGeneralMessage(
           validation.generalError ?? "Перевірте дані зображень товару.",
@@ -1083,7 +1144,11 @@ function ProductWizard({
           description="Спершу визначаємо верхньорівневу category. Вона керує доступними subcategory та dynamic fields."
         >
           <AdminField label="Категорія" error={fieldErrors.categoryId} required>
-            <Select value={values.categoryId} onValueChange={updateCategory}>
+            <Select
+              items={categoryItems}
+              value={values.categoryId}
+              onValueChange={updateCategory}
+            >
               <SelectTrigger className="w-full">
                 <SelectValue placeholder="Оберіть категорію" />
               </SelectTrigger>
@@ -1109,7 +1174,11 @@ function ProductWizard({
             error={fieldErrors.subcategoryId}
             required
           >
-            <Select value={values.subcategoryId} onValueChange={updateSubcategory}>
+            <Select
+              items={subcategoryItems}
+              value={values.subcategoryId}
+              onValueChange={updateSubcategory}
+            >
               <SelectTrigger className="w-full">
                 <SelectValue placeholder="Оберіть підкатегорію" />
               </SelectTrigger>
@@ -1146,6 +1215,10 @@ function ProductWizard({
                       required={field.isRequired}
                     >
                       <Select
+                        items={field.options.map((option) => ({
+                          value: option.id,
+                          label: option.label,
+                        }))}
                         value={value.optionId}
                         onValueChange={(optionId) => {
                           if (!optionId) {
@@ -1201,6 +1274,7 @@ function ProductWizard({
                       required={field.isRequired}
                     >
                       <Select
+                        items={BOOLEAN_OPTIONS}
                         value={value.valueBoolean}
                         onValueChange={(nextValue) =>
                           updateDynamicValue(field.id, {
@@ -1212,8 +1286,8 @@ function ProductWizard({
                           <SelectValue placeholder="Оберіть true або false" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="true">true</SelectItem>
-                          <SelectItem value="false">false</SelectItem>
+                          <SelectItem value="true">Так</SelectItem>
+                          <SelectItem value="false">Ні</SelectItem>
                         </SelectContent>
                       </Select>
                     </AdminField>
@@ -1306,6 +1380,7 @@ function ProductWizard({
 
             <AdminField label="Наявність" error={fieldErrors.availability} required>
               <Select
+                items={AVAILABILITY_OPTIONS}
                 value={values.availability}
                 onValueChange={(value) =>
                   updateValue(
@@ -1326,6 +1401,7 @@ function ProductWizard({
 
             <AdminField label="Бренд" error={fieldErrors.brandId}>
               <Select
+                items={brandItems}
                 value={values.brandId}
                 onValueChange={(value) => {
                   if (!value) {

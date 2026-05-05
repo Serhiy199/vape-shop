@@ -143,7 +143,14 @@ function SubcategoryFormFields({
           error={errors.categoryId}
           required
         >
-          <Select value={values.categoryId} onValueChange={onCategoryChange}>
+          <Select
+            items={categories.map((category) => ({
+              value: category.id,
+              label: category.name,
+            }))}
+            value={values.categoryId}
+            onValueChange={onCategoryChange}
+          >
             <SelectTrigger className="w-full">
               <SelectValue placeholder="Оберіть категорію" />
             </SelectTrigger>
@@ -264,17 +271,25 @@ export function AdminSubcategoryCrud({
   const [editSuccess, setEditSuccess] = useState<string | null>(null);
 
   useEffect(() => {
-    setCreateValues(buildCreateValues(categories));
-    setCreateErrors({});
-    setCreateMessage(null);
-    setCreateSuccess(null);
+    const timeoutId = window.setTimeout(() => {
+      setCreateValues(buildCreateValues(categories));
+      setCreateErrors({});
+      setCreateMessage(null);
+      setCreateSuccess(null);
+    }, 0);
+
+    return () => window.clearTimeout(timeoutId);
   }, [categories]);
 
   useEffect(() => {
-    setEditValues(selectedSubcategory ? buildEditValues(selectedSubcategory) : null);
-    setEditErrors({});
-    setEditMessage(null);
-    setEditSuccess(null);
+    const timeoutId = window.setTimeout(() => {
+      setEditValues(selectedSubcategory ? buildEditValues(selectedSubcategory) : null);
+      setEditErrors({});
+      setEditMessage(null);
+      setEditSuccess(null);
+    }, 0);
+
+    return () => window.clearTimeout(timeoutId);
   }, [selectedSubcategory]);
 
   const updateCreateField = (
