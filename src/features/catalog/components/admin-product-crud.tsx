@@ -225,13 +225,16 @@ function findFirstSubcategoryId(
   subcategories: SubcategoryOption[],
 ) {
   return (
-    subcategories.find((subcategory) => subcategory.category.id === categoryId)?.id ??
-    ""
+    subcategories.find((subcategory) => subcategory.category.id === categoryId)
+      ?.id ?? ""
   );
 }
 
 function getServerValidationMessage(
-  result: Extract<Awaited<ReturnType<typeof createProductAction>>, { ok: false }>,
+  result: Extract<
+    Awaited<ReturnType<typeof createProductAction>>,
+    { ok: false }
+  >,
 ) {
   const fieldErrors = result.fieldErrors ?? {};
   const messages = Object.values(fieldErrors)
@@ -432,6 +435,20 @@ function validateBaseFields(values: ProductFormValues) {
   return errors;
 }
 
+function validateSeoFields(values: ProductFormValues) {
+  const errors: ProductFieldErrors = {};
+
+  if (!values.seoTitle.trim()) {
+    errors.seoTitle = "Вкажіть SEO title перед створенням товару.";
+  }
+
+  if (!values.seoDescription.trim()) {
+    errors.seoDescription = "Вкажіть SEO description перед створенням товару.";
+  }
+
+  return errors;
+}
+
 function validateDynamicFields(
   fieldDefinitions: FieldDefinition[],
   dynamicValues: Record<string, ProductDynamicValue>,
@@ -557,17 +574,11 @@ function StepBadge({
   );
 }
 
-function ProductThumbnail({
-  alt,
-  src,
-}: {
-  alt: string;
-  src: string;
-}) {
+function ProductThumbnail({ alt, src }: { alt: string; src: string }) {
   const [hasError, setHasError] = useState(false);
 
   return (
-    <div className="overflow-hidden rounded-2xl border border-border/70 bg-muted/30">
+    <div className="border-border/70 bg-muted/30 overflow-hidden rounded-2xl border">
       {src && !hasError ? (
         <img
           src={src}
@@ -584,12 +595,10 @@ function ProductThumbnail({
   );
 }
 
-function WizardStepHeader({
-  currentStep,
-}: {
-  currentStep: ProductStepId;
-}) {
-  const currentIndex = PRODUCT_STEPS.findIndex((step) => step.id === currentStep);
+function WizardStepHeader({ currentStep }: { currentStep: ProductStepId }) {
+  const currentIndex = PRODUCT_STEPS.findIndex(
+    (step) => step.id === currentStep,
+  );
 
   return (
     <div className="flex flex-wrap gap-2">
@@ -636,7 +645,9 @@ function ProductWizard({
   const [dynamicValues, setDynamicValues] = useState(initialDynamicValues);
   const [images, setImages] = useState<ProductImageDraft[]>(initialImages);
   const [fieldErrors, setFieldErrors] = useState<ProductFieldErrors>({});
-  const [dynamicErrors, setDynamicErrors] = useState<Record<string, string>>({});
+  const [dynamicErrors, setDynamicErrors] = useState<Record<string, string>>(
+    {},
+  );
   const [imageItemErrors, setImageItemErrors] = useState<
     Record<number, { publicId?: string; url?: string }>
   >({});
@@ -861,21 +872,19 @@ function ProductWizard({
         method: "POST",
       });
 
-      const payload = (await response.json().catch(() => null)) as
-        | {
-            data?: {
-              files?: Array<{
-                publicId: string;
-                url: string;
-              }>;
-            };
-            error?: {
-              message?: string;
-            };
-            message?: string;
-            success?: boolean;
-          }
-        | null;
+      const payload = (await response.json().catch(() => null)) as {
+        data?: {
+          files?: Array<{
+            publicId: string;
+            url: string;
+          }>;
+        };
+        error?: {
+          message?: string;
+        };
+        message?: string;
+        success?: boolean;
+      } | null;
 
       if (!response.ok || !payload?.success) {
         setGeneralMessage(
@@ -901,10 +910,7 @@ function ProductWizard({
     });
   };
 
-  const updateImage = (
-    index: number,
-    patch: Partial<ProductImageDraft>,
-  ) => {
+  const updateImage = (index: number, patch: Partial<ProductImageDraft>) => {
     setImages((current) =>
       current.map((image, imageIndex) =>
         imageIndex === index
@@ -938,9 +944,14 @@ function ProductWizard({
 
   const removeImage = (index: number) => {
     setImages((current) => {
-      const nextImages = current.filter((_, imageIndex) => imageIndex !== index);
+      const nextImages = current.filter(
+        (_, imageIndex) => imageIndex !== index,
+      );
 
-      if (nextImages.length > 0 && !nextImages.some((image) => image.isPrimary)) {
+      if (
+        nextImages.length > 0 &&
+        !nextImages.some((image) => image.isPrimary)
+      ) {
         nextImages[0] = {
           ...nextImages[0],
           isPrimary: true,
@@ -1013,7 +1024,8 @@ function ProductWizard({
       if (
         selectedUploadFiles.length > 0 &&
         images.length === 0 &&
-        (validation.generalError || Object.keys(validation.itemErrors).length > 0)
+        (validation.generalError ||
+          Object.keys(validation.itemErrors).length > 0)
       ) {
         setGeneralMessage(
           "Файли вже вибрані, але ще не завантажені. Натисніть «Завантажити в Cloudinary», дочекайтесь появи картки фото, потім переходьте далі.",
@@ -1022,10 +1034,26 @@ function ProductWizard({
         return isValid;
       }
 
-      if (validation.generalError || Object.keys(validation.itemErrors).length > 0) {
+      if (
+        validation.generalError ||
+        Object.keys(validation.itemErrors).length > 0
+      ) {
         setGeneralMessage(
           validation.generalError ?? "Перевірте дані зображень товару.",
         );
+        isValid = false;
+      }
+    }
+
+    if (step === "seo") {
+      const nextFieldErrors = validateSeoFields(values);
+      setFieldErrors((current) => ({
+        ...current,
+        ...nextFieldErrors,
+      }));
+
+      if (Object.keys(nextFieldErrors).length > 0) {
+        setGeneralMessage("Заповніть SEO-поля перед створенням товару.");
         isValid = false;
       }
     }
@@ -1059,9 +1087,16 @@ function ProductWizard({
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
+    if (currentStep !== "seo") {
+      goNext();
+      return;
+    }
+
     const stepsValid = PRODUCT_STEPS.every((step) => validateStep(step.id));
     if (!stepsValid) {
-      const firstBrokenStep = PRODUCT_STEPS.find((step) => !validateStep(step.id));
+      const firstBrokenStep = PRODUCT_STEPS.find(
+        (step) => !validateStep(step.id),
+      );
       if (firstBrokenStep) {
         setCurrentStep(firstBrokenStep.id);
       }
@@ -1097,10 +1132,12 @@ function ProductWizard({
       if (!result.ok) {
         setFieldErrors((current) => ({
           ...current,
-          availability: result.fieldErrors?.availability?.[0] ?? current.availability,
+          availability:
+            result.fieldErrors?.availability?.[0] ?? current.availability,
           brandId: result.fieldErrors?.brandId?.[0] ?? current.brandId,
           categoryId: result.fieldErrors?.categoryId?.[0] ?? current.categoryId,
-          description: result.fieldErrors?.description?.[0] ?? current.description,
+          description:
+            result.fieldErrors?.description?.[0] ?? current.description,
           price: result.fieldErrors?.price?.[0] ?? current.price,
           seoDescription:
             result.fieldErrors?.seoDescription?.[0] ?? current.seoDescription,
@@ -1120,7 +1157,10 @@ function ProductWizard({
             );
 
             if (matched) {
-              nextDynamicErrors[field.id] = matched.split(": ").slice(1).join(": ");
+              nextDynamicErrors[field.id] = matched
+                .split(": ")
+                .slice(1)
+                .join(": ");
             }
           });
 
@@ -1213,7 +1253,8 @@ function ProductWizard({
           {currentFieldDefinitions.length ? (
             <div className="space-y-4">
               {currentFieldDefinitions.map((field) => {
-                const value = dynamicValues[field.id] ?? getEmptyDynamicValue(field.id);
+                const value =
+                  dynamicValues[field.id] ?? getEmptyDynamicValue(field.id);
                 const error = dynamicErrors[field.id];
 
                 if (field.type === "SELECT") {
@@ -1289,7 +1330,8 @@ function ProductWizard({
                         value={value.valueBoolean}
                         onValueChange={(nextValue) =>
                           updateDynamicValue(field.id, {
-                            valueBoolean: nextValue as ProductDynamicValue["valueBoolean"],
+                            valueBoolean:
+                              nextValue as ProductDynamicValue["valueBoolean"],
                           })
                         }
                       >
@@ -1389,7 +1431,11 @@ function ProductWizard({
               required
             />
 
-            <AdminField label="Наявність" error={fieldErrors.availability} required>
+            <AdminField
+              label="Наявність"
+              error={fieldErrors.availability}
+              required
+            >
               <Select
                 items={AVAILABILITY_OPTIONS}
                 value={values.availability}
@@ -1405,7 +1451,9 @@ function ProductWizard({
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="IN_STOCK">В наявності</SelectItem>
-                  <SelectItem value="OUT_OF_STOCK">Немає в наявності</SelectItem>
+                  <SelectItem value="OUT_OF_STOCK">
+                    Немає в наявності
+                  </SelectItem>
                 </SelectContent>
               </Select>
             </AdminField>
@@ -1442,13 +1490,15 @@ function ProductWizard({
               id={`${mode}-description`}
               label="Опис"
               value={values.description}
-              onChange={(event) => updateValue("description", event.target.value)}
+              onChange={(event) =>
+                updateValue("description", event.target.value)
+              }
               error={fieldErrors.description}
               rows={5}
             />
 
             <div className="grid gap-3 md:grid-cols-2">
-              <div className="flex items-start justify-between gap-4 rounded-2xl border border-border/70 bg-card/90 px-4 py-3">
+              <div className="border-border/70 bg-card/90 flex items-start justify-between gap-4 rounded-2xl border px-4 py-3">
                 <div className="space-y-1">
                   <p className="text-sm font-medium">Показувати на сайті</p>
                   <p className="text-muted-foreground text-sm leading-6">
@@ -1457,12 +1507,14 @@ function ProductWizard({
                 </div>
                 <Switch
                   checked={values.isActive}
-                  onCheckedChange={(checked) => updateValue("isActive", checked)}
+                  onCheckedChange={(checked) =>
+                    updateValue("isActive", checked)
+                  }
                   aria-label="Показувати на сайті"
                 />
               </div>
 
-              <div className="flex items-start justify-between gap-4 rounded-2xl border border-border/70 bg-card/90 px-4 py-3">
+              <div className="border-border/70 bg-card/90 flex items-start justify-between gap-4 rounded-2xl border px-4 py-3">
                 <div className="space-y-1">
                   <p className="text-sm font-medium">New</p>
                   <p className="text-muted-foreground text-sm leading-6">
@@ -1478,7 +1530,7 @@ function ProductWizard({
                 />
               </div>
 
-              <div className="flex items-start justify-between gap-4 rounded-2xl border border-border/70 bg-card/90 px-4 py-3">
+              <div className="border-border/70 bg-card/90 flex items-start justify-between gap-4 rounded-2xl border px-4 py-3">
                 <div className="space-y-1">
                   <p className="text-sm font-medium">Sale</p>
                   <p className="text-muted-foreground text-sm leading-6">
@@ -1494,7 +1546,7 @@ function ProductWizard({
                 />
               </div>
 
-              <div className="flex items-start justify-between gap-4 rounded-2xl border border-border/70 bg-card/90 px-4 py-3">
+              <div className="border-border/70 bg-card/90 flex items-start justify-between gap-4 rounded-2xl border px-4 py-3">
                 <div className="space-y-1">
                   <p className="text-sm font-medium">Hit</p>
                   <p className="text-muted-foreground text-sm leading-6">
@@ -1520,7 +1572,7 @@ function ProductWizard({
           description="Cloudinary upload уже підключений. Після аплоаду форма автоматично підставляє url/publicId у payload товару."
         >
           <div className="space-y-4">
-            <div className="rounded-2xl border border-border/70 bg-card/90 p-4">
+            <div className="border-border/70 bg-card/90 rounded-2xl border p-4">
               <div className="space-y-3">
                 <p className="text-sm font-medium">Cloudinary upload</p>
                 <p className="text-muted-foreground text-sm leading-6">
@@ -1539,7 +1591,7 @@ function ProductWizard({
                 </AdminField>
 
                 {selectedUploadFiles.length ? (
-                  <div className="rounded-2xl border border-border/70 bg-muted/30 p-3">
+                  <div className="border-border/70 bg-muted/30 rounded-2xl border p-3">
                     <p className="text-sm font-medium">
                       До upload вибрано {selectedUploadFiles.length} файл(и)
                     </p>
@@ -1547,16 +1599,22 @@ function ProductWizard({
                       {selectedUploadPreviews.map((preview) => (
                         <div
                           key={preview.url}
-                          className="space-y-2 rounded-2xl border border-border/70 bg-card/80 p-3"
+                          className="border-border/70 bg-card/80 space-y-2 rounded-2xl border p-3"
                         >
-                          <ProductThumbnail alt={preview.name} src={preview.url} />
+                          <ProductThumbnail
+                            alt={preview.name}
+                            src={preview.url}
+                          />
                           <p className="truncate text-xs">{preview.name}</p>
                         </div>
                       ))}
                     </div>
                     <div className="mt-2 flex flex-wrap gap-2">
                       {selectedUploadFiles.map((file) => (
-                        <Badge key={`${file.name}-${file.lastModified}`} variant="outline">
+                        <Badge
+                          key={`${file.name}-${file.lastModified}`}
+                          variant="outline"
+                        >
                           {file.name}
                         </Badge>
                       ))}
@@ -1589,10 +1647,14 @@ function ProductWizard({
               images.map((image, index) => (
                 <div
                   key={image.id ?? `${mode}-image-${index}`}
-                  className="space-y-4 rounded-2xl border border-border/70 bg-card/90 p-4"
+                  className="border-border/70 bg-card/90 space-y-4 rounded-2xl border p-4"
                 >
                   <ProductThumbnail
-                    alt={image.alt || image.publicId || `Product image ${index + 1}`}
+                    alt={
+                      image.alt ||
+                      image.publicId ||
+                      `Product image ${index + 1}`
+                    }
                     src={image.url}
                   />
 
@@ -1665,7 +1727,7 @@ function ProductWizard({
               />
             )}
 
-            <div className="flex flex-col gap-3 rounded-2xl border border-border/70 bg-muted/30 p-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="border-border/70 bg-muted/30 flex flex-col gap-3 rounded-2xl border p-4 sm:flex-row sm:items-center sm:justify-between">
               <p className="text-muted-foreground text-sm leading-6">
                 Правила цього кроку: 1 головне фото, до 10 фото в галереї.
               </p>
@@ -1687,6 +1749,7 @@ function ProductWizard({
               value={values.seoTitle}
               onChange={(event) => updateValue("seoTitle", event.target.value)}
               error={fieldErrors.seoTitle}
+              required
             />
 
             <AdminTextareaField
@@ -1698,6 +1761,7 @@ function ProductWizard({
               }
               error={fieldErrors.seoDescription}
               rows={4}
+              required
             />
           </div>
         </AdminFormSection>
@@ -1715,7 +1779,7 @@ function ProductWizard({
         </div>
       ) : null}
 
-      <div className="flex flex-col gap-3 rounded-2xl border border-border/70 bg-muted/30 p-4 sm:flex-row sm:items-center sm:justify-between">
+      <div className="border-border/70 bg-muted/30 flex flex-col gap-3 rounded-2xl border p-4 sm:flex-row sm:items-center sm:justify-between">
         <p className="text-muted-foreground text-sm leading-6">
           Крок {currentStepIndex + 1} з {PRODUCT_STEPS.length}. Форма вже
           валідовує category, subcategory, required dynamic fields, base data та
