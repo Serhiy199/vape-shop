@@ -1,10 +1,6 @@
-import { PaymentMethod } from "@prisma/client";
 import { z } from "zod";
 
-const checkoutPaymentMethods = [
-  PaymentMethod.COD,
-  PaymentMethod.CARD_TRANSFER,
-] as const;
+const checkoutPaymentMethods = ["COD", "CARD_TRANSFER"] as const;
 
 function requiredText(max: number, message: string) {
   return z.string().trim().min(1, message).max(max);
@@ -35,13 +31,13 @@ export const checkoutPaymentOptions = [
   {
     description: "Оплата при отриманні після підтвердження менеджером.",
     label: "Накладений платіж",
-    value: PaymentMethod.COD,
+    value: "COD",
   },
   {
     description:
       "Реквізити для оплати менеджер надішле окремо після замовлення.",
     label: "Оплата на карту",
-    value: PaymentMethod.CARD_TRANSFER,
+    value: "CARD_TRANSFER",
   },
 ] as const;
 
