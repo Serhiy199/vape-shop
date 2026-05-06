@@ -64,7 +64,6 @@ export default async function ProductPage({ params }: ProductPageProps) {
         ]}
         eyebrow={product.brand?.name ?? product.category.name}
         title={product.title}
-        description={product.seoDescription ?? product.description ?? undefined}
       />
 
       <StorefrontSection>
