@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { MenuIcon, ShoppingBagIcon, UserIcon } from "lucide-react";
+import { MenuIcon, UserIcon } from "lucide-react";
 
+import { StorefrontCartLink } from "@/components/storefront/cart-link";
 import { StorefrontLogo } from "@/components/storefront/storefront-logo";
 import { StorefrontSearchForm } from "@/components/storefront/storefront-search-form";
 import {
@@ -38,7 +39,7 @@ export function StorefrontMobileMenu() {
         <MenuIcon className="size-5" />
       </SheetTrigger>
       <SheetContent side="left" className="w-full max-w-sm overflow-y-auto p-0">
-        <SheetHeader className="border-b border-border/70 px-5 py-4 text-left">
+        <SheetHeader className="border-border/70 border-b px-5 py-4 text-left">
           <StorefrontLogo compact />
           <SheetTitle className="sr-only">Мобільне меню магазину</SheetTitle>
           <SheetDescription>
@@ -61,10 +62,10 @@ export function StorefrontMobileMenu() {
               <UserIcon className="size-4" />
               Кабінет
             </Link>
-            <Link href="/cart" className={cn(buttonVariants(), "gap-2")}>
-              <ShoppingBagIcon className="size-4" />
-              Кошик
-            </Link>
+            <StorefrontCartLink
+              className="w-full justify-center"
+              showTotal={false}
+            />
           </div>
 
           <Separator />
@@ -74,7 +75,7 @@ export function StorefrontMobileMenu() {
               <Link
                 key={item.href}
                 href={item.href}
-                className="rounded-lg border border-border/70 bg-background px-3 py-2 text-sm font-medium"
+                className="border-border/70 bg-background rounded-lg border px-3 py-2 text-sm font-medium"
               >
                 {item.label}
               </Link>
@@ -84,7 +85,7 @@ export function StorefrontMobileMenu() {
           <Separator />
 
           <nav className="space-y-4" aria-label="Мобільний каталог">
-            <p className="text-muted-foreground text-xs font-medium uppercase tracking-[0.22em]">
+            <p className="text-muted-foreground text-xs font-medium tracking-[0.22em] uppercase">
               Каталог
             </p>
             {storefrontCategories.map((category) => (

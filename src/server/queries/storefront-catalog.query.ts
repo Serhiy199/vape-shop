@@ -293,6 +293,7 @@ function mapProductToCard(
     badges: mapProductBadges(product),
     brand: product.brand?.name,
     href: `/product/${product.slug}`,
+    id: product.id,
     imageAlt: primaryImage?.alt ?? product.title,
     imageSrc: primaryImage?.url,
     price: Number(product.price),

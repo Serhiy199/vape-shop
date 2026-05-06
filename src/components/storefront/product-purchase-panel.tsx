@@ -1,10 +1,6 @@
-import {
-  HeartIcon,
-  ShieldCheckIcon,
-  ShoppingCartIcon,
-  TruckIcon,
-} from "lucide-react";
+import { HeartIcon, ShieldCheckIcon, TruckIcon } from "lucide-react";
 
+import { AddToCartButton } from "@/components/storefront/add-to-cart-button";
 import type { StorefrontProductCardItem } from "@/components/storefront/product-types";
 import { currencyFormatter } from "@/components/storefront/product-card";
 import {
@@ -56,10 +52,7 @@ export function StorefrontProductPurchasePanel({
         </div>
 
         <div className="grid gap-2 sm:grid-cols-[1fr_auto] lg:grid-cols-1 xl:grid-cols-[1fr_auto]">
-          <Button className="h-12 gap-2 rounded-lg" disabled={!isAvailable}>
-            <ShoppingCartIcon className="size-5" />
-            {isAvailable ? "До кошика" : "Товар недоступний"}
-          </Button>
+          <AddToCartButton className="h-12 rounded-lg" product={product} />
           <Button
             variant="outline"
             size="icon"

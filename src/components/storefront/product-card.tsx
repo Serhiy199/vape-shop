@@ -1,11 +1,7 @@
 import Link from "next/link";
-import {
-  HeartIcon,
-  ImageIcon,
-  ShoppingCartIcon,
-  StarIcon,
-} from "lucide-react";
+import { HeartIcon, ImageIcon, StarIcon } from "lucide-react";
 
+import { AddToCartButton } from "@/components/storefront/add-to-cart-button";
 import type {
   StorefrontProductBadge,
   StorefrontProductCardItem,
@@ -15,7 +11,7 @@ import {
   StorefrontCard,
   storefrontPatterns,
 } from "@/components/storefront/storefront-primitives";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 const badgeLabels: Record<StorefrontProductBadge, string> = {
@@ -52,7 +48,7 @@ export function StorefrontProductCard({
         <div className="relative">
           <Link
             href={product.href}
-            className="grid aspect-square place-items-center overflow-hidden rounded-lg bg-muted/70"
+            className="bg-muted/70 grid aspect-square place-items-center overflow-hidden rounded-lg"
             aria-label={product.title}
           >
             {product.imageSrc ? (
@@ -63,14 +59,14 @@ export function StorefrontProductCard({
                 className="h-full w-full object-cover transition duration-300 group-hover/card:scale-[1.03]"
               />
             ) : (
-              <span className="grid size-16 place-items-center rounded-lg bg-card text-muted-foreground shadow-sm">
+              <span className="bg-card text-muted-foreground grid size-16 place-items-center rounded-lg shadow-sm">
                 <ImageIcon className="size-8" />
               </span>
             )}
           </Link>
 
           {product.badges?.length ? (
-            <div className="absolute left-2 top-2 flex flex-wrap gap-1.5">
+            <div className="absolute top-2 left-2 flex flex-wrap gap-1.5">
               {product.badges.map((badge) => (
                 <StorefrontBadge key={badge} tone={badgeTones[badge]}>
                   {badgeLabels[badge]}
@@ -82,7 +78,7 @@ export function StorefrontProductCard({
           <Button
             variant="outline"
             size="icon"
-            className="absolute right-2 top-2 size-9 rounded-lg bg-card/90"
+            className="bg-card/90 absolute top-2 right-2 size-9 rounded-lg"
             aria-label="Додати товар в обране"
           >
             <HeartIcon className="size-4" />
@@ -92,7 +88,7 @@ export function StorefrontProductCard({
         <div className="flex min-h-0 flex-1 flex-col gap-3">
           <div className="space-y-2">
             <div className="flex items-center justify-between gap-2">
-              <span className="text-muted-foreground truncate text-xs font-medium uppercase tracking-[0.12em]">
+              <span className="text-muted-foreground truncate text-xs font-medium tracking-[0.12em] uppercase">
                 {product.brand ?? "Voodoo"}
               </span>
               <span
@@ -107,11 +103,14 @@ export function StorefrontProductCard({
               </span>
             </div>
 
-            <Link href={product.href} className={storefrontPatterns.productTitle}>
+            <Link
+              href={product.href}
+              className={storefrontPatterns.productTitle}
+            >
               {product.title}
             </Link>
 
-            <div className="flex items-center gap-1 text-xs text-muted-foreground">
+            <div className="text-muted-foreground flex items-center gap-1 text-xs">
               <StarIcon className="size-3.5 fill-amber-400 text-amber-400" />
               <span>{product.rating?.toFixed(1) ?? "5.0"}</span>
               <span>·</span>
@@ -124,16 +123,19 @@ export function StorefrontProductCard({
               {currencyFormatter.format(product.price)}
             </span>
 
-            <Link
-              href={product.href}
-              className={cn(
-                buttonVariants({ variant: isAvailable ? "default" : "outline" }),
-                "h-10 w-full rounded-lg gap-2",
-              )}
-            >
-              <ShoppingCartIcon className="size-4" />
-              {isAvailable ? "До кошика" : "Детальніше"}
-            </Link>
+            {isAvailable ? (
+              <AddToCartButton
+                className="h-10 w-full rounded-lg"
+                product={product}
+              />
+            ) : (
+              <Link
+                href={product.href}
+                className="border-border bg-background hover:bg-muted hover:text-foreground inline-flex h-10 w-full items-center justify-center rounded-lg border px-3 text-sm font-medium transition"
+              >
+                Детальніше
+              </Link>
+            )}
           </div>
         </div>
       </div>

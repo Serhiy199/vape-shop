@@ -5,6 +5,7 @@ export type StorefrontProductCardItem = {
   badges?: StorefrontProductBadge[];
   brand?: string;
   href: string;
+  id: string;
   imageAlt?: string;
   imageSrc?: string;
   price: number;
