@@ -11,10 +11,7 @@ import {
   AdminInputField,
   AdminTextareaField,
 } from "@/components/admin/admin-form-primitives";
-import {
-  AdminEmptyState,
-  AdminSectionCard,
-} from "@/components/admin/admin-primitives";
+import { AdminEmptyState } from "@/components/admin/admin-primitives";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -26,7 +23,6 @@ import {
 import { Switch } from "@/components/ui/switch";
 import {
   createSubcategoryAction,
-  toggleSubcategoryStatusAction,
   updateSubcategoryAction,
 } from "@/features/catalog/actions/admin-catalog";
 import { CatalogImageUploadField } from "@/features/catalog/components/catalog-image-upload-field";
@@ -35,21 +31,6 @@ type CategoryOption = {
   id: string;
   name: string;
   slug: string;
-};
-
-type SelectedSubcategory = {
-  id: string;
-  category: {
-    id: string;
-  };
-  description: string | null;
-  image: string | null;
-  isActive: boolean;
-  name: string;
-  seoDescription: string | null;
-  seoTitle: string | null;
-  slug: string;
-  sortOrder: number;
 };
 
 type SubcategoryFormValues = {
@@ -68,40 +49,59 @@ type SubcategoryFieldErrors = Partial<
   Record<keyof SubcategoryFormValues, string>
 >;
 
+type SelectedSubcategory = {
+  categoryId: string;
+  description: string | null;
+  id: string;
+  image: string | null;
+  isActive: boolean;
+  name: string;
+  productsCount: number;
+  seoDescription: string | null;
+  seoTitle: string | null;
+  slug: string;
+  sortOrder: number;
+};
+
 type AdminSubcategoryCrudProps = {
   categories: CategoryOption[];
   selectedSubcategory: SelectedSubcategory | null;
+};
+
+const emptyValues: SubcategoryFormValues = {
+  categoryId: "",
+  description: "",
+  image: "",
+  isActive: true,
+  name: "",
+  seoDescription: "",
+  seoTitle: "",
+  slug: "",
+  sortOrder: "0",
 };
 
 function buildCreateValues(
   categories: CategoryOption[],
 ): SubcategoryFormValues {
   return {
+    ...emptyValues,
     categoryId: categories[0]?.id ?? "",
-    description: "",
-    image: "",
-    isActive: true,
-    name: "",
-    seoDescription: "",
-    seoTitle: "",
-    slug: "",
-    sortOrder: "0",
   };
 }
 
 function buildEditValues(
-  selectedSubcategory: SelectedSubcategory,
+  subcategory: SelectedSubcategory,
 ): SubcategoryFormValues {
   return {
-    categoryId: selectedSubcategory.category.id,
-    description: selectedSubcategory.description ?? "",
-    image: selectedSubcategory.image ?? "",
-    isActive: selectedSubcategory.isActive,
-    name: selectedSubcategory.name,
-    seoDescription: selectedSubcategory.seoDescription ?? "",
-    seoTitle: selectedSubcategory.seoTitle ?? "",
-    slug: selectedSubcategory.slug,
-    sortOrder: selectedSubcategory.sortOrder.toString(),
+    categoryId: subcategory.categoryId,
+    description: subcategory.description ?? "",
+    image: subcategory.image ?? "",
+    isActive: subcategory.isActive,
+    name: subcategory.name,
+    seoDescription: subcategory.seoDescription ?? "",
+    seoTitle: subcategory.seoTitle ?? "",
+    slug: subcategory.slug,
+    sortOrder: subcategory.sortOrder.toString(),
   };
 }
 
@@ -112,6 +112,7 @@ function mapFieldErrors(
     categoryId: fieldErrors?.categoryId?.[0],
     description: fieldErrors?.description?.[0],
     image: fieldErrors?.image?.[0],
+    isActive: fieldErrors?.isActive?.[0],
     name: fieldErrors?.name?.[0],
     seoDescription: fieldErrors?.seoDescription?.[0],
     seoTitle: fieldErrors?.seoTitle?.[0],
@@ -122,44 +123,50 @@ function mapFieldErrors(
 
 function SubcategoryFormFields({
   categories,
+  categoryChangeBlocked,
   errors,
   heading,
   values,
   onActiveChange,
   onCategoryChange,
+  onImageChange,
   onInputChange,
 }: {
   categories: CategoryOption[];
+  categoryChangeBlocked?: boolean;
   errors: SubcategoryFieldErrors;
   heading: string;
   values: SubcategoryFormValues;
   onActiveChange: (value: boolean) => void;
   onCategoryChange: (value: string | null) => void;
+  onImageChange: (value: string) => void;
   onInputChange: (
-    field: keyof Omit<SubcategoryFormValues, "categoryId" | "isActive">,
+    field: keyof Omit<
+      SubcategoryFormValues,
+      "categoryId" | "image" | "isActive"
+    >,
     value: string,
   ) => void;
 }) {
   return (
     <AdminFormSection
       title={heading}
-      description="Поля напряму підключені до write-side для підкатегорій."
+      description="Підкатегорія завжди прив'язана до категорії, а видалення замінене статусом активності."
     >
       <AdminFormGrid>
-        <AdminField
-          label="Батьківська категорія"
-          error={errors.categoryId}
-          required
-        >
+        <AdminField label="Категорія" error={errors.categoryId} required>
           <Select
             items={categories.map((category) => ({
-              value: category.id,
               label: category.name,
+              value: category.id,
             }))}
             value={values.categoryId}
             onValueChange={onCategoryChange}
           >
-            <SelectTrigger className="w-full">
+            <SelectTrigger
+              className="w-full"
+              aria-invalid={Boolean(errors.categoryId)}
+            >
               <SelectValue placeholder="Оберіть категорію" />
             </SelectTrigger>
             <SelectContent>
@@ -174,6 +181,7 @@ function SubcategoryFormFields({
 
         <AdminInputField
           id={`${heading}-name`}
+          name="name"
           label="Назва"
           value={values.name}
           onChange={(event) => onInputChange("name", event.target.value)}
@@ -183,79 +191,95 @@ function SubcategoryFormFields({
 
         <AdminInputField
           id={`${heading}-slug`}
+          name="slug"
           label="Slug"
           value={values.slug}
           onChange={(event) => onInputChange("slug", event.target.value)}
           error={errors.slug}
-          hint="Лише нижній регістр, цифри та дефіси."
-          required
+          hint="Можна залишити порожнім, тоді slug згенерується з назви."
         />
 
         <AdminInputField
-          id={`${heading}-sortOrder`}
+          id={`${heading}-sort-order`}
+          name="sortOrder"
           type="number"
           min={0}
           step={1}
-          label="Порядок сортування"
+          label="Порядок"
           value={values.sortOrder}
           onChange={(event) => onInputChange("sortOrder", event.target.value)}
           error={errors.sortOrder}
           required
         />
 
+        <CatalogImageUploadField
+          id={`${heading}-image`}
+          entityType="subcategory"
+          entitySlug={values.slug || values.name}
+          label="Фото підкатегорії"
+          value={values.image}
+          onChange={onImageChange}
+          error={errors.image}
+        />
+
         <AdminInputField
-          id={`${heading}-seoTitle`}
+          id={`${heading}-seo-title`}
+          name="seoTitle"
           label="SEO title"
           value={values.seoTitle}
           onChange={(event) => onInputChange("seoTitle", event.target.value)}
           error={errors.seoTitle}
-        />
-
-        <CatalogImageUploadField
-          id={`${heading}-image`}
-          entityType="subcategory"
-          entitySlug={values.slug}
-          label="Subcategory image"
-          value={values.image}
-          onChange={(image) => onInputChange("image", image)}
-          error={errors.image}
         />
       </AdminFormGrid>
 
       <div className="mt-4 space-y-4">
         <AdminTextareaField
           id={`${heading}-description`}
+          name="description"
           label="Опис"
           value={values.description}
           onChange={(event) => onInputChange("description", event.target.value)}
           error={errors.description}
-          rows={4}
+          rows={3}
         />
 
         <AdminTextareaField
-          id={`${heading}-seoDescription`}
+          id={`${heading}-seo-description`}
+          name="seoDescription"
           label="SEO description"
           value={values.seoDescription}
           onChange={(event) =>
             onInputChange("seoDescription", event.target.value)
           }
           error={errors.seoDescription}
-          rows={4}
+          rows={3}
         />
 
-        <div className="border-border/70 bg-card/90 flex items-start justify-between gap-4 rounded-2xl border px-4 py-3">
-          <div className="space-y-1">
-            <p className="text-sm font-medium">Активна на сайті</p>
-            <p className="text-muted-foreground text-sm leading-6">
-              Дає змогу контролювати видимість підкатегорії без втручання в код.
-            </p>
+        <AdminField label="Статус" error={errors.isActive}>
+          <div className="border-border/70 bg-muted/30 flex items-start justify-between gap-4 rounded-lg border px-4 py-3">
+            <div className="space-y-1">
+              <p className="text-sm font-medium">
+                {values.isActive ? "Активна" : "Неактивна"}
+              </p>
+              <p className="text-muted-foreground text-sm leading-6">
+                Неактивна підкатегорія лишається в базі й зберігає зв&apos;язки
+                з товарами, але не має показуватися у публічному каталозі.
+              </p>
+            </div>
+            <Switch
+              checked={values.isActive}
+              onCheckedChange={onActiveChange}
+              aria-label="Активна підкатегорія"
+            />
           </div>
-          <Switch
-            checked={values.isActive}
-            onCheckedChange={onActiveChange}
-            aria-label="Активна на сайті"
-          />
-        </div>
+        </AdminField>
+
+        {categoryChangeBlocked ? (
+          <div className="border-destructive/20 bg-destructive/8 text-destructive rounded-lg border px-4 py-3 text-sm leading-6">
+            До цієї підкатегорії вже прив&apos;язані товари. Зміну категорії
+            заблоковано, щоб не розірвати структуру каталогу.
+          </div>
+        ) : null}
       </div>
     </AdminFormSection>
   );
@@ -267,16 +291,17 @@ export function AdminSubcategoryCrud({
 }: AdminSubcategoryCrudProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
-  const [activeAction, setActiveAction] = useState<
-    "create" | "delete" | "update" | null
-  >(null);
+  const [activeAction, setActiveAction] = useState<"create" | "update" | null>(
+    null,
+  );
 
-  const createInitialValues = useMemo(
+  const initialCreateValues = useMemo(
     () => buildCreateValues(categories),
     [categories],
   );
 
-  const [createValues, setCreateValues] = useState(createInitialValues);
+  const [createValues, setCreateValues] =
+    useState<SubcategoryFormValues>(initialCreateValues);
   const [createErrors, setCreateErrors] = useState<SubcategoryFieldErrors>({});
   const [createMessage, setCreateMessage] = useState<string | null>(null);
   const [createSuccess, setCreateSuccess] = useState<string | null>(null);
@@ -289,31 +314,30 @@ export function AdminSubcategoryCrud({
   const [editSuccess, setEditSuccess] = useState<string | null>(null);
 
   useEffect(() => {
-    const timeoutId = window.setTimeout(() => {
-      setCreateValues(buildCreateValues(categories));
-      setCreateErrors({});
-      setCreateMessage(null);
-      setCreateSuccess(null);
-    }, 0);
-
-    return () => window.clearTimeout(timeoutId);
+    // Keep the default category current when the list arrives after navigation.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setCreateValues((current) => ({
+      ...current,
+      categoryId: current.categoryId || categories[0]?.id || "",
+    }));
   }, [categories]);
 
   useEffect(() => {
-    const timeoutId = window.setTimeout(() => {
-      setEditValues(
-        selectedSubcategory ? buildEditValues(selectedSubcategory) : null,
-      );
-      setEditErrors({});
-      setEditMessage(null);
-      setEditSuccess(null);
-    }, 0);
-
-    return () => window.clearTimeout(timeoutId);
+    // Reset edit form state when the selected row changes.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setEditValues(
+      selectedSubcategory ? buildEditValues(selectedSubcategory) : null,
+    );
+    setEditErrors({});
+    setEditMessage(null);
+    setEditSuccess(null);
   }, [selectedSubcategory]);
 
   const updateCreateField = (
-    field: keyof Omit<SubcategoryFormValues, "categoryId" | "isActive">,
+    field: keyof Omit<
+      SubcategoryFormValues,
+      "categoryId" | "image" | "isActive"
+    >,
     value: string,
   ) => {
     setCreateValues((current) => ({
@@ -329,7 +353,10 @@ export function AdminSubcategoryCrud({
   };
 
   const updateEditField = (
-    field: keyof Omit<SubcategoryFormValues, "categoryId" | "isActive">,
+    field: keyof Omit<
+      SubcategoryFormValues,
+      "categoryId" | "image" | "isActive"
+    >,
     value: string,
   ) => {
     setEditValues((current) =>
@@ -348,12 +375,17 @@ export function AdminSubcategoryCrud({
     setEditSuccess(null);
   };
 
+  const categoryChangeBlocked =
+    Boolean(selectedSubcategory && editValues) &&
+    selectedSubcategory!.productsCount > 0 &&
+    editValues!.categoryId !== selectedSubcategory!.categoryId;
+
   const handleCreate = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setCreateMessage(null);
     setCreateSuccess(null);
-
     setActiveAction("create");
+
     startTransition(async () => {
       try {
         const result = await createSubcategoryAction(createValues);
@@ -365,8 +397,8 @@ export function AdminSubcategoryCrud({
         }
 
         setCreateErrors({});
+        setCreateValues(initialCreateValues);
         setCreateSuccess("Підкатегорію створено.");
-        setCreateValues(buildCreateValues(categories));
         router.push(`/admin/subcategories?selected=${result.data.id}`);
         router.refresh();
       } finally {
@@ -378,14 +410,14 @@ export function AdminSubcategoryCrud({
   const handleUpdate = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
-    if (!selectedSubcategory || !editValues) {
+    if (!selectedSubcategory || !editValues || categoryChangeBlocked) {
       return;
     }
 
     setEditMessage(null);
     setEditSuccess(null);
-
     setActiveAction("update");
+
     startTransition(async () => {
       try {
         const result = await updateSubcategoryAction({
@@ -409,195 +441,152 @@ export function AdminSubcategoryCrud({
     });
   };
 
-  const handleDelete = () => {
-    if (!selectedSubcategory) {
-      return;
-    }
-
-    const confirmed = window.confirm(
-      `Видалити підкатегорію "${selectedSubcategory.name}"?`,
+  if (!categories.length) {
+    return (
+      <AdminEmptyState
+        title="Спочатку створіть категорію"
+        description="Підкатегорія обов'язково має categoryId, тому форма стане доступною після створення хоча б однієї категорії."
+      />
     );
-
-    if (!confirmed) {
-      return;
-    }
-
-    setEditMessage(null);
-    setEditSuccess(null);
-
-    setActiveAction("delete");
-    startTransition(async () => {
-      try {
-        const result = await toggleSubcategoryStatusAction({
-          id: selectedSubcategory.id,
-          isActive: false,
-        });
-
-        if (!result.ok) {
-          setEditMessage(result.error);
-          return;
-        }
-
-        router.push("/admin/subcategories");
-        router.refresh();
-      } finally {
-        setActiveAction(null);
-      }
-    });
-  };
+  }
 
   return (
     <div className="space-y-6">
-      {selectedSubcategory && editValues ? (
-        <AdminSectionCard
-          title="Редагування та видалення"
-          description="Тут уже працює реальний update/delete для вибраної підкатегорії."
-        >
-          <form className="space-y-4" onSubmit={handleUpdate}>
-            <SubcategoryFormFields
-              categories={categories}
-              errors={editErrors}
-              heading="Оновлення підкатегорії"
-              values={editValues}
-              onActiveChange={(value) => {
-                setEditValues((current) =>
-                  current
-                    ? {
-                        ...current,
-                        isActive: value,
-                      }
-                    : current,
-                );
-                setEditMessage(null);
-                setEditSuccess(null);
-              }}
-              onCategoryChange={(value) => {
-                if (!value) {
-                  return;
-                }
-
-                setEditValues((current) =>
-                  current
-                    ? {
-                        ...current,
-                        categoryId: value,
-                      }
-                    : current,
-                );
-                setEditErrors((current) => ({
-                  ...current,
-                  categoryId: undefined,
-                }));
-                setEditMessage(null);
-                setEditSuccess(null);
-              }}
-              onInputChange={updateEditField}
-            />
-
-            {editMessage ? (
-              <div className="border-destructive/20 bg-destructive/8 text-destructive rounded-2xl border px-4 py-3 text-sm">
-                {editMessage}
-              </div>
-            ) : null}
-
-            {editSuccess ? (
-              <div className="border-primary/20 bg-primary/8 rounded-2xl border px-4 py-3 text-sm">
-                {editSuccess}
-              </div>
-            ) : null}
-
-            <div className="border-border/70 bg-muted/30 flex flex-col gap-3 rounded-2xl border p-4 sm:flex-row sm:items-center sm:justify-between">
-              <p className="text-muted-foreground text-sm leading-6">
-                Видалення доступне лише для підкатегорій без пов&apos;язаних
-                полів і товарів.
-              </p>
-              <div className="flex flex-wrap gap-2">
-                <Button
-                  type="button"
-                  variant="destructive"
-                  onClick={handleDelete}
-                  disabled={isPending}
-                >
-                  {activeAction === "delete" ? "Видаляємо..." : "Видалити"}
-                </Button>
-                <Button type="submit" disabled={isPending}>
-                  {activeAction === "update"
-                    ? "Зберігаємо..."
-                    : "Зберегти зміни"}
-                </Button>
-              </div>
-            </div>
-          </form>
-        </AdminSectionCard>
-      ) : (
-        <AdminEmptyState
-          title="Оберіть підкатегорію для редагування"
-          description="Create форма вже доступна нижче, а щойно ви виберете підкатегорію зі списку, тут з'явиться реальний update/delete."
+      <form className="space-y-4" onSubmit={handleCreate}>
+        <SubcategoryFormFields
+          heading="Нова підкатегорія"
+          categories={categories}
+          values={createValues}
+          errors={createErrors}
+          onCategoryChange={(categoryId) => {
+            setCreateValues((current) => ({
+              ...current,
+              categoryId: categoryId ?? "",
+            }));
+            setCreateErrors((current) => ({
+              ...current,
+              categoryId: undefined,
+            }));
+          }}
+          onActiveChange={(isActive) => {
+            setCreateValues((current) => ({
+              ...current,
+              isActive,
+            }));
+            setCreateErrors((current) => ({
+              ...current,
+              isActive: undefined,
+            }));
+          }}
+          onImageChange={(image) => {
+            setCreateValues((current) => ({
+              ...current,
+              image,
+            }));
+            setCreateErrors((current) => ({
+              ...current,
+              image: undefined,
+            }));
+          }}
+          onInputChange={updateCreateField}
         />
-      )}
 
-      <AdminSectionCard
-        title="Створення нової підкатегорії"
-        description="Форма створює нову підкатегорію всередині fixed category та одразу відкриває її в detail panel."
-      >
-        <form className="space-y-4" onSubmit={handleCreate}>
+        {createMessage ? (
+          <div className="border-destructive/20 bg-destructive/8 text-destructive rounded-lg border px-4 py-3 text-sm">
+            {createMessage}
+          </div>
+        ) : null}
+        {createSuccess ? (
+          <div className="border-primary/20 bg-primary/8 rounded-lg border px-4 py-3 text-sm">
+            {createSuccess}
+          </div>
+        ) : null}
+
+        <div className="flex justify-end">
+          <Button type="submit" disabled={isPending}>
+            {activeAction === "create" ? "Створюємо..." : "Створити"}
+          </Button>
+        </div>
+      </form>
+
+      {selectedSubcategory && editValues ? (
+        <form className="space-y-4" onSubmit={handleUpdate}>
           <SubcategoryFormFields
+            heading="Редагування підкатегорії"
             categories={categories}
-            errors={createErrors}
-            heading="Нова підкатегорія"
-            values={createValues}
-            onActiveChange={(value) => {
-              setCreateValues((current) => ({
-                ...current,
-                isActive: value,
-              }));
-              setCreateMessage(null);
-              setCreateSuccess(null);
-            }}
-            onCategoryChange={(value) => {
-              if (!value) {
-                return;
-              }
-
-              setCreateValues((current) => ({
-                ...current,
-                categoryId: value,
-              }));
-              setCreateErrors((current) => ({
+            values={editValues}
+            errors={editErrors}
+            categoryChangeBlocked={categoryChangeBlocked}
+            onCategoryChange={(categoryId) => {
+              setEditValues((current) =>
+                current
+                  ? {
+                      ...current,
+                      categoryId: categoryId ?? "",
+                    }
+                  : current,
+              );
+              setEditErrors((current) => ({
                 ...current,
                 categoryId: undefined,
               }));
-              setCreateMessage(null);
-              setCreateSuccess(null);
+              setEditMessage(null);
+              setEditSuccess(null);
             }}
-            onInputChange={updateCreateField}
+            onActiveChange={(isActive) => {
+              setEditValues((current) =>
+                current
+                  ? {
+                      ...current,
+                      isActive,
+                    }
+                  : current,
+              );
+              setEditErrors((current) => ({
+                ...current,
+                isActive: undefined,
+              }));
+            }}
+            onImageChange={(image) => {
+              setEditValues((current) =>
+                current
+                  ? {
+                      ...current,
+                      image,
+                    }
+                  : current,
+              );
+              setEditErrors((current) => ({
+                ...current,
+                image: undefined,
+              }));
+            }}
+            onInputChange={updateEditField}
           />
 
-          {createMessage ? (
-            <div className="border-destructive/20 bg-destructive/8 text-destructive rounded-2xl border px-4 py-3 text-sm">
-              {createMessage}
+          {editMessage ? (
+            <div className="border-destructive/20 bg-destructive/8 text-destructive rounded-lg border px-4 py-3 text-sm">
+              {editMessage}
+            </div>
+          ) : null}
+          {editSuccess ? (
+            <div className="border-primary/20 bg-primary/8 rounded-lg border px-4 py-3 text-sm">
+              {editSuccess}
             </div>
           ) : null}
 
-          {createSuccess ? (
-            <div className="border-primary/20 bg-primary/8 rounded-2xl border px-4 py-3 text-sm">
-              {createSuccess}
-            </div>
-          ) : null}
-
-          <div className="border-border/70 bg-muted/30 flex flex-col gap-3 rounded-2xl border p-4 sm:flex-row sm:items-center sm:justify-between">
-            <p className="text-muted-foreground text-sm leading-6">
-              Після створення адміну більше не потрібно лізти в код, щоб
-              розширити структуру каталогу.
-            </p>
-            <Button type="submit" disabled={isPending}>
-              {activeAction === "create"
-                ? "Створюємо..."
-                : "Створити підкатегорію"}
+          <div className="flex justify-end">
+            <Button type="submit" disabled={isPending || categoryChangeBlocked}>
+              {activeAction === "update" ? "Зберігаємо..." : "Зберегти зміни"}
             </Button>
           </div>
         </form>
-      </AdminSectionCard>
+      ) : (
+        <AdminEmptyState
+          title="Оберіть підкатегорію для редагування"
+          description="Форма створення доступна вище. Після вибору підкатегорії зі списку тут з'явиться редагування назви, фото, категорії та статусу."
+        />
+      )}
     </div>
   );
 }

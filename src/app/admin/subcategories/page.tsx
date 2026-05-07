@@ -25,7 +25,7 @@ export default async function AdminSubcategoriesPage({
   searchParams?: SearchParams;
 }) {
   const params = searchParams ? await searchParams : {};
-  const { categories, subcategories, selectedSubcategory } =
+  const { categories, selectedSubcategory, subcategories } =
     await getAdminSubcategoriesPageData(params.selected);
 
   const activeCount = subcategories.filter(
@@ -39,14 +39,19 @@ export default async function AdminSubcategoriesPage({
     (sum, subcategory) => sum + subcategory._count.products,
     0,
   );
+  const categoryOptions = categories.map((category) => ({
+    id: category.id,
+    name: category.name,
+    slug: category.slug,
+  }));
 
   return (
     <div className="space-y-6">
       <AdminPageHeader
         eyebrow="Підкатегорії"
-        title="CRUD для підкатегорій уже працює в адмінці"
-        description="Тепер адміністратор може створювати, редагувати й видаляти підкатегорії всередині fixed categories, не торкаючись коду. Усі дії проходять через валідацію та write-side."
-        badges={["Етап 5", "CRUD готовий"]}
+        title="Керування підкатегоріями каталогу"
+        description="Створюйте підкатегорії, прив'язуйте їх до категорій, оновлюйте фото та керуйте активністю без фізичного видалення записів."
+        badges={["categoryId обов'язковий", "soft status"]}
       />
 
       <AdminStatsGrid
@@ -54,22 +59,22 @@ export default async function AdminSubcategoriesPage({
           {
             label: "Всього",
             value: subcategories.length.toString(),
-            note: "Бачимо всі підкатегорії каталогу, а не лише підготовлені заглушки.",
+            note: "Усі підкатегорії в адмінці, незалежно від активності.",
           },
           {
             label: "Активні",
             value: activeCount.toString(),
-            note: "Активність уже керується прямо з CRUD-форми, без ручних змін у коді.",
+            note: "Ці записи можуть використовуватися у публічному каталозі.",
           },
           {
             label: "Поля",
             value: totalFields.toString(),
-            note: "Показує, наскільки підкатегорії вже готові до роботи з product fields.",
+            note: "Скільки характеристик уже прив'язано до підкатегорій.",
           },
           {
             label: "Товари",
             value: totalProducts.toString(),
-            note: "Допомагає бачити, які гілки каталогу вже реально використовуються.",
+            note: "Показує, де зміна categoryId буде заблокована.",
           },
         ]}
       />
@@ -78,17 +83,47 @@ export default async function AdminSubcategoriesPage({
         actions={[
           {
             href: "/admin/categories",
-            label: "Відкрити категорії",
+            label: "Категорії",
             variant: "outline",
           },
-          { href: "/admin/fields", label: "Відкрити поля", variant: "outline" },
+          {
+            href: "/admin/fields",
+            label: "Поля підкатегорій",
+            variant: "outline",
+          },
         ]}
-        note="Створення, оновлення і видалення вже працюють на цій сторінці; адміну не потрібно лізти в код, щоб керувати структурою підкатегорій."
+        note="Підкатегорії не видаляються фізично. Для приховування використовуйте перемикач активності."
       />
 
       <AdminSectionCard
-        title="Список і деталі підкатегорій"
-        description="Ліва колонка показує структуру дерева з батьківською категорією, права — деталі обраної підкатегорії та CRUD-інструменти."
+        title="Створення та редагування"
+        description="Форма створення доступна завжди, а редагування з'являється після вибору підкатегорії зі списку."
+      >
+        <AdminSubcategoryCrud
+          categories={categoryOptions}
+          selectedSubcategory={
+            selectedSubcategory
+              ? {
+                  categoryId: selectedSubcategory.categoryId,
+                  description: selectedSubcategory.description,
+                  id: selectedSubcategory.id,
+                  image: selectedSubcategory.image,
+                  isActive: selectedSubcategory.isActive,
+                  name: selectedSubcategory.name,
+                  productsCount: selectedSubcategory._count.products,
+                  seoDescription: selectedSubcategory.seoDescription,
+                  seoTitle: selectedSubcategory.seoTitle,
+                  slug: selectedSubcategory.slug,
+                  sortOrder: selectedSubcategory.sortOrder,
+                }
+              : null
+          }
+        />
+      </AdminSectionCard>
+
+      <AdminSectionCard
+        title="Список підкатегорій"
+        description="Тут видно фото, назву, категорію, slug, статус і кількість пов'язаних записів."
       >
         <AdminSplitLayout
           list={
@@ -97,8 +132,7 @@ export default async function AdminSubcategoriesPage({
                 <div>
                   <p className="text-sm font-medium">Підкатегорії каталогу</p>
                   <p className="text-muted-foreground text-sm leading-6">
-                    Уже зараз видно, в якій категорії живе підкатегорія та
-                    наскільки вона заповнена.
+                    Оберіть рядок, щоб відкрити деталі й форму редагування.
                   </p>
                 </div>
                 <Badge variant="outline">{subcategories.length} записів</Badge>
@@ -108,32 +142,52 @@ export default async function AdminSubcategoriesPage({
                 items={subcategories}
                 columns={[
                   {
-                    key: "name",
+                    key: "subcategory",
                     header: "Підкатегорія",
                     cell: (subcategory) => (
+                      <div className="flex min-w-0 items-center gap-3">
+                        <div className="bg-muted border-border/70 h-12 w-12 shrink-0 overflow-hidden rounded-md border">
+                          {subcategory.image ? (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img
+                              src={subcategory.image}
+                              alt=""
+                              className="h-full w-full object-cover"
+                            />
+                          ) : null}
+                        </div>
+                        <div className="min-w-0 space-y-1">
+                          <Link
+                            href={`/admin/subcategories?selected=${subcategory.id}`}
+                            className="font-medium hover:underline"
+                          >
+                            {subcategory.name}
+                          </Link>
+                          <p className="text-muted-foreground truncate text-xs">
+                            {subcategory.slug}
+                          </p>
+                        </div>
+                      </div>
+                    ),
+                  },
+                  {
+                    key: "category",
+                    header: "Категорія",
+                    cell: (subcategory) => (
                       <div className="space-y-1">
-                        <Link
-                          href={`/admin/subcategories?selected=${subcategory.id}`}
-                          className="font-medium hover:underline"
-                        >
-                          {subcategory.name}
-                        </Link>
+                        <p className="text-sm font-medium">
+                          {subcategory.category.name}
+                        </p>
                         <p className="text-muted-foreground text-xs">
-                          {subcategory.category.name} / {subcategory.slug}
+                          {subcategory.category.slug}
                         </p>
                       </div>
                     ),
                   },
                   {
-                    key: "fields",
-                    header: "Поля",
-                    className: "w-24",
-                    cell: (subcategory) => subcategory._count.fields,
-                  },
-                  {
                     key: "status",
-                    header: "Стан",
-                    className: "w-40",
+                    header: "Статус",
+                    className: "w-36",
                     cell: (subcategory) => (
                       <Badge
                         variant={subcategory.isActive ? "secondary" : "outline"}
@@ -142,12 +196,23 @@ export default async function AdminSubcategoriesPage({
                       </Badge>
                     ),
                   },
+                  {
+                    key: "usage",
+                    header: "Зв'язки",
+                    className: "w-32",
+                    cell: (subcategory) =>
+                      `${subcategory._count.fields} полів / ${subcategory._count.products} товарів`,
+                  },
                 ]}
                 emptyState={
                   <AdminEmptyState
                     icon={getAdminModuleIcon("subcategories")}
-                    title="Підкатегорії ще не знайдені"
-                    description="Щойно seed або перші CRUD-операції додадуть записи, ця сторінка одразу покаже структуру дерева."
+                    title="Підкатегорії ще не створені"
+                    description={
+                      categories.length
+                        ? "Створіть першу підкатегорію через форму вище."
+                        : "Спочатку створіть категорію, а потім додайте до неї підкатегорію."
+                    }
                   />
                 }
               />
@@ -159,10 +224,21 @@ export default async function AdminSubcategoriesPage({
                 <div>
                   <p className="text-sm font-medium">Деталі підкатегорії</p>
                   <p className="text-muted-foreground text-sm leading-6">
-                    Detail panel уже показує реальні дані, а нижче розміщена
-                    робоча форма update/delete.
+                    Зв&apos;язки з товарами враховуються під час зміни
+                    категорії.
                   </p>
                 </div>
+
+                {selectedSubcategory.image ? (
+                  <div className="border-border/70 bg-muted/30 overflow-hidden rounded-lg border">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={selectedSubcategory.image}
+                      alt=""
+                      className="h-48 w-full object-cover"
+                    />
+                  </div>
+                ) : null}
 
                 <AdminDetailList
                   items={[
@@ -171,7 +247,7 @@ export default async function AdminSubcategoriesPage({
                       value: selectedSubcategory.name,
                       note:
                         selectedSubcategory.description ??
-                        "Опис підкатегорії поки не заповнений.",
+                        "Опис підкатегорії ще не заповнений.",
                     },
                     {
                       label: "Категорія",
@@ -183,7 +259,13 @@ export default async function AdminSubcategoriesPage({
                       value: selectedSubcategory.slug,
                     },
                     {
-                      label: "Порядок сортування",
+                      label: "Статус",
+                      value: selectedSubcategory.isActive
+                        ? "Активна"
+                        : "Неактивна",
+                    },
+                    {
+                      label: "Порядок",
                       value: selectedSubcategory.sortOrder.toString(),
                     },
                     {
@@ -196,44 +278,26 @@ export default async function AdminSubcategoriesPage({
                         "SEO description ще не заповнений.",
                     },
                     {
-                      label: "Наповнення",
+                      label: "Зв'язки",
                       value: `${selectedSubcategory._count.fields} полів / ${selectedSubcategory._count.products} товарів`,
+                      note:
+                        selectedSubcategory._count.products > 0
+                          ? "Зміну категорії для цієї підкатегорії буде заблоковано."
+                          : "Категорію можна змінити без ризику для товарів.",
                     },
                   ]}
                 />
 
-                <AdminSubcategoryCrud
-                  categories={categories.map((category) => ({
-                    id: category.id,
-                    name: category.name,
-                    slug: category.slug,
-                  }))}
-                  selectedSubcategory={{
-                    id: selectedSubcategory.id,
-                    category: {
-                      id: selectedSubcategory.category.id,
-                    },
-                    description: selectedSubcategory.description,
-                    image: selectedSubcategory.image,
-                    isActive: selectedSubcategory.isActive,
-                    name: selectedSubcategory.name,
-                    seoDescription: selectedSubcategory.seoDescription,
-                    seoTitle: selectedSubcategory.seoTitle,
-                    slug: selectedSubcategory.slug,
-                    sortOrder: selectedSubcategory.sortOrder,
-                  }}
-                />
-
                 <AdminSectionCard
-                  title="Пов'язані поля"
-                  description="Можемо одразу побачити, наскільки підкатегорія підготовлена для характеристик товару."
+                  title="Поля підкатегорії"
+                  description="Пов'язані характеристики товарів для цієї гілки каталогу."
                 >
                   <div className="space-y-3">
                     {selectedSubcategory.fields.length ? (
                       selectedSubcategory.fields.map((field) => (
                         <div
                           key={field.id}
-                          className="border-border/70 bg-card/70 flex items-start justify-between gap-3 rounded-2xl border p-4"
+                          className="border-border/70 bg-card/70 flex items-start justify-between gap-3 rounded-lg border p-4"
                         >
                           <div className="space-y-1">
                             <p className="font-medium">{field.label}</p>
@@ -244,7 +308,9 @@ export default async function AdminSubcategoriesPage({
                           <div className="flex flex-wrap items-center gap-2">
                             <Badge variant="outline">{field.type}</Badge>
                             {field.isRequired ? (
-                              <Badge variant="secondary">Обов'язкове</Badge>
+                              <Badge variant="secondary">
+                                Обов&apos;язкове
+                              </Badge>
                             ) : null}
                             {field.isFilterable ? (
                               <Badge variant="outline">Фільтр</Badge>
@@ -255,30 +321,19 @@ export default async function AdminSubcategoriesPage({
                       ))
                     ) : (
                       <AdminEmptyState
-                        title="Для підкатегорії ще немає полів"
-                        description="Це нормальний стан для нових гілок каталогу. На етапі fields сюди можна буде швидко повертатися для контролю структури."
+                        title="Полів ще немає"
+                        description="Це нормальний стан для нової підкатегорії. Поля можна додати в окремому розділі."
                       />
                     )}
                   </div>
                 </AdminSectionCard>
               </div>
             ) : (
-              <div className="space-y-4">
-                <AdminEmptyState
-                  icon={getAdminModuleIcon("subcategories")}
-                  title="Немає обраної підкатегорії"
-                  description="Можна одразу створити нову підкатегорію нижче, або вибрати існуючу зі списку для редагування."
-                />
-
-                <AdminSubcategoryCrud
-                  categories={categories.map((category) => ({
-                    id: category.id,
-                    name: category.name,
-                    slug: category.slug,
-                  }))}
-                  selectedSubcategory={null}
-                />
-              </div>
+              <AdminEmptyState
+                icon={getAdminModuleIcon("subcategories")}
+                title="Немає обраної підкатегорії"
+                description="Оберіть запис зі списку, щоб побачити деталі, фото, зв'язки та попередження щодо зміни категорії."
+              />
             )
           }
         />
