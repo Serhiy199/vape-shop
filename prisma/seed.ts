@@ -299,14 +299,12 @@ async function seedCategories() {
       update: {
         description: category.description,
         isActive: true,
-        isFixed: true,
         name: category.name,
         sortOrder: category.sortOrder,
       },
       create: {
         description: category.description,
         isActive: true,
-        isFixed: true,
         name: category.name,
         slug: category.slug,
         sortOrder: category.sortOrder,

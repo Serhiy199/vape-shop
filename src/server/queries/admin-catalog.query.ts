@@ -1,14 +1,14 @@
 import {
   getAdminBrandById,
+  getAdminCategoryById,
   getAdminProductById,
   getAdminSubcategoryFieldById,
   getAdminSubcategoryById,
-  getFixedAdminCategoryById,
+  listAdminCategories,
   listAdminBrands,
   listAdminProducts,
   listAdminSubcategoryFields,
   listAdminSubcategories,
-  listFixedAdminCategories,
 } from "@/server/repositories/catalog.repository";
 
 function resolveSelectedId<TItem extends { id: string }>(
@@ -19,14 +19,16 @@ function resolveSelectedId<TItem extends { id: string }>(
     return undefined;
   }
 
-  return items.some((item) => item.id === selectedId) ? selectedId : items[0].id;
+  return items.some((item) => item.id === selectedId)
+    ? selectedId
+    : items[0].id;
 }
 
 export async function getAdminCategoriesPageData(selectedId?: string) {
-  const categories = await listFixedAdminCategories();
+  const categories = await listAdminCategories();
   const resolvedSelectedId = resolveSelectedId(categories, selectedId);
   const selectedCategory = resolvedSelectedId
-    ? await getFixedAdminCategoryById(resolvedSelectedId)
+    ? await getAdminCategoryById(resolvedSelectedId)
     : null;
 
   return {
@@ -36,7 +38,7 @@ export async function getAdminCategoriesPageData(selectedId?: string) {
 }
 
 export async function getAdminSubcategoriesPageData(selectedId?: string) {
-  const categories = await listFixedAdminCategories();
+  const categories = await listAdminCategories();
   const subcategories = await listAdminSubcategories();
   const resolvedSelectedId = resolveSelectedId(subcategories, selectedId);
   const selectedSubcategory = resolvedSelectedId
@@ -64,7 +66,7 @@ export async function getAdminBrandsPageData(selectedId?: string) {
 }
 
 export async function getAdminFieldsPageData(selectedId?: string) {
-  const categories = await listFixedAdminCategories();
+  const categories = await listAdminCategories();
   const subcategories = await listAdminSubcategories();
   const fields = await listAdminSubcategoryFields();
   const resolvedSelectedId = resolveSelectedId(fields, selectedId);
@@ -89,7 +91,7 @@ export async function getAdminProductsPageData(
     subcategoryId?: string;
   },
 ) {
-  const categories = await listFixedAdminCategories();
+  const categories = await listAdminCategories();
   const subcategories = await listAdminSubcategories();
   const brands = await listAdminBrands();
   const fields = await listAdminSubcategoryFields();

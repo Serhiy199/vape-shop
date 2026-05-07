@@ -26,7 +26,7 @@ import {
 import { Switch } from "@/components/ui/switch";
 import {
   createSubcategoryAction,
-  deleteSubcategoryAction,
+  toggleSubcategoryStatusAction,
   updateSubcategoryAction,
 } from "@/features/catalog/actions/admin-catalog";
 
@@ -70,7 +70,9 @@ type AdminSubcategoryCrudProps = {
   selectedSubcategory: SelectedSubcategory | null;
 };
 
-function buildCreateValues(categories: CategoryOption[]): SubcategoryFormValues {
+function buildCreateValues(
+  categories: CategoryOption[],
+): SubcategoryFormValues {
   return {
     categoryId: categories[0]?.id ?? "",
     description: "",
@@ -225,7 +227,7 @@ function SubcategoryFormFields({
           rows={4}
         />
 
-        <div className="flex items-start justify-between gap-4 rounded-2xl border border-border/70 bg-card/90 px-4 py-3">
+        <div className="border-border/70 bg-card/90 flex items-start justify-between gap-4 rounded-2xl border px-4 py-3">
           <div className="space-y-1">
             <p className="text-sm font-medium">Активна на сайті</p>
             <p className="text-muted-foreground text-sm leading-6">
@@ -283,7 +285,9 @@ export function AdminSubcategoryCrud({
 
   useEffect(() => {
     const timeoutId = window.setTimeout(() => {
-      setEditValues(selectedSubcategory ? buildEditValues(selectedSubcategory) : null);
+      setEditValues(
+        selectedSubcategory ? buildEditValues(selectedSubcategory) : null,
+      );
       setEditErrors({});
       setEditMessage(null);
       setEditSuccess(null);
@@ -408,8 +412,9 @@ export function AdminSubcategoryCrud({
     setActiveAction("delete");
     startTransition(async () => {
       try {
-        const result = await deleteSubcategoryAction({
+        const result = await toggleSubcategoryStatusAction({
           id: selectedSubcategory.id,
+          isActive: false,
         });
 
         if (!result.ok) {
@@ -485,10 +490,10 @@ export function AdminSubcategoryCrud({
               </div>
             ) : null}
 
-            <div className="flex flex-col gap-3 rounded-2xl border border-border/70 bg-muted/30 p-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="border-border/70 bg-muted/30 flex flex-col gap-3 rounded-2xl border p-4 sm:flex-row sm:items-center sm:justify-between">
               <p className="text-muted-foreground text-sm leading-6">
-                Видалення доступне лише для підкатегорій без пов&apos;язаних полів і
-                товарів.
+                Видалення доступне лише для підкатегорій без пов&apos;язаних
+                полів і товарів.
               </p>
               <div className="flex flex-wrap gap-2">
                 <Button
@@ -500,7 +505,9 @@ export function AdminSubcategoryCrud({
                   {activeAction === "delete" ? "Видаляємо..." : "Видалити"}
                 </Button>
                 <Button type="submit" disabled={isPending}>
-                  {activeAction === "update" ? "Зберігаємо..." : "Зберегти зміни"}
+                  {activeAction === "update"
+                    ? "Зберігаємо..."
+                    : "Зберегти зміни"}
                 </Button>
               </div>
             </div>
@@ -562,7 +569,7 @@ export function AdminSubcategoryCrud({
             </div>
           ) : null}
 
-          <div className="flex flex-col gap-3 rounded-2xl border border-border/70 bg-muted/30 p-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="border-border/70 bg-muted/30 flex flex-col gap-3 rounded-2xl border p-4 sm:flex-row sm:items-center sm:justify-between">
             <p className="text-muted-foreground text-sm leading-6">
               Після створення адміну більше не потрібно лізти в код, щоб
               розширити структуру каталогу.

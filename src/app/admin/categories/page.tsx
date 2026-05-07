@@ -53,7 +53,7 @@ export default async function AdminCategoriesPage({
           {
             label: "Fixed categories",
             value: categories.length.toString(),
-            note: "У список потрапляють лише категорії з бізнес-правилом isFixed=true.",
+            note: "У список потрапляють усі категорії, а видимість на сайті керується статусом isActive.",
           },
           {
             label: "Активні",
@@ -75,7 +75,11 @@ export default async function AdminCategoriesPage({
 
       <AdminActionsBar
         actions={[
-          { href: "/admin", label: "Повернутися до огляду", variant: "outline" },
+          {
+            href: "/admin",
+            label: "Повернутися до огляду",
+            variant: "outline",
+          },
           {
             href: "/admin/subcategories",
             label: "Відкрити підкатегорії",
@@ -96,8 +100,8 @@ export default async function AdminCategoriesPage({
                 <div>
                   <p className="text-sm font-medium">Fixed categories</p>
                   <p className="text-muted-foreground text-sm leading-6">
-                    Вибір елемента працює через параметр <code>?selected=</code>,
-                    щоб уже зараз мати стабільний read/detail сценарій.
+                    Вибір елемента працює через параметр <code>?selected=</code>
+                    , щоб уже зараз мати стабільний read/detail сценарій.
                   </p>
                 </div>
                 <Badge variant="outline">{categories.length} записів</Badge>
@@ -134,7 +138,9 @@ export default async function AdminCategoriesPage({
                     header: "Стан",
                     className: "w-40",
                     cell: (category) => (
-                      <Badge variant={category.isActive ? "secondary" : "outline"}>
+                      <Badge
+                        variant={category.isActive ? "secondary" : "outline"}
+                      >
                         {category.isActive ? "Активна" : "Неактивна"}
                       </Badge>
                     ),
@@ -156,8 +162,8 @@ export default async function AdminCategoriesPage({
                 <div>
                   <p className="text-sm font-medium">Деталі категорії</p>
                   <p className="text-muted-foreground text-sm leading-6">
-                    Це вже реальний detail panel для майбутньої форми редагування
-                    fixed category.
+                    Це вже реальний detail panel для майбутньої форми
+                    редагування fixed category.
                   </p>
                 </div>
 
@@ -167,7 +173,8 @@ export default async function AdminCategoriesPage({
                       label: "Назва",
                       value: selectedCategory.name,
                       note:
-                        selectedCategory.description ?? "Опис поки не заповнений.",
+                        selectedCategory.description ??
+                        "Опис поки не заповнений.",
                     },
                     {
                       label: "Slug",
@@ -180,7 +187,8 @@ export default async function AdminCategoriesPage({
                     {
                       label: "SEO",
                       value:
-                        selectedCategory.seoTitle ?? "SEO title ще не заповнений",
+                        selectedCategory.seoTitle ??
+                        "SEO title ще не заповнений",
                       note:
                         selectedCategory.seoDescription ??
                         "SEO description ще не заповнений.",
@@ -191,9 +199,10 @@ export default async function AdminCategoriesPage({
                     },
                     {
                       label: "Статус",
-                      value: selectedCategory.isActive ? "Активна" : "Неактивна",
-                      note:
-                        "Create/delete для категорій не буде. На наступному кроці додамо лише safe update fixed categories.",
+                      value: selectedCategory.isActive
+                        ? "Активна"
+                        : "Неактивна",
+                      note: "Create/delete для категорій не буде. На наступному кроці додамо лише safe update fixed categories.",
                     },
                   ]}
                 />
@@ -218,7 +227,7 @@ export default async function AdminCategoriesPage({
                       selectedCategory.subcategories.map((subcategory) => (
                         <div
                           key={subcategory.id}
-                          className="flex items-start justify-between gap-3 rounded-2xl border border-border/70 bg-card/70 p-4"
+                          className="border-border/70 bg-card/70 flex items-start justify-between gap-3 rounded-2xl border p-4"
                         >
                           <div className="space-y-1">
                             <p className="font-medium">{subcategory.name}</p>
@@ -227,9 +236,13 @@ export default async function AdminCategoriesPage({
                             </p>
                           </div>
                           <div className="flex flex-wrap items-center gap-2">
-                            <Badge variant="outline">#{subcategory.sortOrder}</Badge>
+                            <Badge variant="outline">
+                              #{subcategory.sortOrder}
+                            </Badge>
                             <Badge
-                              variant={subcategory.isActive ? "secondary" : "outline"}
+                              variant={
+                                subcategory.isActive ? "secondary" : "outline"
+                              }
                             >
                               {subcategory.isActive ? "Активна" : "Неактивна"}
                             </Badge>

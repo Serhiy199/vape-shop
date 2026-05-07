@@ -5,13 +5,15 @@ import { revalidatePath } from "next/cache";
 import { requireAdmin } from "@/lib/auth/permissions";
 import {
   createAdminBrand,
+  createAdminCategory,
   createAdminProduct,
   createAdminSubcategoryField,
   createAdminSubcategory,
   deleteAdminBrand,
   deleteAdminProduct,
   deleteAdminSubcategoryField,
-  deleteAdminSubcategory,
+  setAdminCategoryActiveStatus,
+  setAdminSubcategoryActiveStatus,
   updateAdminBrand,
   updateAdminProduct,
   updateAdminSubcategoryField,
@@ -28,6 +30,19 @@ function revalidateCatalogAdminPaths() {
   revalidatePath("/admin/products");
 }
 
+function revalidateStorefrontCatalogPaths() {
+  revalidatePath("/");
+  revalidatePath("/catalog");
+  revalidatePath("/category");
+  revalidatePath("/category/[categorySlug]", "page");
+  revalidatePath("/category/[categorySlug]/[subcategorySlug]", "page");
+}
+
+function revalidateCatalogPaths() {
+  revalidateCatalogAdminPaths();
+  revalidateStorefrontCatalogPaths();
+}
+
 async function withAdminAccess<TData>(
   action: () => Promise<MutationResult<TData>>,
 ) {
@@ -35,12 +50,36 @@ async function withAdminAccess<TData>(
   return action();
 }
 
+export async function createCategoryAction(input: unknown) {
+  return withAdminAccess(async () => {
+    const result = await createAdminCategory(input);
+
+    if (result.ok) {
+      revalidateCatalogPaths();
+    }
+
+    return result;
+  });
+}
+
 export async function updateCategoryAction(input: unknown) {
   return withAdminAccess(async () => {
     const result = await updateCategory(input);
 
     if (result.ok) {
-      revalidateCatalogAdminPaths();
+      revalidateCatalogPaths();
+    }
+
+    return result;
+  });
+}
+
+export async function toggleCategoryStatusAction(input: unknown) {
+  return withAdminAccess(async () => {
+    const result = await setAdminCategoryActiveStatus(input);
+
+    if (result.ok) {
+      revalidateCatalogPaths();
     }
 
     return result;
@@ -52,7 +91,7 @@ export async function createSubcategoryAction(input: unknown) {
     const result = await createAdminSubcategory(input);
 
     if (result.ok) {
-      revalidateCatalogAdminPaths();
+      revalidateCatalogPaths();
     }
 
     return result;
@@ -64,19 +103,19 @@ export async function updateSubcategoryAction(input: unknown) {
     const result = await updateAdminSubcategory(input);
 
     if (result.ok) {
-      revalidateCatalogAdminPaths();
+      revalidateCatalogPaths();
     }
 
     return result;
   });
 }
 
-export async function deleteSubcategoryAction(input: unknown) {
+export async function toggleSubcategoryStatusAction(input: unknown) {
   return withAdminAccess(async () => {
-    const result = await deleteAdminSubcategory(input);
+    const result = await setAdminSubcategoryActiveStatus(input);
 
     if (result.ok) {
-      revalidateCatalogAdminPaths();
+      revalidateCatalogPaths();
     }
 
     return result;
