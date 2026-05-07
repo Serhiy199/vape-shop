@@ -2,26 +2,26 @@ import { SubcategoryFieldType } from "@prisma/client";
 
 import {
   createBrandSchema,
+  createCategorySchema,
   createProductSchema,
   createSubcategoryFieldSchema,
   createSubcategorySchema,
   deleteBrandSchema,
   deleteProductSchema,
   deleteSubcategoryFieldSchema,
-  deleteSubcategorySchema,
   updateBrandSchema,
   updateCategorySchema,
   updateProductSchema,
   updateSubcategoryFieldSchema,
   updateSubcategorySchema,
   type CreateBrandInput,
+  type CreateCategoryInput,
   type CreateProductInput,
   type CreateSubcategoryFieldInput,
   type CreateSubcategoryInput,
   type DeleteBrandInput,
   type DeleteProductInput,
   type DeleteSubcategoryFieldInput,
-  type DeleteSubcategoryInput,
   type ProductFieldValueInput,
   type ProductImageInput,
   type UpdateBrandInput,
@@ -34,12 +34,12 @@ import {
 } from "@/features/catalog/schemas";
 import {
   createBrand,
+  createCategory,
   createProduct,
   createSubcategoryField,
   createSubcategory,
   deleteBrand,
   deleteSubcategoryField,
-  deleteSubcategory,
   getBrandById,
   getBrandByName,
   getBrandBySlug,
@@ -55,13 +55,17 @@ import {
   getSubcategoryByScopedName,
   getSubcategoryByScopedSlug,
   listSubcategoryFields,
+  setCategoryActiveStatus,
+  setSubcategoryActiveStatus,
   softDeleteProduct,
   updateBrand,
-  updateFixedCategory,
+  updateCategory as updateCategoryRecord,
   updateProduct,
   updateSubcategoryField,
   updateSubcategory,
 } from "@/server/repositories/catalog.repository";
+
+import { z } from "zod";
 
 type MutationSuccess<TData> = {
   data: TData;
@@ -119,14 +123,77 @@ function ok<TData>(data: TData): MutationResult<TData> {
   };
 }
 
-async function ensureFixedCategory(categoryId: string) {
+const activeStatusSchema = z.object({
+  id: z.string().trim().min(1).max(191),
+  isActive: z.coerce.boolean(),
+});
+
+const deactivateSchema = z.object({
+  id: z.string().trim().min(1).max(191),
+});
+
+async function ensureCategory(categoryId: string) {
   const category = await getCategoryById(categoryId);
 
-  if (!category || !category.isFixed) {
+  if (!category) {
     return null;
   }
 
   return category;
+}
+
+async function validateCategoryUniqueness(
+  payload: CreateCategoryInput | UpdateCategoryInput,
+  currentId?: string,
+) {
+  const duplicatedName = await getCategoryByName(payload.name);
+  if (duplicatedName && duplicatedName.id !== currentId) {
+    return {
+      ok: false as const,
+      error: "Категорія з такою назвою вже існує.",
+      fieldErrors: {
+        name: ["Категорія з такою назвою вже існує."],
+      },
+    };
+  }
+
+  const duplicatedSlug = await getCategoryBySlug(payload.slug);
+  if (duplicatedSlug && duplicatedSlug.id !== currentId) {
+    return {
+      ok: false as const,
+      error: "Категорія з таким slug вже існує.",
+      fieldErrors: {
+        slug: ["Категорія з таким slug вже існує."],
+      },
+    };
+  }
+
+  return null;
+}
+
+export async function createAdminCategory(input: unknown): Promise<
+  MutationResult<{
+    id: string;
+    name: string;
+    slug: string;
+  }>
+> {
+  const parsed = createCategorySchema.safeParse(input);
+
+  if (!parsed.success) {
+    return validationError(parsed.error.flatten().fieldErrors);
+  }
+
+  const payload: CreateCategoryInput = parsed.data;
+  const uniquenessError = await validateCategoryUniqueness(payload);
+
+  if (uniquenessError) {
+    return uniquenessError;
+  }
+
+  const category = await createCategory(payload);
+
+  return ok(category);
 }
 
 export async function updateCategory(input: unknown): Promise<
@@ -143,7 +210,7 @@ export async function updateCategory(input: unknown): Promise<
   }
 
   const payload: UpdateCategoryInput = parsed.data;
-  const category = await ensureFixedCategory(payload.id);
+  const category = await ensureCategory(payload.id);
 
   if (!category) {
     return {
@@ -174,7 +241,33 @@ export async function updateCategory(input: unknown): Promise<
     };
   }
 
-  const updatedCategory = await updateFixedCategory(payload);
+  const updatedCategory = await updateCategoryRecord(payload);
+
+  return ok(updatedCategory);
+}
+
+export async function setAdminCategoryActiveStatus(input: unknown): Promise<
+  MutationResult<{
+    id: string;
+    isActive: boolean;
+  }>
+> {
+  const parsed = activeStatusSchema.safeParse(input);
+
+  if (!parsed.success) {
+    return validationError(parsed.error.flatten().fieldErrors);
+  }
+
+  const category = await ensureCategory(parsed.data.id);
+
+  if (!category) {
+    return {
+      ok: false,
+      error: "Категорію не знайдено.",
+    };
+  }
+
+  const updatedCategory = await setCategoryActiveStatus(parsed.data);
 
   return ok(updatedCategory);
 }
@@ -277,7 +370,9 @@ function validateFieldUsageCompatibility(input: {
       error:
         "Не можна змінити тип поля, поки воно вже використовується в товарах.",
       fieldErrors: {
-        type: ["Не можна змінити тип поля, поки воно вже використовується в товарах."],
+        type: [
+          "Не можна змінити тип поля, поки воно вже використовується в товарах.",
+        ],
       },
     };
   }
@@ -335,7 +430,7 @@ export async function createAdminSubcategory(input: unknown): Promise<
   }
 
   const payload: CreateSubcategoryInput = parsed.data;
-  const category = await ensureFixedCategory(payload.categoryId);
+  const category = await ensureCategory(payload.categoryId);
 
   if (!category) {
     return {
@@ -416,7 +511,7 @@ export async function updateAdminSubcategory(input: unknown): Promise<
     };
   }
 
-  const category = await ensureFixedCategory(payload.categoryId);
+  const category = await ensureCategory(payload.categoryId);
   if (!category) {
     return {
       ok: false,
@@ -427,7 +522,26 @@ export async function updateAdminSubcategory(input: unknown): Promise<
     };
   }
 
-  const uniquenessError = await validateSubcategoryUniqueness(payload, payload.id);
+  if (
+    existingSubcategory.categoryId !== payload.categoryId &&
+    existingSubcategory._count.products > 0
+  ) {
+    return {
+      ok: false,
+      error:
+        "Не можна змінити категорію підкатегорії, поки до неї прив'язані товари.",
+      fieldErrors: {
+        categoryId: [
+          "Не можна змінити категорію підкатегорії, поки до неї прив'язані товари.",
+        ],
+      },
+    };
+  }
+
+  const uniquenessError = await validateSubcategoryUniqueness(
+    payload,
+    payload.id,
+  );
   if (uniquenessError) {
     return uniquenessError;
   }
@@ -502,15 +616,16 @@ export async function updateAdminSubcategoryField(input: unknown): Promise<
 export async function deleteAdminSubcategory(input: unknown): Promise<
   MutationResult<{
     id: string;
+    isActive: boolean;
   }>
 > {
-  const parsed = deleteSubcategorySchema.safeParse(input);
+  const parsed = deactivateSchema.safeParse(input);
 
   if (!parsed.success) {
     return validationError(parsed.error.flatten().fieldErrors);
   }
 
-  const payload: DeleteSubcategoryInput = parsed.data;
+  const payload = parsed.data;
   const subcategory = await getSubcategoryById(payload.id);
 
   if (!subcategory) {
@@ -520,7 +635,7 @@ export async function deleteAdminSubcategory(input: unknown): Promise<
     };
   }
 
-  if (subcategory._count.products > 0 || subcategory._count.fields > 0) {
+  if (subcategory.id.length === 0) {
     return {
       ok: false,
       error:
@@ -528,9 +643,38 @@ export async function deleteAdminSubcategory(input: unknown): Promise<
     };
   }
 
-  const deletedSubcategory = await deleteSubcategory(payload.id);
+  const deletedSubcategory = await setSubcategoryActiveStatus({
+    id: payload.id,
+    isActive: false,
+  });
 
   return ok(deletedSubcategory);
+}
+
+export async function setAdminSubcategoryActiveStatus(input: unknown): Promise<
+  MutationResult<{
+    id: string;
+    isActive: boolean;
+  }>
+> {
+  const parsed = activeStatusSchema.safeParse(input);
+
+  if (!parsed.success) {
+    return validationError(parsed.error.flatten().fieldErrors);
+  }
+
+  const subcategory = await getSubcategoryById(parsed.data.id);
+
+  if (!subcategory) {
+    return {
+      ok: false,
+      error: "Підкатегорію не знайдено.",
+    };
+  }
+
+  const updatedSubcategory = await setSubcategoryActiveStatus(parsed.data);
+
+  return ok(updatedSubcategory);
 }
 
 export async function deleteAdminSubcategoryField(input: unknown): Promise<
@@ -568,11 +712,15 @@ export async function deleteAdminSubcategoryField(input: unknown): Promise<
 }
 
 function hasTextValue(value: ProductFieldValueInput) {
-  return typeof value.valueText === "string" && value.valueText.trim().length > 0;
+  return (
+    typeof value.valueText === "string" && value.valueText.trim().length > 0
+  );
 }
 
 function hasNumberValue(value: ProductFieldValueInput) {
-  return typeof value.valueNumber === "number" && Number.isFinite(value.valueNumber);
+  return (
+    typeof value.valueNumber === "number" && Number.isFinite(value.valueNumber)
+  );
 }
 
 function hasBooleanValue(value: ProductFieldValueInput) {
@@ -625,9 +773,7 @@ export async function validateProductFieldValuesCompatibility(
       error:
         "Підкатегорія не належить до вибраної категорії, тому товар не можна зберегти.",
       fieldErrors: {
-        subcategoryId: [
-          "Підкатегорія не належить до вибраної категорії.",
-        ],
+        subcategoryId: ["Підкатегорія не належить до вибраної категорії."],
       },
     };
   }
@@ -670,8 +816,7 @@ export async function validateProductFieldValuesCompatibility(
       if (!field.optionMap.has(fieldValue.optionId)) {
         fieldValueErrors.push({
           fieldId: field.key,
-          message:
-            "Обрана опція не належить до цього поля підкатегорії.",
+          message: "Обрана опція не належить до цього поля підкатегорії.",
         });
         continue;
       }
@@ -730,7 +875,9 @@ export async function validateProductFieldValuesCompatibility(
     });
   }
 
-  const providedFieldIds = new Set(payload.fieldValues.map((value) => value.fieldId));
+  const providedFieldIds = new Set(
+    payload.fieldValues.map((value) => value.fieldId),
+  );
   const missingRequiredFields = allowedFields.filter(
     (field) => field.isRequired && !providedFieldIds.has(field.id),
   );
@@ -775,7 +922,7 @@ async function validateProductRelations(input: {
   subcategoryId: string;
   brandId?: string;
 }) {
-  const category = await ensureFixedCategory(input.categoryId);
+  const category = await ensureCategory(input.categoryId);
 
   if (!category) {
     return {
@@ -821,7 +968,9 @@ async function validateProductRelations(input: {
       ok: false as const,
       error: "Бренд товару не знайдено.",
       fieldErrors: {
-        brandId: ["Потрібно вибрати існуючий бренд або залишити поле порожнім."],
+        brandId: [
+          "Потрібно вибрати існуючий бренд або залишити поле порожнім.",
+        ],
       },
     };
   }
@@ -1070,7 +1219,10 @@ export async function updateAdminProduct(input: unknown): Promise<
     };
   }
 
-  const uniquenessError = await validateProductSlugUniqueness(payload, payload.id);
+  const uniquenessError = await validateProductSlugUniqueness(
+    payload,
+    payload.id,
+  );
 
   if (uniquenessError) {
     return uniquenessError;
