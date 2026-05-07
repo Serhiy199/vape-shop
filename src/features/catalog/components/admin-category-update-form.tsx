@@ -11,9 +11,11 @@ import {
 } from "@/components/admin/admin-form-primitives";
 import { Button } from "@/components/ui/button";
 import { updateCategoryAction } from "@/features/catalog/actions/admin-catalog";
+import { CatalogImageUploadField } from "@/features/catalog/components/catalog-image-upload-field";
 
 type CategoryFormValues = {
   id: string;
+  image: string;
   name: string;
   slug: string;
   sortOrder: string;
@@ -26,6 +28,7 @@ type CategoryFieldErrors = Partial<Record<keyof CategoryFormValues, string>>;
 type AdminCategoryUpdateFormProps = {
   category: {
     id: string;
+    image: string | null;
     name: string;
     slug: string;
     sortOrder: number;
@@ -39,6 +42,7 @@ function buildInitialValues(
 ): CategoryFormValues {
   return {
     id: category.id,
+    image: category.image ?? "",
     name: category.name,
     slug: category.slug,
     sortOrder: category.sortOrder.toString(),
@@ -52,6 +56,7 @@ function mapFieldErrors(
 ): CategoryFieldErrors {
   return {
     name: fieldErrors?.name?.[0],
+    image: fieldErrors?.image?.[0],
     slug: fieldErrors?.slug?.[0],
     sortOrder: fieldErrors?.sortOrder?.[0],
     seoTitle: fieldErrors?.seoTitle?.[0],
@@ -78,9 +83,7 @@ export function AdminCategoryUpdateForm({
 
   const handleFieldChange =
     (field: keyof CategoryFormValues) =>
-    (
-      event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
-    ) => {
+    (event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
       const nextValue = event.target.value;
 
       setValues((current) => ({
@@ -110,6 +113,7 @@ export function AdminCategoryUpdateForm({
     startTransition(async () => {
       const result = await updateCategoryAction({
         id: values.id,
+        image: values.image,
         name: values.name,
         slug: values.slug,
         sortOrder: values.sortOrder,
@@ -167,6 +171,26 @@ export function AdminCategoryUpdateForm({
             error={fieldErrors.sortOrder}
             required
           />
+          <CatalogImageUploadField
+            id="category-image"
+            entityType="category"
+            entitySlug={values.slug}
+            label="Category image"
+            value={values.image}
+            onChange={(image) => {
+              setValues((current) => ({
+                ...current,
+                image,
+              }));
+              setFieldErrors((current) => ({
+                ...current,
+                image: undefined,
+              }));
+              setErrorMessage(null);
+              setSuccessMessage(null);
+            }}
+            error={fieldErrors.image}
+          />
           <AdminInputField
             id="category-seo-title"
             name="seoTitle"
@@ -200,10 +224,10 @@ export function AdminCategoryUpdateForm({
             </div>
           ) : null}
 
-          <div className="flex flex-col gap-3 rounded-2xl border border-border/70 bg-muted/30 p-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="border-border/70 bg-muted/30 flex flex-col gap-3 rounded-2xl border p-4 sm:flex-row sm:items-center sm:justify-between">
             <p className="text-muted-foreground text-sm leading-6">
-              Категорія лишається частиною fixed structure. Ця форма оновлює лише
-              дозволені поля.
+              Категорія лишається частиною fixed structure. Ця форма оновлює
+              лише дозволені поля.
             </p>
             <div className="flex flex-wrap gap-2">
               <Button type="button" variant="outline" onClick={handleReset}>

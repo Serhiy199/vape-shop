@@ -259,7 +259,7 @@ export async function getCategoryBySlug(slug: string) {
 export async function createCategory(input: {
   name: string;
   slug: string;
-  image?: string;
+  image?: string | null;
   description?: string;
   sortOrder: number;
   isActive: boolean;
@@ -282,7 +282,7 @@ export async function updateCategory(input: {
   id: string;
   name: string;
   slug: string;
-  image?: string;
+  image?: string | null;
   description?: string;
   sortOrder: number;
   isActive: boolean;
@@ -390,7 +390,7 @@ export async function createSubcategory(input: {
   categoryId: string;
   name: string;
   slug: string;
-  image?: string;
+  image?: string | null;
   description?: string;
   sortOrder: number;
   isActive: boolean;
@@ -415,7 +415,7 @@ export async function updateSubcategory(input: {
   categoryId: string;
   name: string;
   slug: string;
-  image?: string;
+  image?: string | null;
   description?: string;
   sortOrder: number;
   isActive: boolean;

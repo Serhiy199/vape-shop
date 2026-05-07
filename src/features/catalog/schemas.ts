@@ -143,9 +143,24 @@ function optionalTextField(max: number) {
 }
 
 function optionalImageField() {
-  return optionalTrimmedString(2048).refine(
-    (value) => value === undefined || /^https?:\/\//.test(value),
-    "Image має бути коректним http/https URL.",
+  return z.preprocess(
+    (value) => {
+      if (typeof value !== "string") {
+        return value;
+      }
+
+      const trimmed = value.trim();
+      return trimmed.length === 0 ? null : trimmed;
+    },
+    z
+      .string()
+      .max(2048)
+      .refine(
+        (value) => /^https?:\/\//.test(value),
+        "Image має бути коректним http/https URL.",
+      )
+      .nullable()
+      .optional(),
   );
 }
 

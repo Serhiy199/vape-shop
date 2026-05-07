@@ -210,6 +210,7 @@ export default async function AdminCategoriesPage({
                 <AdminCategoryUpdateForm
                   category={{
                     id: selectedCategory.id,
+                    image: selectedCategory.image,
                     name: selectedCategory.name,
                     slug: selectedCategory.slug,
                     sortOrder: selectedCategory.sortOrder,

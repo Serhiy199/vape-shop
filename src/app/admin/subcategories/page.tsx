@@ -135,7 +135,9 @@ export default async function AdminSubcategoriesPage({
                     header: "Стан",
                     className: "w-40",
                     cell: (subcategory) => (
-                      <Badge variant={subcategory.isActive ? "secondary" : "outline"}>
+                      <Badge
+                        variant={subcategory.isActive ? "secondary" : "outline"}
+                      >
                         {subcategory.isActive ? "Активна" : "Неактивна"}
                       </Badge>
                     ),
@@ -212,6 +214,7 @@ export default async function AdminSubcategoriesPage({
                       id: selectedSubcategory.category.id,
                     },
                     description: selectedSubcategory.description,
+                    image: selectedSubcategory.image,
                     isActive: selectedSubcategory.isActive,
                     name: selectedSubcategory.name,
                     seoDescription: selectedSubcategory.seoDescription,
@@ -230,7 +233,7 @@ export default async function AdminSubcategoriesPage({
                       selectedSubcategory.fields.map((field) => (
                         <div
                           key={field.id}
-                          className="flex items-start justify-between gap-3 rounded-2xl border border-border/70 bg-card/70 p-4"
+                          className="border-border/70 bg-card/70 flex items-start justify-between gap-3 rounded-2xl border p-4"
                         >
                           <div className="space-y-1">
                             <p className="font-medium">{field.label}</p>

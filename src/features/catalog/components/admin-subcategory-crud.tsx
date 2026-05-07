@@ -29,6 +29,7 @@ import {
   toggleSubcategoryStatusAction,
   updateSubcategoryAction,
 } from "@/features/catalog/actions/admin-catalog";
+import { CatalogImageUploadField } from "@/features/catalog/components/catalog-image-upload-field";
 
 type CategoryOption = {
   id: string;
@@ -42,6 +43,7 @@ type SelectedSubcategory = {
     id: string;
   };
   description: string | null;
+  image: string | null;
   isActive: boolean;
   name: string;
   seoDescription: string | null;
@@ -53,6 +55,7 @@ type SelectedSubcategory = {
 type SubcategoryFormValues = {
   categoryId: string;
   description: string;
+  image: string;
   isActive: boolean;
   name: string;
   seoDescription: string;
@@ -76,6 +79,7 @@ function buildCreateValues(
   return {
     categoryId: categories[0]?.id ?? "",
     description: "",
+    image: "",
     isActive: true,
     name: "",
     seoDescription: "",
@@ -91,6 +95,7 @@ function buildEditValues(
   return {
     categoryId: selectedSubcategory.category.id,
     description: selectedSubcategory.description ?? "",
+    image: selectedSubcategory.image ?? "",
     isActive: selectedSubcategory.isActive,
     name: selectedSubcategory.name,
     seoDescription: selectedSubcategory.seoDescription ?? "",
@@ -106,6 +111,7 @@ function mapFieldErrors(
   return {
     categoryId: fieldErrors?.categoryId?.[0],
     description: fieldErrors?.description?.[0],
+    image: fieldErrors?.image?.[0],
     name: fieldErrors?.name?.[0],
     seoDescription: fieldErrors?.seoDescription?.[0],
     seoTitle: fieldErrors?.seoTitle?.[0],
@@ -203,6 +209,16 @@ function SubcategoryFormFields({
           value={values.seoTitle}
           onChange={(event) => onInputChange("seoTitle", event.target.value)}
           error={errors.seoTitle}
+        />
+
+        <CatalogImageUploadField
+          id={`${heading}-image`}
+          entityType="subcategory"
+          entitySlug={values.slug}
+          label="Subcategory image"
+          value={values.image}
+          onChange={(image) => onInputChange("image", image)}
+          error={errors.image}
         />
       </AdminFormGrid>
 
