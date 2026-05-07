@@ -34,6 +34,7 @@ import {
 
 type CategoryOption = {
   id: string;
+  isActive: boolean;
   name: string;
   slug: string;
 };
@@ -41,9 +42,11 @@ type CategoryOption = {
 type SubcategoryOption = {
   category: {
     id: string;
+    isActive: boolean;
     name: string;
   };
   id: string;
+  isActive: boolean;
   name: string;
   slug: string;
 };
@@ -81,6 +84,7 @@ type SelectedProduct = {
   } | null;
   category: {
     id: string;
+    isActive: boolean;
     name: string;
   };
   description: string | null;
@@ -120,6 +124,7 @@ type SelectedProduct = {
   subcategory: {
     categoryId: string;
     id: string;
+    isActive: boolean;
     name: string;
   };
   title: string;
@@ -228,6 +233,60 @@ function findFirstSubcategoryId(
     subcategories.find((subcategory) => subcategory.category.id === categoryId)
       ?.id ?? ""
   );
+}
+
+function withCurrentCategoryOption(
+  categories: CategoryOption[],
+  selectedProduct: SelectedProduct | null,
+) {
+  const activeCategories = categories.filter((category) => category.isActive);
+
+  if (
+    selectedProduct &&
+    !activeCategories.some(
+      (category) => category.id === selectedProduct.category.id,
+    )
+  ) {
+    const currentCategory = categories.find(
+      (category) => category.id === selectedProduct.category.id,
+    );
+
+    if (currentCategory) {
+      return [...activeCategories, currentCategory];
+    }
+  }
+
+  return activeCategories;
+}
+
+function withCurrentSubcategoryOption(
+  subcategories: SubcategoryOption[],
+  selectedProduct: SelectedProduct | null,
+) {
+  const activeSubcategories = subcategories.filter(
+    (subcategory) => subcategory.isActive && subcategory.category.isActive,
+  );
+
+  if (
+    selectedProduct &&
+    !activeSubcategories.some(
+      (subcategory) => subcategory.id === selectedProduct.subcategory.id,
+    )
+  ) {
+    const currentSubcategory = subcategories.find(
+      (subcategory) => subcategory.id === selectedProduct.subcategory.id,
+    );
+
+    if (currentSubcategory) {
+      return [...activeSubcategories, currentSubcategory];
+    }
+  }
+
+  return activeSubcategories;
+}
+
+function formatCatalogOptionStatus(isActive: boolean) {
+  return isActive ? "" : " (inactive)";
 }
 
 function getServerValidationMessage(
@@ -580,6 +639,7 @@ function ProductThumbnail({ alt, src }: { alt: string; src: string }) {
   return (
     <div className="border-border/70 bg-muted/30 overflow-hidden rounded-2xl border">
       {src && !hasError ? (
+        // eslint-disable-next-line @next/next/no-img-element
         <img
           src={src}
           alt={alt}
@@ -662,19 +722,33 @@ function ProductWizard({
     (step) => step.id === currentStep,
   );
 
+  const selectedCategory = categories.find(
+    (category) => category.id === values.categoryId,
+  );
+  const selectedSubcategory = subcategories.find(
+    (subcategory) => subcategory.id === values.subcategoryId,
+  );
+  const relationHasInactiveCatalog =
+    Boolean(selectedCategory && !selectedCategory.isActive) ||
+    Boolean(selectedSubcategory && !selectedSubcategory.isActive) ||
+    Boolean(selectedSubcategory && !selectedSubcategory.category.isActive);
+
   const availableSubcategories = useMemo(
     () =>
       subcategories.filter(
-        (subcategory) => subcategory.category.id === values.categoryId,
+        (subcategory) =>
+          subcategory.category.id === values.categoryId &&
+          ((subcategory.isActive && subcategory.category.isActive) ||
+            subcategory.id === initialValues.subcategoryId),
       ),
-    [subcategories, values.categoryId],
+    [initialValues.subcategoryId, subcategories, values.categoryId],
   );
 
   const categoryItems = useMemo(
     () =>
       categories.map((category) => ({
         value: category.id,
-        label: category.name,
+        label: `${category.name}${formatCatalogOptionStatus(category.isActive)}`,
       })),
     [categories],
   );
@@ -683,7 +757,9 @@ function ProductWizard({
     () =>
       availableSubcategories.map((subcategory) => ({
         value: subcategory.id,
-        label: subcategory.name,
+        label: `${subcategory.name}${formatCatalogOptionStatus(
+          subcategory.isActive && subcategory.category.isActive,
+        )}`,
       })),
     [availableSubcategories],
   );
@@ -772,7 +848,12 @@ function ProductWizard({
       return;
     }
 
-    const nextSubcategoryId = findFirstSubcategoryId(categoryId, subcategories);
+    const nextSubcategoryId = findFirstSubcategoryId(
+      categoryId,
+      subcategories.filter(
+        (subcategory) => subcategory.isActive && subcategory.category.isActive,
+      ),
+    );
 
     setValues((current) => ({
       ...current,
@@ -1207,10 +1288,18 @@ function ProductWizard({
                 {categories.map((category) => (
                   <SelectItem key={category.id} value={category.id}>
                     {category.name}
+                    {formatCatalogOptionStatus(category.isActive)}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
+            {relationHasInactiveCatalog ? (
+              <p className="text-muted-foreground mt-2 text-sm leading-6">
+                Поточна категорія або підкатегорія деактивована. Зв&apos;язок
+                збережено для цього товару, але нові прив&apos;язки можна робити
+                тільки до активних гілок каталогу.
+              </p>
+            ) : null}
           </AdminField>
         </AdminFormSection>
       ) : null}
@@ -1237,6 +1326,9 @@ function ProductWizard({
                 {availableSubcategories.map((subcategory) => (
                   <SelectItem key={subcategory.id} value={subcategory.id}>
                     {subcategory.name}
+                    {formatCatalogOptionStatus(
+                      subcategory.isActive && subcategory.category.isActive,
+                    )}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -1832,10 +1924,29 @@ export function AdminProductCrud({
   subcategories,
 }: AdminProductCrudProps) {
   const router = useRouter();
+  const createCategories = useMemo(
+    () => categories.filter((category) => category.isActive),
+    [categories],
+  );
+  const createSubcategories = useMemo(
+    () =>
+      subcategories.filter(
+        (subcategory) => subcategory.isActive && subcategory.category.isActive,
+      ),
+    [subcategories],
+  );
+  const editCategories = useMemo(
+    () => withCurrentCategoryOption(categories, selectedProduct),
+    [categories, selectedProduct],
+  );
+  const editSubcategories = useMemo(
+    () => withCurrentSubcategoryOption(subcategories, selectedProduct),
+    [selectedProduct, subcategories],
+  );
 
   const createInitialValues = useMemo(
-    () => buildCreateValues(categories, subcategories),
-    [categories, subcategories],
+    () => buildCreateValues(createCategories, createSubcategories),
+    [createCategories, createSubcategories],
   );
 
   const handleDelete = () => {
@@ -1870,7 +1981,7 @@ export function AdminProductCrud({
         >
           <ProductWizard
             brands={brands}
-            categories={categories}
+            categories={editCategories}
             fields={fields}
             initialDynamicValues={buildDynamicValueMap(selectedProduct)}
             initialImages={buildImageDrafts(selectedProduct)}
@@ -1882,7 +1993,7 @@ export function AdminProductCrud({
               router.refresh();
             }}
             productId={selectedProduct.id}
-            subcategories={subcategories}
+            subcategories={editSubcategories}
           />
         </AdminSectionCard>
       ) : (
@@ -1898,7 +2009,7 @@ export function AdminProductCrud({
       >
         <ProductWizard
           brands={brands}
-          categories={categories}
+          categories={createCategories}
           fields={fields}
           initialDynamicValues={{}}
           initialImages={[]}
@@ -1908,7 +2019,7 @@ export function AdminProductCrud({
             router.push(`/admin/products?selected=${id}`);
             router.refresh();
           }}
-          subcategories={subcategories}
+          subcategories={createSubcategories}
         />
       </AdminSectionCard>
     </div>

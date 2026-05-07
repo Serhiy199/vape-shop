@@ -435,9 +435,9 @@ export async function createAdminSubcategory(input: unknown): Promise<
   if (!category) {
     return {
       ok: false,
-      error: "Потрібно вибрати існуючу fixed category для підкатегорії.",
+      error: "Потрібно вибрати існуючу категорію для підкатегорії.",
       fieldErrors: {
-        categoryId: ["Потрібно вибрати існуючу fixed category."],
+        categoryId: ["Потрібно вибрати існуючу категорію."],
       },
     };
   }
@@ -515,9 +515,9 @@ export async function updateAdminSubcategory(input: unknown): Promise<
   if (!category) {
     return {
       ok: false,
-      error: "Потрібно вибрати існуючу fixed category для підкатегорії.",
+      error: "Потрібно вибрати існуючу категорію для підкатегорії.",
       fieldErrors: {
-        categoryId: ["Потрібно вибрати існуючу fixed category."],
+        categoryId: ["Потрібно вибрати існуючу категорію."],
       },
     };
   }
@@ -613,7 +613,7 @@ export async function updateAdminSubcategoryField(input: unknown): Promise<
   return ok(updatedField);
 }
 
-export async function deleteAdminSubcategory(input: unknown): Promise<
+export async function deactivateAdminSubcategory(input: unknown): Promise<
   MutationResult<{
     id: string;
     isActive: boolean;
@@ -643,12 +643,12 @@ export async function deleteAdminSubcategory(input: unknown): Promise<
     };
   }
 
-  const deletedSubcategory = await setSubcategoryActiveStatus({
+  const deactivatedSubcategory = await setSubcategoryActiveStatus({
     id: payload.id,
     isActive: false,
   });
 
-  return ok(deletedSubcategory);
+  return ok(deactivatedSubcategory);
 }
 
 export async function setAdminSubcategoryActiveStatus(input: unknown): Promise<
@@ -921,15 +921,17 @@ async function validateProductRelations(input: {
   categoryId: string;
   subcategoryId: string;
   brandId?: string;
+  currentCategoryId?: string;
+  currentSubcategoryId?: string;
 }) {
   const category = await ensureCategory(input.categoryId);
 
   if (!category) {
     return {
       ok: false as const,
-      error: "Потрібно вибрати існуючу fixed category для товару.",
+      error: "Потрібно вибрати існуючу категорію для товару.",
       fieldErrors: {
-        categoryId: ["Потрібно вибрати існуючу fixed category."],
+        categoryId: ["Потрібно вибрати існуючу категорію."],
       },
     };
   }
@@ -942,6 +944,29 @@ async function validateProductRelations(input: {
       error: "Підкатегорію товару не знайдено.",
       fieldErrors: {
         subcategoryId: ["Потрібно вибрати існуючу підкатегорію."],
+      },
+    };
+  }
+
+  const preservesExistingCatalogRelation =
+    input.categoryId === input.currentCategoryId &&
+    input.subcategoryId === input.currentSubcategoryId;
+
+  if (
+    (!category.isActive || !subcategory.isActive) &&
+    !preservesExistingCatalogRelation
+  ) {
+    return {
+      ok: false as const,
+      error:
+        "Товар можна прив'язувати тільки до активної категорії та активної підкатегорії.",
+      fieldErrors: {
+        categoryId: !category.isActive
+          ? ["Оберіть активну категорію товару."]
+          : undefined,
+        subcategoryId: !subcategory.isActive
+          ? ["Оберіть активну підкатегорію товару."]
+          : undefined,
       },
     };
   }
@@ -999,11 +1024,17 @@ async function validateProductSlugUniqueness(
 
 async function normalizeProductWritePayload(
   payload: CreateProductInput | UpdateProductInput,
+  existingProduct?: {
+    categoryId: string;
+    subcategoryId: string;
+  },
 ): Promise<MutationResult<NormalizedProductWritePayload>> {
   const relationError = await validateProductRelations({
     categoryId: payload.categoryId,
     subcategoryId: payload.subcategoryId,
     brandId: payload.brandId,
+    currentCategoryId: existingProduct?.categoryId,
+    currentSubcategoryId: existingProduct?.subcategoryId,
   });
 
   if (relationError) {
@@ -1228,7 +1259,10 @@ export async function updateAdminProduct(input: unknown): Promise<
     return uniquenessError;
   }
 
-  const normalizedPayload = await normalizeProductWritePayload(payload);
+  const normalizedPayload = await normalizeProductWritePayload(
+    payload,
+    existingProduct,
+  );
 
   if (!normalizedPayload.ok) {
     return normalizedPayload;

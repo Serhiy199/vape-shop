@@ -76,8 +76,14 @@ export default async function AdminProductsPage({
     subcategoryId: params.subcategoryId,
   };
 
-  const { brands, categories, fields, products, selectedProduct, subcategories } =
-    await getAdminProductsPageData(params.selected, activeFilters);
+  const {
+    brands,
+    categories,
+    fields,
+    products,
+    selectedProduct,
+    subcategories,
+  } = await getAdminProductsPageData(params.selected, activeFilters);
 
   const activeCount = products.filter((product) => product.isActive).length;
   const inStockCount = products.filter(
@@ -97,6 +103,7 @@ export default async function AdminProductsPage({
 
   const mappedCategories = categories.map((category) => ({
     id: category.id,
+    isActive: category.isActive,
     name: category.name,
     slug: category.slug,
   }));
@@ -104,9 +111,11 @@ export default async function AdminProductsPage({
   const mappedSubcategories = subcategories.map((subcategory) => ({
     category: {
       id: subcategory.category.id,
+      isActive: subcategory.category.isActive,
       name: subcategory.category.name,
     },
     id: subcategory.id,
+    isActive: subcategory.isActive,
     name: subcategory.name,
     slug: subcategory.slug,
   }));
@@ -164,7 +173,11 @@ export default async function AdminProductsPage({
 
       <AdminActionsBar
         actions={[
-          { href: "/admin/brands", label: "Відкрити бренди", variant: "outline" },
+          {
+            href: "/admin/brands",
+            label: "Відкрити бренди",
+            variant: "outline",
+          },
           {
             href: "/admin/subcategories",
             label: "Відкрити підкатегорії",
@@ -344,7 +357,9 @@ export default async function AdminProductsPage({
                 />
 
                 <div className="flex flex-wrap gap-2">
-                  <Badge variant={selectedProduct.isActive ? "secondary" : "outline"}>
+                  <Badge
+                    variant={selectedProduct.isActive ? "secondary" : "outline"}
+                  >
                     {selectedProduct.isActive ? "Активний" : "Неактивний"}
                   </Badge>
                   {selectedProduct.isFeaturedNew ? (
@@ -372,27 +387,30 @@ export default async function AdminProductsPage({
                       : null,
                     category: {
                       id: selectedProduct.category.id,
+                      isActive: selectedProduct.category.isActive,
                       name: selectedProduct.category.name,
                     },
                     description: selectedProduct.description,
-                    fieldValues: selectedProduct.fieldValues.map((fieldValue) => ({
-                      field: {
-                        id: fieldValue.field.id,
-                        key: fieldValue.field.key,
-                        label: fieldValue.field.label,
-                        type: fieldValue.field.type,
-                      },
-                      option: fieldValue.option
-                        ? {
-                            id: fieldValue.option.id,
-                            label: fieldValue.option.label,
-                          }
-                        : null,
-                      optionId: fieldValue.optionId,
-                      valueBoolean: fieldValue.valueBoolean,
-                      valueNumber: fieldValue.valueNumber,
-                      valueText: fieldValue.valueText,
-                    })),
+                    fieldValues: selectedProduct.fieldValues.map(
+                      (fieldValue) => ({
+                        field: {
+                          id: fieldValue.field.id,
+                          key: fieldValue.field.key,
+                          label: fieldValue.field.label,
+                          type: fieldValue.field.type,
+                        },
+                        option: fieldValue.option
+                          ? {
+                              id: fieldValue.option.id,
+                              label: fieldValue.option.label,
+                            }
+                          : null,
+                        optionId: fieldValue.optionId,
+                        valueBoolean: fieldValue.valueBoolean,
+                        valueNumber: fieldValue.valueNumber,
+                        valueText: fieldValue.valueText,
+                      }),
+                    ),
                     id: selectedProduct.id,
                     images: selectedProduct.images.map((image) => ({
                       alt: image.alt,
@@ -413,6 +431,7 @@ export default async function AdminProductsPage({
                     subcategory: {
                       categoryId: selectedProduct.subcategory.categoryId,
                       id: selectedProduct.subcategory.id,
+                      isActive: selectedProduct.subcategory.isActive,
                       name: selectedProduct.subcategory.name,
                     },
                     title: selectedProduct.title,

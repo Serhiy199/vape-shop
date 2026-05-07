@@ -107,6 +107,7 @@ export async function listAdminSubcategories() {
           id: true,
           name: true,
           slug: true,
+          isActive: true,
         },
       },
       _count: {
@@ -906,6 +907,7 @@ const adminProductListSelect = {
       id: true,
       name: true,
       slug: true,
+      isActive: true,
     },
   },
   subcategory: {
@@ -913,6 +915,7 @@ const adminProductListSelect = {
       id: true,
       name: true,
       slug: true,
+      isActive: true,
     },
   },
   brand: {
@@ -977,6 +980,7 @@ const adminProductDetailSelect = {
       name: true,
       slug: true,
       categoryId: true,
+      isActive: true,
     },
   },
   brand: {

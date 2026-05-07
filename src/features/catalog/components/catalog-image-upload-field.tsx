@@ -14,6 +14,7 @@ type CatalogImageUploadFieldProps = {
   label: string;
   value?: string;
   onChange: (value: string) => void;
+  onUploadingChange?: (value: boolean) => void;
 };
 
 type UploadResponse =
@@ -49,12 +50,23 @@ export function CatalogImageUploadField({
   id,
   label,
   onChange,
+  onUploadingChange,
   value,
 }: CatalogImageUploadFieldProps) {
   const inputRef = useRef<HTMLInputElement | null>(null);
   const [localPreviewUrl, setLocalPreviewUrl] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+
+  const clearLocalPreview = () => {
+    setLocalPreviewUrl((current) => {
+      if (current) {
+        URL.revokeObjectURL(current);
+      }
+
+      return null;
+    });
+  };
 
   useEffect(() => {
     return () => {
@@ -99,6 +111,7 @@ export function CatalogImageUploadField({
     formData.append("files", file);
 
     setIsUploading(true);
+    onUploadingChange?.(true);
 
     try {
       const response = await fetch("/api/upload/catalog-images", {
@@ -108,25 +121,33 @@ export function CatalogImageUploadField({
       const payload = (await response.json()) as UploadResponse;
 
       if (!response.ok) {
+        clearLocalPreview();
         setMessage(
           payload.success
-            ? "Image upload failed."
-            : (payload.error?.message ?? "Image upload failed."),
+            ? "Image upload failed. The image was not saved."
+            : (payload.error?.message ??
+                "Image upload failed. The image was not saved."),
         );
         return;
       }
 
       if (!payload.success) {
-        setMessage(payload.error?.message ?? "Image upload failed.");
+        clearLocalPreview();
+        setMessage(
+          payload.error?.message ??
+            "Image upload failed. The image was not saved.",
+        );
         return;
       }
 
       onChange(payload.data.file.url);
       setMessage("Image uploaded.");
     } catch {
-      setMessage("Image upload failed.");
+      clearLocalPreview();
+      setMessage("Image upload failed. The image was not saved.");
     } finally {
       setIsUploading(false);
+      onUploadingChange?.(false);
       if (inputRef.current) {
         inputRef.current.value = "";
       }

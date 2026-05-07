@@ -130,6 +130,7 @@ function SubcategoryFormFields({
   onActiveChange,
   onCategoryChange,
   onImageChange,
+  onImageUploadingChange,
   onInputChange,
 }: {
   categories: CategoryOption[];
@@ -140,6 +141,7 @@ function SubcategoryFormFields({
   onActiveChange: (value: boolean) => void;
   onCategoryChange: (value: string | null) => void;
   onImageChange: (value: string) => void;
+  onImageUploadingChange: (value: boolean) => void;
   onInputChange: (
     field: keyof Omit<
       SubcategoryFormValues,
@@ -219,6 +221,7 @@ function SubcategoryFormFields({
           label="Фото підкатегорії"
           value={values.image}
           onChange={onImageChange}
+          onUploadingChange={onImageUploadingChange}
           error={errors.image}
         />
 
@@ -294,6 +297,8 @@ export function AdminSubcategoryCrud({
   const [activeAction, setActiveAction] = useState<"create" | "update" | null>(
     null,
   );
+  const [isCreateImageUploading, setIsCreateImageUploading] = useState(false);
+  const [isEditImageUploading, setIsEditImageUploading] = useState(false);
 
   const initialCreateValues = useMemo(
     () => buildCreateValues(categories),
@@ -488,6 +493,7 @@ export function AdminSubcategoryCrud({
               image: undefined,
             }));
           }}
+          onImageUploadingChange={setIsCreateImageUploading}
           onInputChange={updateCreateField}
         />
 
@@ -503,7 +509,7 @@ export function AdminSubcategoryCrud({
         ) : null}
 
         <div className="flex justify-end">
-          <Button type="submit" disabled={isPending}>
+          <Button type="submit" disabled={isPending || isCreateImageUploading}>
             {activeAction === "create" ? "Створюємо..." : "Створити"}
           </Button>
         </div>
@@ -561,6 +567,7 @@ export function AdminSubcategoryCrud({
                 image: undefined,
               }));
             }}
+            onImageUploadingChange={setIsEditImageUploading}
             onInputChange={updateEditField}
           />
 
@@ -576,7 +583,10 @@ export function AdminSubcategoryCrud({
           ) : null}
 
           <div className="flex justify-end">
-            <Button type="submit" disabled={isPending || categoryChangeBlocked}>
+            <Button
+              type="submit"
+              disabled={isPending || categoryChangeBlocked || isEditImageUploading}
+            >
               {activeAction === "update" ? "Зберігаємо..." : "Зберегти зміни"}
             </Button>
           </div>

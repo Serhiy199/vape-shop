@@ -94,6 +94,7 @@ function CategoryFormFields({
   values,
   onActiveChange,
   onImageChange,
+  onImageUploadingChange,
   onInputChange,
 }: {
   errors: CategoryFieldErrors;
@@ -101,6 +102,7 @@ function CategoryFormFields({
   values: CategoryFormValues;
   onActiveChange: (value: boolean) => void;
   onImageChange: (value: string) => void;
+  onImageUploadingChange: (value: boolean) => void;
   onInputChange: (
     field: keyof Omit<CategoryFormValues, "image" | "isActive">,
     value: string,
@@ -146,6 +148,7 @@ function CategoryFormFields({
           label="Фото категорії"
           value={values.image}
           onChange={onImageChange}
+          onUploadingChange={onImageUploadingChange}
           error={errors.image}
         />
         <AdminInputField
@@ -210,6 +213,8 @@ export function AdminCategoryUpdateForm({
   const [activeAction, setActiveAction] = useState<"create" | "update" | null>(
     null,
   );
+  const [isCreateImageUploading, setIsCreateImageUploading] = useState(false);
+  const [isEditImageUploading, setIsEditImageUploading] = useState(false);
 
   const [createValues, setCreateValues] =
     useState<CategoryFormValues>(createInitialValues);
@@ -355,6 +360,7 @@ export function AdminCategoryUpdateForm({
               image: undefined,
             }));
           }}
+          onImageUploadingChange={setIsCreateImageUploading}
           onInputChange={updateCreateField}
         />
 
@@ -369,7 +375,7 @@ export function AdminCategoryUpdateForm({
           </div>
         ) : null}
         <div className="flex justify-end">
-          <Button type="submit" disabled={isPending}>
+          <Button type="submit" disabled={isPending || isCreateImageUploading}>
             {activeAction === "create" ? "Створюємо..." : "Створити"}
           </Button>
         </div>
@@ -409,6 +415,7 @@ export function AdminCategoryUpdateForm({
                 image: undefined,
               }));
             }}
+            onImageUploadingChange={setIsEditImageUploading}
             onInputChange={updateEditField}
           />
 
@@ -423,7 +430,7 @@ export function AdminCategoryUpdateForm({
             </div>
           ) : null}
           <div className="flex justify-end">
-            <Button type="submit" disabled={isPending}>
+            <Button type="submit" disabled={isPending || isEditImageUploading}>
               {activeAction === "update" ? "Зберігаємо..." : "Зберегти зміни"}
             </Button>
           </div>
