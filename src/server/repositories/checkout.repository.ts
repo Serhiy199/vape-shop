@@ -14,6 +14,16 @@ const checkoutProductSelect = {
   price: true,
   availability: true,
   isActive: true,
+  category: {
+    select: {
+      isActive: true,
+    },
+  },
+  subcategory: {
+    select: {
+      isActive: true,
+    },
+  },
   images: {
     orderBy: [
       { isPrimary: "desc" },
@@ -92,7 +102,10 @@ export async function listCheckoutProductsByIds(productIds: string[]) {
 
 export function isProductOrderable(product: CheckoutProductRecord) {
   return (
-    product.isActive && product.availability === ProductAvailability.IN_STOCK
+    product.isActive &&
+    product.category.isActive &&
+    product.subcategory.isActive &&
+    product.availability === ProductAvailability.IN_STOCK
   );
 }
 

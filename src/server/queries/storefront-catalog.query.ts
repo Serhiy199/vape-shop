@@ -15,10 +15,21 @@ import type {
   CatalogSortFilter,
 } from "@/lib/storefront/catalog-filters";
 
+const storefrontVisibleProductWhere = {
+  isActive: true,
+  category: {
+    isActive: true,
+  },
+  subcategory: {
+    isActive: true,
+  },
+} satisfies Prisma.ProductWhereInput;
+
 const storefrontCategorySelect = {
   id: true,
   name: true,
   slug: true,
+  image: true,
   description: true,
   seoTitle: true,
   seoDescription: true,
@@ -31,6 +42,7 @@ const storefrontCategorySelect = {
       id: true,
       name: true,
       slug: true,
+      image: true,
       description: true,
       seoTitle: true,
       seoDescription: true,
@@ -38,7 +50,7 @@ const storefrontCategorySelect = {
         select: {
           products: {
             where: {
-              isActive: true,
+              ...storefrontVisibleProductWhere,
             },
           },
         },
@@ -49,7 +61,7 @@ const storefrontCategorySelect = {
     select: {
       products: {
         where: {
-          isActive: true,
+          ...storefrontVisibleProductWhere,
         },
       },
       subcategories: {
@@ -70,7 +82,7 @@ const storefrontBrandSelect = {
     select: {
       products: {
         where: {
-          isActive: true,
+          ...storefrontVisibleProductWhere,
         },
       },
     },
@@ -393,7 +405,7 @@ function productBaseWhere(
   const search = input?.search?.trim();
 
   return {
-    isActive: true,
+    ...storefrontVisibleProductWhere,
     availability: resolveAvailability(input?.availability),
     price: resolvePriceWhere(input?.priceRange),
     ...resolveBadgeWhere(input?.badge),
@@ -462,13 +474,25 @@ async function listActiveStorefrontCategoryRecords() {
   });
 }
 
+export async function getActiveStorefrontCategoryWithSubcategoriesBySlug(
+  slug: string,
+) {
+  return prisma.category.findFirst({
+    where: {
+      isActive: true,
+      slug,
+    },
+    select: storefrontCategorySelect,
+  });
+}
+
 export async function listActiveStorefrontBrands(limit?: number) {
   const brands = await prisma.brand.findMany({
     where: {
       isActive: true,
       products: {
         some: {
-          isActive: true,
+          ...storefrontVisibleProductWhere,
         },
       },
     },
@@ -506,13 +530,9 @@ export async function getStorefrontCatalogFilterOptions(input?: {
 }
 
 export async function getActiveStorefrontCategoryBySlug(slug: string) {
-  const category = await prisma.category.findFirst({
-    where: {
-      isActive: true,
-      slug,
-    },
-    select: storefrontCategorySelect,
-  });
+  const category = await getActiveStorefrontCategoryWithSubcategoriesBySlug(
+    slug,
+  );
 
   return category ? mapCategoryToCard(category, 0) : null;
 }
@@ -635,14 +655,8 @@ export async function getStorefrontSaleProducts(limit = 8) {
 export async function getActiveStorefrontProductBySlug(slug: string) {
   const product = await prisma.product.findFirst({
     where: {
-      isActive: true,
+      ...storefrontVisibleProductWhere,
       slug,
-      category: {
-        isActive: true,
-      },
-      subcategory: {
-        isActive: true,
-      },
     },
     select: storefrontProductDetailSelect,
   });
