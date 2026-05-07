@@ -97,8 +97,10 @@ export default async function AdminProductsPage({
 
   const mappedBrands = brands.map((brand) => ({
     id: brand.id,
+    isActive: brand.isActive,
     name: brand.name,
     slug: brand.slug,
+    subcategoryId: brand.subcategoryId,
   }));
 
   const mappedCategories = categories.map((category) => ({
@@ -166,7 +168,7 @@ export default async function AdminProductsPage({
           {
             label: "З флагами",
             value: featuredCount.toString(),
-            note: `Товарів із мітками new/sale/hit: ${featuredCount}. Із брендом: ${productsWithBrands}.`,
+            note: `Товарів із мітками new/sale/hit: ${featuredCount}. Із виробником: ${productsWithBrands}.`,
           },
         ]}
       />
@@ -175,7 +177,7 @@ export default async function AdminProductsPage({
         actions={[
           {
             href: "/admin/brands",
-            label: "Відкрити бренди",
+            label: "Відкрити виробників",
             variant: "outline",
           },
           {
@@ -264,7 +266,7 @@ export default async function AdminProductsPage({
                   },
                   {
                     key: "brand",
-                    header: "Бренд",
+                    header: "Виробник",
                     className: "w-32",
                     cell: (product) => product.brand?.name ?? "—",
                   },
@@ -328,8 +330,8 @@ export default async function AdminProductsPage({
                       note: selectedProduct.subcategory.name,
                     },
                     {
-                      label: "Бренд",
-                      value: selectedProduct.brand?.name ?? "Без бренду",
+                      label: "Виробник",
+                      value: selectedProduct.brand?.name ?? "Без виробника",
                     },
                     {
                       label: "Ціна і статус",
@@ -382,7 +384,9 @@ export default async function AdminProductsPage({
                     brand: selectedProduct.brand
                       ? {
                           id: selectedProduct.brand.id,
+                          isActive: selectedProduct.brand.isActive,
                           name: selectedProduct.brand.name,
+                          subcategoryId: selectedProduct.brand.subcategoryId,
                         }
                       : null,
                     category: {

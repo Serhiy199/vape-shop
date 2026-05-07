@@ -425,17 +425,19 @@ const deleteSubcategorySchema = z.object({
   id: idField(),
 });
 
-export const createBrandSchema = z.object({
-  name: requiredName(120),
-  slug: slugField(),
-  description: optionalTrimmedString(500),
-  sortOrder: sortOrderField(),
-  isActive: z.coerce.boolean().default(true),
-});
+export const createBrandSchema = z.intersection(
+  slugFromNameSchema(),
+  z.object({
+    subcategoryId: idField(),
+    isActive: z.coerce.boolean().default(true),
+  }),
+);
 
-export const updateBrandSchema = createBrandSchema.extend({
-  id: idField(),
-});
+export const updateBrandSchema = createBrandSchema.and(
+  z.object({
+    id: idField(),
+  }),
+);
 
 export const deleteBrandSchema = z.object({
   id: idField(),

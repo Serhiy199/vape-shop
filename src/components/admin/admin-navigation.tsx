@@ -61,7 +61,7 @@ const adminNavGroups: AdminNavGroup[] = [
       {
         href: "/admin/brands",
         icon: TagsIcon,
-        label: "Бренди",
+        label: "Виробники",
         enabled: true,
       },
       {

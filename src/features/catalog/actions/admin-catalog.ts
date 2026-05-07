@@ -9,9 +9,9 @@ import {
   createAdminProduct,
   createAdminSubcategoryField,
   createAdminSubcategory,
-  deleteAdminBrand,
   deleteAdminProduct,
   deleteAdminSubcategoryField,
+  setAdminBrandActiveStatus,
   setAdminCategoryActiveStatus,
   setAdminSubcategoryActiveStatus,
   updateAdminBrand,
@@ -182,9 +182,9 @@ export async function updateBrandAction(input: unknown) {
   });
 }
 
-export async function deleteBrandAction(input: unknown) {
+export async function toggleBrandStatusAction(input: unknown) {
   return withAdminAccess(async () => {
-    const result = await deleteAdminBrand(input);
+    const result = await setAdminBrandActiveStatus(input);
 
     if (result.ok) {
       revalidateCatalogAdminPaths();

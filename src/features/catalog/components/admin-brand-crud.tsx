@@ -1,67 +1,80 @@
 "use client";
 
 import type { FormEvent } from "react";
-import { useEffect, useState, useTransition } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 
 import {
+  AdminField,
   AdminFormGrid,
   AdminFormSection,
   AdminInputField,
-  AdminTextareaField,
 } from "@/components/admin/admin-form-primitives";
 import {
   AdminEmptyState,
   AdminSectionCard,
 } from "@/components/admin/admin-primitives";
 import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import {
   createBrandAction,
-  deleteBrandAction,
+  toggleBrandStatusAction,
   updateBrandAction,
 } from "@/features/catalog/actions/admin-catalog";
 
+type SubcategoryOption = {
+  category: {
+    name: string;
+  };
+  id: string;
+  name: string;
+};
+
 type SelectedBrand = {
   id: string;
-  description: string | null;
   isActive: boolean;
   name: string;
+  productsCount: number;
   slug: string;
-  sortOrder: number;
+  subcategoryId: string;
 };
 
 type BrandFormValues = {
-  description: string;
   isActive: boolean;
   name: string;
   slug: string;
-  sortOrder: string;
+  subcategoryId: string;
 };
 
 type BrandFieldErrors = Partial<Record<keyof BrandFormValues, string>>;
 
 type AdminBrandCrudProps = {
   selectedBrand: SelectedBrand | null;
+  subcategories: SubcategoryOption[];
 };
 
-function buildCreateValues(): BrandFormValues {
+function buildCreateValues(subcategories: SubcategoryOption[]): BrandFormValues {
   return {
-    description: "",
     isActive: true,
     name: "",
     slug: "",
-    sortOrder: "0",
+    subcategoryId: subcategories[0]?.id ?? "",
   };
 }
 
 function buildEditValues(selectedBrand: SelectedBrand): BrandFormValues {
   return {
-    description: selectedBrand.description ?? "",
     isActive: selectedBrand.isActive,
     name: selectedBrand.name,
     slug: selectedBrand.slug,
-    sortOrder: selectedBrand.sortOrder.toString(),
+    subcategoryId: selectedBrand.subcategoryId,
   };
 }
 
@@ -69,38 +82,71 @@ function mapFieldErrors(
   fieldErrors?: Record<string, string[] | undefined>,
 ): BrandFieldErrors {
   return {
-    description: fieldErrors?.description?.[0],
+    isActive: fieldErrors?.isActive?.[0],
     name: fieldErrors?.name?.[0],
     slug: fieldErrors?.slug?.[0],
-    sortOrder: fieldErrors?.sortOrder?.[0],
+    subcategoryId: fieldErrors?.subcategoryId?.[0],
   };
 }
 
 function BrandFormFields({
   errors,
   heading,
+  subcategories,
+  subcategoryChangeBlocked,
   values,
   onActiveChange,
   onInputChange,
+  onSubcategoryChange,
 }: {
   errors: BrandFieldErrors;
   heading: string;
+  subcategories: SubcategoryOption[];
+  subcategoryChangeBlocked?: boolean;
   values: BrandFormValues;
   onActiveChange: (value: boolean) => void;
   onInputChange: (
-    field: keyof Omit<BrandFormValues, "isActive">,
+    field: keyof Omit<BrandFormValues, "isActive" | "subcategoryId">,
     value: string,
   ) => void;
+  onSubcategoryChange: (value: string | null) => void;
 }) {
   return (
-    <AdminFormSection
-      title={heading}
-      description="Форма напряму підключена до write-side для брендів."
-    >
+    <AdminFormSection title={heading}>
       <AdminFormGrid>
+        <AdminField
+          label="Підкатегорія"
+          error={errors.subcategoryId}
+          required
+        >
+          <Select
+            items={subcategories.map((subcategory) => ({
+              label: `${subcategory.category.name} / ${subcategory.name}`,
+              value: subcategory.id,
+            }))}
+            value={values.subcategoryId}
+            onValueChange={onSubcategoryChange}
+            disabled={subcategoryChangeBlocked}
+          >
+            <SelectTrigger
+              className="w-full"
+              aria-invalid={Boolean(errors.subcategoryId)}
+            >
+              <SelectValue placeholder="Оберіть підкатегорію" />
+            </SelectTrigger>
+            <SelectContent>
+              {subcategories.map((subcategory) => (
+                <SelectItem key={subcategory.id} value={subcategory.id}>
+                  {subcategory.category.name} / {subcategory.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </AdminField>
+
         <AdminInputField
           id={`${heading}-name`}
-          label="Назва"
+          label="Назва виробника"
           value={values.name}
           onChange={(event) => onInputChange("name", event.target.value)}
           error={errors.name}
@@ -113,59 +159,58 @@ function BrandFormFields({
           value={values.slug}
           onChange={(event) => onInputChange("slug", event.target.value)}
           error={errors.slug}
-          hint="Лише нижній регістр, цифри та дефіси."
-          required
-        />
-
-        <AdminInputField
-          id={`${heading}-sortOrder`}
-          type="number"
-          min={0}
-          step={1}
-          label="Порядок сортування"
-          value={values.sortOrder}
-          onChange={(event) => onInputChange("sortOrder", event.target.value)}
-          error={errors.sortOrder}
-          required
+          hint="Можна залишити порожнім, тоді slug згенерується з назви."
         />
       </AdminFormGrid>
 
       <div className="mt-4 space-y-4">
-        <AdminTextareaField
-          id={`${heading}-description`}
-          label="Опис"
-          value={values.description}
-          onChange={(event) => onInputChange("description", event.target.value)}
-          error={errors.description}
-          rows={4}
-        />
-
-        <div className="flex items-start justify-between gap-4 rounded-2xl border border-border/70 bg-card/90 px-4 py-3">
-          <div className="space-y-1">
-            <p className="text-sm font-medium">Активний у каталозі</p>
-            <p className="text-muted-foreground text-sm leading-6">
-              Можна вмикати й вимикати бренд без видалення та без змін у коді.
-            </p>
+        <AdminField label="Статус" error={errors.isActive}>
+          <div className="border-border/70 bg-muted/30 flex items-start justify-between gap-4 rounded-lg border px-4 py-3">
+            <div className="space-y-1">
+              <p className="text-sm font-medium">
+                {values.isActive ? "Активний" : "Неактивний"}
+              </p>
+              <p className="text-muted-foreground text-sm leading-6">
+                Неактивний виробник лишається в базі та не ламає товари, але не
+                доступний для вибору в нових товарах.
+              </p>
+            </div>
+            <Switch
+              checked={values.isActive}
+              onCheckedChange={onActiveChange}
+              aria-label="Активний виробник"
+            />
           </div>
-          <Switch
-            checked={values.isActive}
-            onCheckedChange={onActiveChange}
-            aria-label="Активний у каталозі"
-          />
-        </div>
+        </AdminField>
+
+        {subcategoryChangeBlocked ? (
+          <div className="border-destructive/20 bg-destructive/8 text-destructive rounded-lg border px-4 py-3 text-sm leading-6">
+            До цього виробника вже прив'язані товари. Зміну підкатегорії
+            заблоковано, щоб не розірвати структуру каталогу.
+          </div>
+        ) : null}
       </div>
     </AdminFormSection>
   );
 }
 
-export function AdminBrandCrud({ selectedBrand }: AdminBrandCrudProps) {
+export function AdminBrandCrud({
+  selectedBrand,
+  subcategories,
+}: AdminBrandCrudProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [activeAction, setActiveAction] = useState<
-    "create" | "delete" | "update" | null
+    "create" | "toggle" | "update" | null
   >(null);
 
-  const [createValues, setCreateValues] = useState(buildCreateValues);
+  const initialCreateValues = useMemo(
+    () => buildCreateValues(subcategories),
+    [subcategories],
+  );
+
+  const [createValues, setCreateValues] =
+    useState<BrandFormValues>(initialCreateValues);
   const [createErrors, setCreateErrors] = useState<BrandFieldErrors>({});
   const [createMessage, setCreateMessage] = useState<string | null>(null);
   const [createSuccess, setCreateSuccess] = useState<string | null>(null);
@@ -178,6 +223,13 @@ export function AdminBrandCrud({ selectedBrand }: AdminBrandCrudProps) {
   const [editSuccess, setEditSuccess] = useState<string | null>(null);
 
   useEffect(() => {
+    setCreateValues((current) => ({
+      ...current,
+      subcategoryId: current.subcategoryId || subcategories[0]?.id || "",
+    }));
+  }, [subcategories]);
+
+  useEffect(() => {
     setEditValues(selectedBrand ? buildEditValues(selectedBrand) : null);
     setEditErrors({});
     setEditMessage(null);
@@ -185,7 +237,7 @@ export function AdminBrandCrud({ selectedBrand }: AdminBrandCrudProps) {
   }, [selectedBrand]);
 
   const updateCreateField = (
-    field: keyof Omit<BrandFormValues, "isActive">,
+    field: keyof Omit<BrandFormValues, "isActive" | "subcategoryId">,
     value: string,
   ) => {
     setCreateValues((current) => ({
@@ -201,7 +253,7 @@ export function AdminBrandCrud({ selectedBrand }: AdminBrandCrudProps) {
   };
 
   const updateEditField = (
-    field: keyof Omit<BrandFormValues, "isActive">,
+    field: keyof Omit<BrandFormValues, "isActive" | "subcategoryId">,
     value: string,
   ) => {
     setEditValues((current) =>
@@ -220,6 +272,11 @@ export function AdminBrandCrud({ selectedBrand }: AdminBrandCrudProps) {
     setEditSuccess(null);
   };
 
+  const subcategoryChangeBlocked =
+    Boolean(selectedBrand && editValues) &&
+    selectedBrand!.productsCount > 0 &&
+    editValues!.subcategoryId !== selectedBrand!.subcategoryId;
+
   const handleCreate = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setCreateMessage(null);
@@ -237,8 +294,8 @@ export function AdminBrandCrud({ selectedBrand }: AdminBrandCrudProps) {
         }
 
         setCreateErrors({});
-        setCreateSuccess("Бренд створено.");
-        setCreateValues(buildCreateValues());
+        setCreateSuccess("Виробника створено.");
+        setCreateValues(initialCreateValues);
         router.push(`/admin/brands?selected=${result.data.id}`);
         router.refresh();
       } finally {
@@ -250,7 +307,7 @@ export function AdminBrandCrud({ selectedBrand }: AdminBrandCrudProps) {
   const handleUpdate = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
-    if (!selectedBrand || !editValues) {
+    if (!selectedBrand || !editValues || subcategoryChangeBlocked) {
       return;
     }
 
@@ -272,7 +329,7 @@ export function AdminBrandCrud({ selectedBrand }: AdminBrandCrudProps) {
         }
 
         setEditErrors({});
-        setEditSuccess("Бренд оновлено.");
+        setEditSuccess("Виробника оновлено.");
         router.push(`/admin/brands?selected=${result.data.id}`);
         router.refresh();
       } finally {
@@ -281,25 +338,20 @@ export function AdminBrandCrud({ selectedBrand }: AdminBrandCrudProps) {
     });
   };
 
-  const handleDelete = () => {
+  const handleToggleStatus = () => {
     if (!selectedBrand) {
-      return;
-    }
-
-    const confirmed = window.confirm(`Видалити бренд "${selectedBrand.name}"?`);
-
-    if (!confirmed) {
       return;
     }
 
     setEditMessage(null);
     setEditSuccess(null);
 
-    setActiveAction("delete");
+    setActiveAction("toggle");
     startTransition(async () => {
       try {
-        const result = await deleteBrandAction({
+        const result = await toggleBrandStatusAction({
           id: selectedBrand.id,
+          isActive: !selectedBrand.isActive,
         });
 
         if (!result.ok) {
@@ -307,7 +359,6 @@ export function AdminBrandCrud({ selectedBrand }: AdminBrandCrudProps) {
           return;
         }
 
-        router.push("/admin/brands");
         router.refresh();
       } finally {
         setActiveAction(null);
@@ -315,17 +366,85 @@ export function AdminBrandCrud({ selectedBrand }: AdminBrandCrudProps) {
     });
   };
 
+  if (!subcategories.length) {
+    return (
+      <AdminEmptyState
+        title="Спочатку створіть підкатегорію"
+        description="Виробник обов'язково прив'язується до підкатегорії, тому форма стане доступною після створення хоча б однієї підкатегорії."
+      />
+    );
+  }
+
   return (
     <div className="space-y-6">
+      <AdminSectionCard
+        title="Створення виробника"
+        description="Оберіть підкатегорію та введіть назву виробника."
+      >
+        <form className="space-y-4" onSubmit={handleCreate}>
+          <BrandFormFields
+            errors={createErrors}
+            heading="Новий виробник"
+            subcategories={subcategories}
+            values={createValues}
+            onActiveChange={(value) => {
+              setCreateValues((current) => ({
+                ...current,
+                isActive: value,
+              }));
+              setCreateErrors((current) => ({
+                ...current,
+                isActive: undefined,
+              }));
+              setCreateMessage(null);
+              setCreateSuccess(null);
+            }}
+            onInputChange={updateCreateField}
+            onSubcategoryChange={(subcategoryId) => {
+              setCreateValues((current) => ({
+                ...current,
+                subcategoryId: subcategoryId ?? "",
+              }));
+              setCreateErrors((current) => ({
+                ...current,
+                subcategoryId: undefined,
+              }));
+              setCreateMessage(null);
+              setCreateSuccess(null);
+            }}
+          />
+
+          {createMessage ? (
+            <div className="border-destructive/20 bg-destructive/8 text-destructive rounded-lg border px-4 py-3 text-sm">
+              {createMessage}
+            </div>
+          ) : null}
+
+          {createSuccess ? (
+            <div className="border-primary/20 bg-primary/8 rounded-lg border px-4 py-3 text-sm">
+              {createSuccess}
+            </div>
+          ) : null}
+
+          <div className="flex justify-end">
+            <Button type="submit" disabled={isPending}>
+              {activeAction === "create" ? "Створюємо..." : "Створити"}
+            </Button>
+          </div>
+        </form>
+      </AdminSectionCard>
+
       {selectedBrand && editValues ? (
         <AdminSectionCard
-          title="Редагування та видалення"
-          description="Тут уже працює реальний update/delete для вибраного бренду."
+          title="Редагування виробника"
+          description="Фізичного видалення немає. Для приховування використовуйте статус активності."
         >
           <form className="space-y-4" onSubmit={handleUpdate}>
             <BrandFormFields
               errors={editErrors}
-              heading="Оновлення бренду"
+              heading="Оновлення виробника"
+              subcategories={subcategories}
+              subcategoryChangeBlocked={subcategoryChangeBlocked}
               values={editValues}
               onActiveChange={(value) => {
                 setEditValues((current) =>
@@ -336,94 +455,74 @@ export function AdminBrandCrud({ selectedBrand }: AdminBrandCrudProps) {
                       }
                     : current,
                 );
+                setEditErrors((current) => ({
+                  ...current,
+                  isActive: undefined,
+                }));
                 setEditMessage(null);
                 setEditSuccess(null);
               }}
               onInputChange={updateEditField}
+              onSubcategoryChange={(subcategoryId) => {
+                setEditValues((current) =>
+                  current
+                    ? {
+                        ...current,
+                        subcategoryId: subcategoryId ?? "",
+                      }
+                    : current,
+                );
+                setEditErrors((current) => ({
+                  ...current,
+                  subcategoryId: undefined,
+                }));
+                setEditMessage(null);
+                setEditSuccess(null);
+              }}
             />
 
             {editMessage ? (
-              <div className="border-destructive/20 bg-destructive/8 text-destructive rounded-2xl border px-4 py-3 text-sm">
+              <div className="border-destructive/20 bg-destructive/8 text-destructive rounded-lg border px-4 py-3 text-sm">
                 {editMessage}
               </div>
             ) : null}
 
             {editSuccess ? (
-              <div className="border-primary/20 bg-primary/8 rounded-2xl border px-4 py-3 text-sm">
+              <div className="border-primary/20 bg-primary/8 rounded-lg border px-4 py-3 text-sm">
                 {editSuccess}
               </div>
             ) : null}
 
-            <div className="flex flex-col gap-3 rounded-2xl border border-border/70 bg-muted/30 p-4 sm:flex-row sm:items-center sm:justify-between">
-              <p className="text-muted-foreground text-sm leading-6">
-                Видалення доступне лише для брендів без пов&apos;язаних товарів.
-              </p>
-              <div className="flex flex-wrap gap-2">
-                <Button
-                  type="button"
-                  variant="destructive"
-                  onClick={handleDelete}
-                  disabled={isPending}
-                >
-                  {activeAction === "delete" ? "Видаляємо..." : "Видалити"}
-                </Button>
-                <Button type="submit" disabled={isPending}>
-                  {activeAction === "update" ? "Зберігаємо..." : "Зберегти зміни"}
-                </Button>
-              </div>
+            <div className="flex flex-wrap justify-end gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={handleToggleStatus}
+                disabled={isPending}
+              >
+                {activeAction === "toggle"
+                  ? "Оновлюємо..."
+                  : selectedBrand.isActive
+                    ? "Зробити неактивним"
+                    : "Зробити активним"}
+              </Button>
+              <Button
+                type="submit"
+                disabled={isPending || subcategoryChangeBlocked}
+              >
+                {activeAction === "update"
+                  ? "Зберігаємо..."
+                  : "Зберегти зміни"}
+              </Button>
             </div>
           </form>
         </AdminSectionCard>
       ) : (
         <AdminEmptyState
-          title="Оберіть бренд для редагування"
-          description="Create форма вже доступна нижче, а щойно ви виберете бренд зі списку, тут з'явиться реальний update/delete."
+          title="Оберіть виробника для редагування"
+          description="Форма створення доступна вище. Після вибору виробника зі списку тут з'явиться редагування."
         />
       )}
-
-      <AdminSectionCard
-        title="Створення нового бренду"
-        description="Форма створює новий бренд і одразу відкриває його в detail panel."
-      >
-        <form className="space-y-4" onSubmit={handleCreate}>
-          <BrandFormFields
-            errors={createErrors}
-            heading="Новий бренд"
-            values={createValues}
-            onActiveChange={(value) => {
-              setCreateValues((current) => ({
-                ...current,
-                isActive: value,
-              }));
-              setCreateMessage(null);
-              setCreateSuccess(null);
-            }}
-            onInputChange={updateCreateField}
-          />
-
-          {createMessage ? (
-            <div className="border-destructive/20 bg-destructive/8 text-destructive rounded-2xl border px-4 py-3 text-sm">
-              {createMessage}
-            </div>
-          ) : null}
-
-          {createSuccess ? (
-            <div className="border-primary/20 bg-primary/8 rounded-2xl border px-4 py-3 text-sm">
-              {createSuccess}
-            </div>
-          ) : null}
-
-          <div className="flex flex-col gap-3 rounded-2xl border border-border/70 bg-muted/30 p-4 sm:flex-row sm:items-center sm:justify-between">
-            <p className="text-muted-foreground text-sm leading-6">
-              Бренди тепер повністю керуються з адмінки, включно з сортуванням і
-              активацією.
-            </p>
-            <Button type="submit" disabled={isPending}>
-              {activeAction === "create" ? "Створюємо..." : "Створити бренд"}
-            </Button>
-          </div>
-        </form>
-      </AdminSectionCard>
     </div>
   );
 }

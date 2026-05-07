@@ -106,7 +106,7 @@ export function AdminProductFilters({
 
   const brandItems = useMemo(
     () => [
-      { value: ALL_VALUE, label: "Усі бренди" },
+      { value: ALL_VALUE, label: "Усі виробники" },
       ...brands.map((brand) => ({
         value: brand.id,
         label: brand.name,
@@ -217,10 +217,10 @@ export function AdminProductFilters({
         }}
       >
         <SelectTrigger className="w-full">
-          <SelectValue placeholder="Усі бренди" />
+          <SelectValue placeholder="Усі виробники" />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value={ALL_VALUE}>Усі бренди</SelectItem>
+          <SelectItem value={ALL_VALUE}>Усі виробники</SelectItem>
           {brands.map((brand) => (
             <SelectItem key={brand.id} value={brand.id}>
               {brand.name}

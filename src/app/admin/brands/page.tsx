@@ -25,7 +25,8 @@ export default async function AdminBrandsPage({
   searchParams?: SearchParams;
 }) {
   const params = searchParams ? await searchParams : {};
-  const { brands, selectedBrand } = await getAdminBrandsPageData(params.selected);
+  const { brands, selectedBrand, subcategories } =
+    await getAdminBrandsPageData(params.selected);
 
   const activeCount = brands.filter((brand) => brand.isActive).length;
   const brandsWithProducts = brands.filter(
@@ -36,13 +37,21 @@ export default async function AdminBrandsPage({
     0,
   );
 
+  const subcategoryOptions = subcategories.map((subcategory) => ({
+    id: subcategory.id,
+    name: subcategory.name,
+    category: {
+      name: subcategory.category.name,
+    },
+  }));
+
   return (
     <div className="space-y-6">
       <AdminPageHeader
-        eyebrow="Бренди"
-        title="CRUD для брендів уже працює в адмінці"
-        description="Тепер адміністратор може створювати, редагувати й видаляти бренди, а також керувати сортуванням і активністю без втручання в код."
-        badges={["Етап 5", "CRUD готовий"]}
+        eyebrow="Виробники"
+        title="Виробники за підкатегоріями"
+        description="Виробник створюється для конкретної підкатегорії та потім доступний у товарах цієї підкатегорії."
+        badges={["Brand model", "Без фізичного delete"]}
       />
 
       <AdminStatsGrid
@@ -50,22 +59,22 @@ export default async function AdminBrandsPage({
           {
             label: "Всього",
             value: brands.length.toString(),
-            note: "Уже бачимо реальний перелік брендів з бази, а не placeholder-и.",
+            note: "Усі виробники з бази, включно з неактивними.",
           },
           {
             label: "Активні",
             value: activeCount.toString(),
-            note: "Активність бренду вже керується прямо з CRUD-форми.",
+            note: "Доступні для вибору при створенні товарів.",
           },
           {
             label: "З товарами",
             value: brandsWithProducts.toString(),
-            note: "Дає швидкий сигнал, які бренди вже реально використовуються в каталозі.",
+            note: "Виробники, які вже використовуються в каталозі.",
           },
           {
             label: "Товарів",
             value: totalProducts.toString(),
-            note: "Сумарний обсяг товарів, прив'язаних до брендів.",
+            note: "Сумарна кількість прив'язаних товарів.",
           },
         ]}
       />
@@ -73,24 +82,24 @@ export default async function AdminBrandsPage({
       <AdminActionsBar
         actions={[
           { href: "/admin/products", label: "Відкрити товари", variant: "outline" },
-          { href: "/admin", label: "Повернутися до огляду", variant: "outline" },
+          { href: "/admin/subcategories", label: "Підкатегорії", variant: "outline" },
         ]}
-        note="Створення, оновлення і видалення брендів уже працюють на цій сторінці; адміну не потрібно лізти в код, щоб керувати брендовою структурою каталогу."
+        note="Форма виробника не має SEO чи фото: тільки підкатегорія, назва та статус."
       />
 
       <AdminSectionCard
-        title="Список і деталі брендів"
-        description="Ліва колонка дає огляд брендів, права — detail panel для обраного бренду, CRUD-інструменти й пов'язані товари."
+        title="Список і деталі виробників"
+        description="Ліва колонка показує виробників, права — форму створення та редагування."
       >
         <AdminSplitLayout
           list={
             <div className="space-y-4">
               <div className="flex items-center justify-between gap-3">
                 <div>
-                  <p className="text-sm font-medium">Бренди каталогу</p>
+                  <p className="text-sm font-medium">Виробники каталогу</p>
                   <p className="text-muted-foreground text-sm leading-6">
-                    Уже зараз видно порядок сортування, активність і наповнення
-                    товарами.
+                    Виробник прив'язаний до підкатегорії, а не глобально до
+                    всього магазину.
                   </p>
                 </div>
                 <Badge variant="outline">{brands.length} записів</Badge>
@@ -101,7 +110,7 @@ export default async function AdminBrandsPage({
                 columns={[
                   {
                     key: "name",
-                    header: "Бренд",
+                    header: "Виробник",
                     cell: (brand) => (
                       <div className="space-y-1">
                         <Link
@@ -110,20 +119,28 @@ export default async function AdminBrandsPage({
                         >
                           {brand.name}
                         </Link>
-                        <p className="text-muted-foreground text-xs">{brand.slug}</p>
+                        <p className="text-muted-foreground text-xs">
+                          {brand.slug}
+                        </p>
                       </div>
                     ),
                   },
                   {
-                    key: "sortOrder",
-                    header: "Порядок",
-                    className: "w-24",
-                    cell: (brand) => brand.sortOrder,
+                    key: "subcategory",
+                    header: "Підкатегорія",
+                    cell: (brand) => (
+                      <div className="space-y-1">
+                        <p className="text-sm">{brand.subcategory.name}</p>
+                        <p className="text-muted-foreground text-xs">
+                          {brand.subcategory.category.name}
+                        </p>
+                      </div>
+                    ),
                   },
                   {
                     key: "status",
-                    header: "Стан",
-                    className: "w-40",
+                    header: "Статус",
+                    className: "w-36",
                     cell: (brand) => (
                       <Badge variant={brand.isActive ? "secondary" : "outline"}>
                         {brand.isActive ? "Активний" : "Неактивний"}
@@ -134,102 +151,72 @@ export default async function AdminBrandsPage({
                 emptyState={
                   <AdminEmptyState
                     icon={getAdminModuleIcon("brands")}
-                    title="Бренди ще не додані"
-                    description="Створіть перший бренд нижче, і ця сторінка одразу стане робочим центром керування брендами."
+                    title="Виробники ще не додані"
+                    description="Створіть першого виробника у формі праворуч."
                   />
                 }
               />
             </div>
           }
           detail={
-            selectedBrand ? (
-              <div className="space-y-4">
-                <div>
-                  <p className="text-sm font-medium">Деталі бренду</p>
-                  <p className="text-muted-foreground text-sm leading-6">
-                    Detail panel уже показує живі дані бренду, а нижче розміщена
-                    робоча форма update/delete.
-                  </p>
-                </div>
+            <div className="space-y-4">
+              {selectedBrand ? (
+                <>
+                  <AdminDetailList
+                    items={[
+                      {
+                        label: "Назва",
+                        value: selectedBrand.name,
+                      },
+                      {
+                        label: "Slug",
+                        value: selectedBrand.slug,
+                      },
+                      {
+                        label: "Підкатегорія",
+                        value: selectedBrand.subcategory.name,
+                        note: selectedBrand.subcategory.category.name,
+                      },
+                      {
+                        label: "Статус",
+                        value: selectedBrand.isActive
+                          ? "Активний"
+                          : "Неактивний",
+                      },
+                      {
+                        label: "Пов'язані товари",
+                        value: selectedBrand._count.products.toString(),
+                      },
+                    ]}
+                  />
 
-                <AdminDetailList
-                  items={[
-                    {
-                      label: "Назва",
-                      value: selectedBrand.name,
-                      note:
-                        selectedBrand.description ??
-                        "Опис бренду поки не заповнений.",
-                    },
-                    {
-                      label: "Slug",
-                      value: selectedBrand.slug,
-                    },
-                    {
-                      label: "Порядок сортування",
-                      value: selectedBrand.sortOrder.toString(),
-                    },
-                    {
-                      label: "Статус",
-                      value: selectedBrand.isActive ? "Активний" : "Неактивний",
-                      note:
-                        "Активність і порядок сортування вже можна змінювати через CRUD-форму нижче.",
-                    },
-                    {
-                      label: "Пов'язані товари",
-                      value: selectedBrand._count.products.toString(),
-                    },
-                  ]}
-                />
+                  <AdminBrandCrud
+                    selectedBrand={{
+                      id: selectedBrand.id,
+                      isActive: selectedBrand.isActive,
+                      name: selectedBrand.name,
+                      productsCount: selectedBrand._count.products,
+                      slug: selectedBrand.slug,
+                      subcategoryId: selectedBrand.subcategoryId,
+                    }}
+                    subcategories={subcategoryOptions}
+                  />
+                </>
+              ) : (
+                <>
+                  <AdminEmptyState
+                    icon={getAdminModuleIcon("brands")}
+                    title="Оберіть виробника для редагування"
+                    description="Або створіть нового виробника у формі нижче."
+                  />
 
-                <AdminBrandCrud
-                  selectedBrand={{
-                    id: selectedBrand.id,
-                    description: selectedBrand.description,
-                    isActive: selectedBrand.isActive,
-                    name: selectedBrand.name,
-                    slug: selectedBrand.slug,
-                    sortOrder: selectedBrand.sortOrder,
-                  }}
-                />
-
-                <AdminSectionCard
-                  title="Останні активні товари бренду"
-                  description="Цей блок допомагає одразу перевірити, де бренд уже використовується в каталозі."
-                >
-                  <div className="space-y-3">
-                    {selectedBrand.products.length ? (
-                      selectedBrand.products.map((product) => (
-                        <div
-                          key={product.id}
-                          className="rounded-2xl border border-border/70 bg-card/70 p-4"
-                        >
-                          <p className="font-medium">{product.title}</p>
-                          <p className="text-muted-foreground mt-1 text-xs">
-                            {product.slug}
-                          </p>
-                        </div>
-                      ))
-                    ) : (
-                      <AdminEmptyState
-                        title="У бренду ще немає активних товарів"
-                        description="Це нормальний стан для нового бренду або бренду, який тимчасово не використовується."
-                      />
-                    )}
-                  </div>
-                </AdminSectionCard>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                <AdminEmptyState
-                  icon={getAdminModuleIcon("brands")}
-                  title="Немає обраного бренду"
-                  description="Можна одразу створити новий бренд нижче, або вибрати існуючий зі списку для редагування."
-                />
-
-                <AdminBrandCrud selectedBrand={null} />
-              </div>
-            )
+                  <AdminBrandCrud
+                    selectedBrand={null}
+                    subcategories={subcategoryOptions}
+                  />
+                </>
+              )}
+            </div>
           }
         />
       </AdminSectionCard>

@@ -6,7 +6,6 @@ import {
   createProductSchema,
   createSubcategoryFieldSchema,
   createSubcategorySchema,
-  deleteBrandSchema,
   deleteProductSchema,
   deleteSubcategoryFieldSchema,
   updateBrandSchema,
@@ -19,7 +18,6 @@ import {
   type CreateProductInput,
   type CreateSubcategoryFieldInput,
   type CreateSubcategoryInput,
-  type DeleteBrandInput,
   type DeleteProductInput,
   type DeleteSubcategoryFieldInput,
   type ProductFieldValueInput,
@@ -38,11 +36,10 @@ import {
   createProduct,
   createSubcategoryField,
   createSubcategory,
-  deleteBrand,
   deleteSubcategoryField,
   getBrandById,
-  getBrandByName,
-  getBrandBySlug,
+  getBrandByScopedName,
+  getBrandByScopedSlug,
   getProductById,
   getProductBySlug,
   getAdminSubcategoryFieldById,
@@ -55,6 +52,7 @@ import {
   getSubcategoryByScopedName,
   getSubcategoryByScopedSlug,
   listSubcategoryFields,
+  setBrandActiveStatus,
   setCategoryActiveStatus,
   setSubcategoryActiveStatus,
   softDeleteProduct,
@@ -922,6 +920,7 @@ async function validateProductRelations(input: {
   subcategoryId: string;
   brandId?: string;
   currentCategoryId?: string;
+  currentBrandId?: string;
   currentSubcategoryId?: string;
 }) {
   const category = await ensureCategory(input.categoryId);
@@ -1000,6 +999,30 @@ async function validateProductRelations(input: {
     };
   }
 
+  const isPreservingCurrentBrand =
+    input.brandId === input.currentBrandId &&
+    input.subcategoryId === input.currentSubcategoryId;
+
+  if (!isPreservingCurrentBrand && !brand.isActive) {
+    return {
+      ok: false as const,
+      error: "Оберіть активного виробника товару.",
+      fieldErrors: {
+        brandId: ["Оберіть активного виробника товару."],
+      },
+    };
+  }
+
+  if (brand.subcategoryId !== input.subcategoryId) {
+    return {
+      ok: false as const,
+      error: "Виробник не належить до вибраної підкатегорії.",
+      fieldErrors: {
+        brandId: ["Виробник не належить до вибраної підкатегорії."],
+      },
+    };
+  }
+
   return null;
 }
 
@@ -1025,6 +1048,7 @@ async function validateProductSlugUniqueness(
 async function normalizeProductWritePayload(
   payload: CreateProductInput | UpdateProductInput,
   existingProduct?: {
+    brandId?: string | null;
     categoryId: string;
     subcategoryId: string;
   },
@@ -1034,6 +1058,7 @@ async function normalizeProductWritePayload(
     subcategoryId: payload.subcategoryId,
     brandId: payload.brandId,
     currentCategoryId: existingProduct?.categoryId,
+    currentBrandId: existingProduct?.brandId ?? undefined,
     currentSubcategoryId: existingProduct?.subcategoryId,
   });
 
@@ -1076,7 +1101,10 @@ async function validateBrandUniqueness(
   payload: CreateBrandInput | UpdateBrandInput,
   currentId?: string,
 ) {
-  const duplicatedName = await getBrandByName(payload.name);
+  const duplicatedName = await getBrandByScopedName({
+    subcategoryId: payload.subcategoryId,
+    name: payload.name,
+  });
   if (duplicatedName && duplicatedName.id !== currentId) {
     return {
       ok: false as const,
@@ -1087,7 +1115,10 @@ async function validateBrandUniqueness(
     };
   }
 
-  const duplicatedSlug = await getBrandBySlug(payload.slug);
+  const duplicatedSlug = await getBrandByScopedSlug({
+    subcategoryId: payload.subcategoryId,
+    slug: payload.slug,
+  });
   if (duplicatedSlug && duplicatedSlug.id !== currentId) {
     return {
       ok: false as const,
@@ -1115,6 +1146,18 @@ export async function createAdminBrand(input: unknown): Promise<
   }
 
   const payload: CreateBrandInput = parsed.data;
+  const subcategory = await getSubcategoryById(payload.subcategoryId);
+
+  if (!subcategory) {
+    return {
+      ok: false,
+      error: "Потрібно вибрати існуючу підкатегорію для виробника.",
+      fieldErrors: {
+        subcategoryId: ["Потрібно вибрати існуючу підкатегорію."],
+      },
+    };
+  }
+
   const uniquenessError = await validateBrandUniqueness(payload);
   if (uniquenessError) {
     return uniquenessError;
@@ -1148,6 +1191,34 @@ export async function updateAdminBrand(input: unknown): Promise<
     };
   }
 
+  const subcategory = await getSubcategoryById(payload.subcategoryId);
+
+  if (!subcategory) {
+    return {
+      ok: false,
+      error: "Потрібно вибрати існуючу підкатегорію для виробника.",
+      fieldErrors: {
+        subcategoryId: ["Потрібно вибрати існуючу підкатегорію."],
+      },
+    };
+  }
+
+  if (
+    existingBrand.subcategoryId !== payload.subcategoryId &&
+    existingBrand._count.products > 0
+  ) {
+    return {
+      ok: false,
+      error:
+        "Не можна змінити підкатегорію виробника, поки до нього прив'язані товари.",
+      fieldErrors: {
+        subcategoryId: [
+          "Не можна змінити підкатегорію виробника, поки до нього прив'язані товари.",
+        ],
+      },
+    };
+  }
+
   const uniquenessError = await validateBrandUniqueness(payload, payload.id);
   if (uniquenessError) {
     return uniquenessError;
@@ -1158,19 +1229,19 @@ export async function updateAdminBrand(input: unknown): Promise<
   return ok(updatedBrand);
 }
 
-export async function deleteAdminBrand(input: unknown): Promise<
+export async function setAdminBrandActiveStatus(input: unknown): Promise<
   MutationResult<{
     id: string;
+    isActive: boolean;
   }>
 > {
-  const parsed = deleteBrandSchema.safeParse(input);
+  const parsed = activeStatusSchema.safeParse(input);
 
   if (!parsed.success) {
     return validationError(parsed.error.flatten().fieldErrors);
   }
 
-  const payload: DeleteBrandInput = parsed.data;
-  const brand = await getBrandById(payload.id);
+  const brand = await getBrandById(parsed.data.id);
 
   if (!brand) {
     return {
@@ -1179,7 +1250,7 @@ export async function deleteAdminBrand(input: unknown): Promise<
     };
   }
 
-  if (brand._count.products > 0) {
+  if (false) {
     return {
       ok: false,
       error:
@@ -1187,9 +1258,9 @@ export async function deleteAdminBrand(input: unknown): Promise<
     };
   }
 
-  const deletedBrand = await deleteBrand(payload.id);
+  const updatedBrand = await setBrandActiveStatus(parsed.data);
 
-  return ok(deletedBrand);
+  return ok(updatedBrand);
 }
 
 export async function createAdminProduct(input: unknown): Promise<

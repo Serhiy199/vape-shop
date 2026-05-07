@@ -53,8 +53,10 @@ type SubcategoryOption = {
 
 type BrandOption = {
   id: string;
+  isActive: boolean;
   name: string;
   slug: string;
+  subcategoryId: string;
 };
 
 type FieldOption = {
@@ -80,7 +82,9 @@ type SelectedProduct = {
   availability: "IN_STOCK" | "OUT_OF_STOCK";
   brand: {
     id: string;
+    isActive: boolean;
     name: string;
+    subcategoryId: string;
   } | null;
   category: {
     id: string;
@@ -764,15 +768,25 @@ function ProductWizard({
     [availableSubcategories],
   );
 
+  const availableBrands = useMemo(
+    () =>
+      brands.filter(
+        (brand) =>
+          brand.subcategoryId === values.subcategoryId &&
+          (brand.isActive || brand.id === initialValues.brandId),
+      ),
+    [brands, initialValues.brandId, values.subcategoryId],
+  );
+
   const brandItems = useMemo(
     () => [
-      { value: NO_BRAND_VALUE, label: "Без бренду" },
-      ...brands.map((brand) => ({
+      { value: NO_BRAND_VALUE, label: "Без виробника" },
+      ...availableBrands.map((brand) => ({
         value: brand.id,
-        label: brand.name,
+        label: `${brand.name}${formatCatalogOptionStatus(brand.isActive)}`,
       })),
     ],
-    [brands],
+    [availableBrands],
   );
 
   const currentFieldDefinitions = useMemo(
@@ -857,11 +871,13 @@ function ProductWizard({
 
     setValues((current) => ({
       ...current,
+      brandId: NO_BRAND_VALUE,
       categoryId,
       subcategoryId: nextSubcategoryId,
     }));
     setFieldErrors((current) => ({
       ...current,
+      brandId: undefined,
       categoryId: undefined,
       subcategoryId: undefined,
     }));
@@ -874,8 +890,27 @@ function ProductWizard({
       return;
     }
 
-    updateValue("subcategoryId", subcategoryId);
+    setValues((current) => ({
+      ...current,
+      brandId:
+        current.brandId !== NO_BRAND_VALUE &&
+        brands.some(
+          (brand) =>
+            brand.id === current.brandId &&
+            brand.subcategoryId === subcategoryId &&
+            brand.isActive,
+        )
+          ? current.brandId
+          : NO_BRAND_VALUE,
+      subcategoryId,
+    }));
+    setFieldErrors((current) => ({
+      ...current,
+      brandId: undefined,
+      subcategoryId: undefined,
+    }));
     setDynamicErrors({});
+    clearMessages();
   };
 
   const updateDynamicValue = (
@@ -1489,7 +1524,7 @@ function ProductWizard({
       {currentStep === "base" ? (
         <AdminFormSection
           title="Крок 4. Base product data"
-          description="Тут збираємо базову картку товару: назву, slug, ціну, availability, бренд і flags."
+          description="Тут збираємо базову картку товару: назву, slug, ціну, availability, виробника і flags."
         >
           <AdminFormGrid>
             <AdminInputField
@@ -1550,7 +1585,7 @@ function ProductWizard({
               </Select>
             </AdminField>
 
-            <AdminField label="Бренд" error={fieldErrors.brandId}>
+            <AdminField label="Виробник" error={fieldErrors.brandId}>
               <Select
                 items={brandItems}
                 value={values.brandId}
@@ -1563,13 +1598,14 @@ function ProductWizard({
                 }}
               >
                 <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Без бренду" />
+                  <SelectValue placeholder="Без виробника" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value={NO_BRAND_VALUE}>Без бренду</SelectItem>
-                  {brands.map((brand) => (
+                  <SelectItem value={NO_BRAND_VALUE}>Без виробника</SelectItem>
+                  {availableBrands.map((brand) => (
                     <SelectItem key={brand.id} value={brand.id}>
                       {brand.name}
+                      {formatCatalogOptionStatus(brand.isActive)}
                     </SelectItem>
                   ))}
                 </SelectContent>

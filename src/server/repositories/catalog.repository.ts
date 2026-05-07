@@ -169,14 +169,36 @@ export async function getAdminSubcategoryById(subcategoryId: string) {
 
 export async function listAdminBrands() {
   return prisma.brand.findMany({
-    orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
+    orderBy: [
+      { subcategory: { category: { sortOrder: "asc" } } },
+      { subcategory: { sortOrder: "asc" } },
+      { sortOrder: "asc" },
+      { name: "asc" },
+    ],
     select: {
       id: true,
+      subcategoryId: true,
       name: true,
       slug: true,
       description: true,
       sortOrder: true,
       isActive: true,
+      subcategory: {
+        select: {
+          id: true,
+          name: true,
+          slug: true,
+          isActive: true,
+          category: {
+            select: {
+              id: true,
+              name: true,
+              slug: true,
+              isActive: true,
+            },
+          },
+        },
+      },
       _count: {
         select: {
           products: true,
@@ -193,6 +215,7 @@ export async function getAdminBrandById(brandId: string) {
     },
     select: {
       id: true,
+      subcategoryId: true,
       name: true,
       slug: true,
       description: true,
@@ -200,6 +223,22 @@ export async function getAdminBrandById(brandId: string) {
       isActive: true,
       createdAt: true,
       updatedAt: true,
+      subcategory: {
+        select: {
+          id: true,
+          name: true,
+          slug: true,
+          isActive: true,
+          category: {
+            select: {
+              id: true,
+              name: true,
+              slug: true,
+              isActive: true,
+            },
+          },
+        },
+      },
       _count: {
         select: {
           products: true,
@@ -767,8 +806,10 @@ export async function getBrandById(brandId: string) {
     },
     select: {
       id: true,
+      subcategoryId: true,
       name: true,
       slug: true,
+      isActive: true,
       _count: {
         select: {
           products: true,
@@ -778,10 +819,16 @@ export async function getBrandById(brandId: string) {
   });
 }
 
-export async function getBrandByName(name: string) {
+export async function getBrandByScopedName(input: {
+  subcategoryId: string;
+  name: string;
+}) {
   return prisma.brand.findUnique({
     where: {
-      name,
+      subcategoryId_name: {
+        subcategoryId: input.subcategoryId,
+        name: input.name,
+      },
     },
     select: {
       id: true,
@@ -789,10 +836,16 @@ export async function getBrandByName(name: string) {
   });
 }
 
-export async function getBrandBySlug(slug: string) {
+export async function getBrandByScopedSlug(input: {
+  subcategoryId: string;
+  slug: string;
+}) {
   return prisma.brand.findUnique({
     where: {
-      slug,
+      subcategoryId_slug: {
+        subcategoryId: input.subcategoryId,
+        slug: input.slug,
+      },
     },
     select: {
       id: true,
@@ -801,28 +854,33 @@ export async function getBrandBySlug(slug: string) {
 }
 
 export async function createBrand(input: {
+  subcategoryId: string;
   name: string;
   slug: string;
-  description?: string;
-  sortOrder: number;
   isActive: boolean;
 }) {
   return prisma.brand.create({
-    data: input,
+    data: {
+      subcategoryId: input.subcategoryId,
+      name: input.name,
+      slug: input.slug,
+      isActive: input.isActive,
+    },
     select: {
       id: true,
+      subcategoryId: true,
       name: true,
       slug: true,
+      isActive: true,
     },
   });
 }
 
 export async function updateBrand(input: {
   id: string;
+  subcategoryId: string;
   name: string;
   slug: string;
-  description?: string;
-  sortOrder: number;
   isActive: boolean;
 }) {
   return prisma.brand.update({
@@ -830,27 +888,35 @@ export async function updateBrand(input: {
       id: input.id,
     },
     data: {
+      subcategoryId: input.subcategoryId,
       name: input.name,
       slug: input.slug,
-      description: input.description,
-      sortOrder: input.sortOrder,
       isActive: input.isActive,
     },
     select: {
       id: true,
+      subcategoryId: true,
       name: true,
       slug: true,
+      isActive: true,
     },
   });
 }
 
-export async function deleteBrand(brandId: string) {
-  return prisma.brand.delete({
+export async function setBrandActiveStatus(input: {
+  id: string;
+  isActive: boolean;
+}) {
+  return prisma.brand.update({
     where: {
-      id: brandId,
+      id: input.id,
+    },
+    data: {
+      isActive: input.isActive,
     },
     select: {
       id: true,
+      isActive: true,
     },
   });
 }
@@ -921,8 +987,10 @@ const adminProductListSelect = {
   brand: {
     select: {
       id: true,
+      isActive: true,
       name: true,
       slug: true,
+      subcategoryId: true,
     },
   },
   images: {
@@ -989,6 +1057,7 @@ const adminProductDetailSelect = {
       name: true,
       slug: true,
       isActive: true,
+      subcategoryId: true,
     },
   },
   images: {
