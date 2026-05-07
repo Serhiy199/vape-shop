@@ -2,16 +2,14 @@ import { ProductAvailability, type Prisma } from "@prisma/client";
 
 import { prisma } from "@/lib/prisma/client";
 
-export async function listFixedAdminCategories() {
+export async function listAdminCategories() {
   return prisma.category.findMany({
-    where: {
-      isFixed: true,
-    },
     orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
     select: {
       id: true,
       name: true,
       slug: true,
+      image: true,
       description: true,
       sortOrder: true,
       isActive: true,
@@ -23,24 +21,39 @@ export async function listFixedAdminCategories() {
           subcategories: true,
         },
       },
+      subcategories: {
+        orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
+        select: {
+          id: true,
+          name: true,
+          slug: true,
+          image: true,
+          sortOrder: true,
+          isActive: true,
+          _count: {
+            select: {
+              products: true,
+            },
+          },
+        },
+      },
     },
   });
 }
 
-export async function getFixedAdminCategoryById(categoryId: string) {
-  return prisma.category.findFirst({
+export async function getAdminCategoryById(categoryId: string) {
+  return prisma.category.findUnique({
     where: {
       id: categoryId,
-      isFixed: true,
     },
     select: {
       id: true,
       name: true,
       slug: true,
+      image: true,
       description: true,
       sortOrder: true,
       isActive: true,
-      isFixed: true,
       seoTitle: true,
       seoDescription: true,
       createdAt: true,
@@ -57,6 +70,7 @@ export async function getFixedAdminCategoryById(categoryId: string) {
           id: true,
           name: true,
           slug: true,
+          image: true,
           sortOrder: true,
           isActive: true,
           _count: {
@@ -79,8 +93,10 @@ export async function listAdminSubcategories() {
     ],
     select: {
       id: true,
+      categoryId: true,
       name: true,
       slug: true,
+      image: true,
       description: true,
       sortOrder: true,
       isActive: true,
@@ -110,8 +126,10 @@ export async function getAdminSubcategoryById(subcategoryId: string) {
     },
     select: {
       id: true,
+      categoryId: true,
       name: true,
       slug: true,
+      image: true,
       description: true,
       sortOrder: true,
       isActive: true,
@@ -124,7 +142,6 @@ export async function getAdminSubcategoryById(subcategoryId: string) {
           id: true,
           name: true,
           slug: true,
-          isFixed: true,
         },
       },
       _count: {
@@ -212,7 +229,7 @@ export async function getCategoryById(categoryId: string) {
       id: true,
       name: true,
       slug: true,
-      isFixed: true,
+      isActive: true,
     },
   });
 }
@@ -239,11 +256,36 @@ export async function getCategoryBySlug(slug: string) {
   });
 }
 
-export async function updateFixedCategory(input: {
+export async function createCategory(input: {
+  name: string;
+  slug: string;
+  image?: string;
+  description?: string;
+  sortOrder: number;
+  isActive: boolean;
+  seoTitle?: string;
+  seoDescription?: string;
+}) {
+  return prisma.category.create({
+    data: input,
+    select: {
+      id: true,
+      name: true,
+      slug: true,
+      image: true,
+      isActive: true,
+    },
+  });
+}
+
+export async function updateCategory(input: {
   id: string;
   name: string;
   slug: string;
+  image?: string;
+  description?: string;
   sortOrder: number;
+  isActive: boolean;
   seoTitle?: string;
   seoDescription?: string;
 }) {
@@ -254,7 +296,10 @@ export async function updateFixedCategory(input: {
     data: {
       name: input.name,
       slug: input.slug,
+      image: input.image,
+      description: input.description,
       sortOrder: input.sortOrder,
+      isActive: input.isActive,
       seoTitle: input.seoTitle,
       seoDescription: input.seoDescription,
     },
@@ -262,6 +307,26 @@ export async function updateFixedCategory(input: {
       id: true,
       name: true,
       slug: true,
+      image: true,
+      isActive: true,
+    },
+  });
+}
+
+export async function setCategoryActiveStatus(input: {
+  id: string;
+  isActive: boolean;
+}) {
+  return prisma.category.update({
+    where: {
+      id: input.id,
+    },
+    data: {
+      isActive: input.isActive,
+    },
+    select: {
+      id: true,
+      isActive: true,
     },
   });
 }
@@ -276,6 +341,7 @@ export async function getSubcategoryById(subcategoryId: string) {
       categoryId: true,
       name: true,
       slug: true,
+      isActive: true,
       _count: {
         select: {
           fields: true,
@@ -324,6 +390,7 @@ export async function createSubcategory(input: {
   categoryId: string;
   name: string;
   slug: string;
+  image?: string;
   description?: string;
   sortOrder: number;
   isActive: boolean;
@@ -334,8 +401,11 @@ export async function createSubcategory(input: {
     data: input,
     select: {
       id: true,
+      categoryId: true,
       name: true,
       slug: true,
+      image: true,
+      isActive: true,
     },
   });
 }
@@ -345,6 +415,7 @@ export async function updateSubcategory(input: {
   categoryId: string;
   name: string;
   slug: string;
+  image?: string;
   description?: string;
   sortOrder: number;
   isActive: boolean;
@@ -359,6 +430,7 @@ export async function updateSubcategory(input: {
       categoryId: input.categoryId,
       name: input.name,
       slug: input.slug,
+      image: input.image,
       description: input.description,
       sortOrder: input.sortOrder,
       isActive: input.isActive,
@@ -367,19 +439,29 @@ export async function updateSubcategory(input: {
     },
     select: {
       id: true,
+      categoryId: true,
       name: true,
       slug: true,
+      image: true,
+      isActive: true,
     },
   });
 }
 
-export async function deleteSubcategory(subcategoryId: string) {
-  return prisma.subcategory.delete({
+export async function setSubcategoryActiveStatus(input: {
+  id: string;
+  isActive: boolean;
+}) {
+  return prisma.subcategory.update({
     where: {
-      id: subcategoryId,
+      id: input.id,
+    },
+    data: {
+      isActive: input.isActive,
     },
     select: {
       id: true,
+      isActive: true,
     },
   });
 }
@@ -497,7 +579,6 @@ export async function getAdminSubcategoryFieldById(fieldId: string) {
               id: true,
               name: true,
               slug: true,
-              isFixed: true,
             },
           },
         },
@@ -809,180 +890,181 @@ type ProductWriteInput = {
 };
 
 const adminProductListSelect = {
-    id: true,
-    title: true,
-    slug: true,
-    price: true,
-    availability: true,
-    isActive: true,
-    isFeaturedNew: true,
-    isFeaturedSale: true,
-    isFeaturedHit: true,
-    createdAt: true,
-    updatedAt: true,
-    category: {
-      select: {
-        id: true,
-        name: true,
-        slug: true,
-      },
+  id: true,
+  title: true,
+  slug: true,
+  price: true,
+  availability: true,
+  isActive: true,
+  isFeaturedNew: true,
+  isFeaturedSale: true,
+  isFeaturedHit: true,
+  createdAt: true,
+  updatedAt: true,
+  category: {
+    select: {
+      id: true,
+      name: true,
+      slug: true,
     },
-    subcategory: {
-      select: {
-        id: true,
-        name: true,
-        slug: true,
-      },
+  },
+  subcategory: {
+    select: {
+      id: true,
+      name: true,
+      slug: true,
     },
-    brand: {
-      select: {
-        id: true,
-        name: true,
-        slug: true,
-      },
+  },
+  brand: {
+    select: {
+      id: true,
+      name: true,
+      slug: true,
     },
-    images: {
-      where: {
-        isPrimary: true,
-      },
-      take: 1,
-      select: {
-        id: true,
-        url: true,
-        alt: true,
-        publicId: true,
-      },
+  },
+  images: {
+    where: {
+      isPrimary: true,
     },
-    _count: {
-      select: {
-        images: true,
-        fieldValues: true,
-        orderItems: true,
-        wishlistItems: true,
-      },
+    take: 1,
+    select: {
+      id: true,
+      url: true,
+      alt: true,
+      publicId: true,
     },
-  } satisfies Prisma.ProductSelect;
+  },
+  _count: {
+    select: {
+      images: true,
+      fieldValues: true,
+      orderItems: true,
+      wishlistItems: true,
+    },
+  },
+} satisfies Prisma.ProductSelect;
 
 const adminProductDetailSelect = {
-    id: true,
-    categoryId: true,
-    subcategoryId: true,
-    brandId: true,
-    title: true,
-    slug: true,
-    description: true,
-    price: true,
-    availability: true,
-    isActive: true,
-    isFeaturedNew: true,
-    isFeaturedSale: true,
-    isFeaturedHit: true,
-    seoTitle: true,
-    seoDescription: true,
-    createdAt: true,
-    updatedAt: true,
-    category: {
-      select: {
-        id: true,
-        name: true,
-        slug: true,
-        isFixed: true,
-      },
+  id: true,
+  categoryId: true,
+  subcategoryId: true,
+  brandId: true,
+  title: true,
+  slug: true,
+  description: true,
+  price: true,
+  availability: true,
+  isActive: true,
+  isFeaturedNew: true,
+  isFeaturedSale: true,
+  isFeaturedHit: true,
+  seoTitle: true,
+  seoDescription: true,
+  createdAt: true,
+  updatedAt: true,
+  category: {
+    select: {
+      id: true,
+      name: true,
+      slug: true,
+      image: true,
+      isActive: true,
     },
-    subcategory: {
-      select: {
-        id: true,
-        name: true,
-        slug: true,
-        categoryId: true,
-      },
+  },
+  subcategory: {
+    select: {
+      id: true,
+      name: true,
+      slug: true,
+      categoryId: true,
     },
-    brand: {
-      select: {
-        id: true,
-        name: true,
-        slug: true,
-        isActive: true,
-      },
+  },
+  brand: {
+    select: {
+      id: true,
+      name: true,
+      slug: true,
+      isActive: true,
     },
-    images: {
-      orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
-      select: {
-        id: true,
-        url: true,
-        publicId: true,
-        alt: true,
-        sortOrder: true,
-        isPrimary: true,
-        createdAt: true,
-        updatedAt: true,
-      },
+  },
+  images: {
+    orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
+    select: {
+      id: true,
+      url: true,
+      publicId: true,
+      alt: true,
+      sortOrder: true,
+      isPrimary: true,
+      createdAt: true,
+      updatedAt: true,
     },
-    fieldValues: {
-      select: {
-        id: true,
-        fieldId: true,
-        optionId: true,
-        valueText: true,
-        valueNumber: true,
-        valueBoolean: true,
-        field: {
-          select: {
-            id: true,
-            subcategoryId: true,
-            label: true,
-            key: true,
-            type: true,
-            isRequired: true,
-            sortOrder: true,
-            options: {
-              orderBy: [{ sortOrder: "asc" }, { label: "asc" }],
-              select: {
-                id: true,
-                label: true,
-                value: true,
-                sortOrder: true,
-              },
+  },
+  fieldValues: {
+    select: {
+      id: true,
+      fieldId: true,
+      optionId: true,
+      valueText: true,
+      valueNumber: true,
+      valueBoolean: true,
+      field: {
+        select: {
+          id: true,
+          subcategoryId: true,
+          label: true,
+          key: true,
+          type: true,
+          isRequired: true,
+          sortOrder: true,
+          options: {
+            orderBy: [{ sortOrder: "asc" }, { label: "asc" }],
+            select: {
+              id: true,
+              label: true,
+              value: true,
+              sortOrder: true,
             },
           },
         },
-        option: {
-          select: {
-            id: true,
-            label: true,
-            value: true,
-            sortOrder: true,
-          },
+      },
+      option: {
+        select: {
+          id: true,
+          label: true,
+          value: true,
+          sortOrder: true,
         },
       },
     },
-    _count: {
-      select: {
-        images: true,
-        fieldValues: true,
-        orderItems: true,
-        wishlistItems: true,
-      },
+  },
+  _count: {
+    select: {
+      images: true,
+      fieldValues: true,
+      orderItems: true,
+      wishlistItems: true,
     },
-  } satisfies Prisma.ProductSelect;
+  },
+} satisfies Prisma.ProductSelect;
 
 const productIdentitySelect = {
-    id: true,
-    categoryId: true,
-    subcategoryId: true,
-    brandId: true,
-    title: true,
-    slug: true,
-    isActive: true,
-    _count: {
-      select: {
-        images: true,
-        fieldValues: true,
-        orderItems: true,
-        wishlistItems: true,
-      },
+  id: true,
+  categoryId: true,
+  subcategoryId: true,
+  brandId: true,
+  title: true,
+  slug: true,
+  isActive: true,
+  _count: {
+    select: {
+      images: true,
+      fieldValues: true,
+      orderItems: true,
+      wishlistItems: true,
     },
-  } satisfies Prisma.ProductSelect;
+  },
+} satisfies Prisma.ProductSelect;
 
 export async function listAdminProducts(input?: {
   categoryId?: string;

@@ -108,9 +108,9 @@ model Category {
   id             String        @id @default(cuid())
   name           String        @unique
   slug           String        @unique
+  image          String?
   description    String?
   sortOrder      Int           @default(0)
-  isFixed        Boolean       @default(false)
   isActive       Boolean       @default(true)
   seoTitle       String?
   seoDescription String?
@@ -128,6 +128,7 @@ model Subcategory {
   categoryId     String
   name           String
   slug           String
+  image          String?
   description    String?
   sortOrder      Int                @default(0)
   isActive       Boolean            @default(true)

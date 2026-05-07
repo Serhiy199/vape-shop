@@ -25,6 +25,73 @@ function slugField() {
     });
 }
 
+function slugify(value: string) {
+  const transliterationMap: Record<string, string> = {
+    а: "a",
+    б: "b",
+    в: "v",
+    г: "h",
+    ґ: "g",
+    д: "d",
+    е: "e",
+    є: "ie",
+    ж: "zh",
+    з: "z",
+    и: "y",
+    і: "i",
+    ї: "i",
+    й: "i",
+    к: "k",
+    л: "l",
+    м: "m",
+    н: "n",
+    о: "o",
+    п: "p",
+    р: "r",
+    с: "s",
+    т: "t",
+    у: "u",
+    ф: "f",
+    х: "kh",
+    ц: "ts",
+    ч: "ch",
+    ш: "sh",
+    щ: "shch",
+    ю: "iu",
+    я: "ia",
+  };
+
+  return value
+    .trim()
+    .toLowerCase()
+    .split("")
+    .map((char) => transliterationMap[char] ?? char)
+    .join("")
+    .replace(/['’`]/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .replace(/-{2,}/g, "-");
+}
+
+function slugFromNameSchema() {
+  return z
+    .object({
+      name: requiredName(120),
+      slug: z.string().trim().max(120).optional(),
+    })
+    .transform((value) => ({
+      ...value,
+      slug:
+        value.slug && value.slug.length > 0 ? value.slug : slugify(value.name),
+    }))
+    .pipe(
+      z.object({
+        name: requiredName(120),
+        slug: slugField(),
+      }),
+    );
+}
+
 function sortOrderField() {
   return z.coerce.number().int().min(0).max(9999);
 }
@@ -54,30 +121,31 @@ function availabilityField() {
 }
 
 function optionalIdField() {
-  return z.preprocess(
-    (value) => {
-      if (typeof value !== "string") {
-        return value;
-      }
+  return z.preprocess((value) => {
+    if (typeof value !== "string") {
+      return value;
+    }
 
-      const trimmed = value.trim();
-      return trimmed.length === 0 ? undefined : trimmed;
-    },
-    z.string().max(191).optional(),
-  );
+    const trimmed = value.trim();
+    return trimmed.length === 0 ? undefined : trimmed;
+  }, z.string().max(191).optional());
 }
 
 function optionalTextField(max: number) {
-  return z.preprocess(
-    (value) => {
-      if (typeof value !== "string") {
-        return value;
-      }
+  return z.preprocess((value) => {
+    if (typeof value !== "string") {
+      return value;
+    }
 
-      const trimmed = value.trim();
-      return trimmed.length === 0 ? undefined : trimmed;
-    },
-    z.string().max(max).optional(),
+    const trimmed = value.trim();
+    return trimmed.length === 0 ? undefined : trimmed;
+  }, z.string().max(max).optional());
+}
+
+function optionalImageField() {
+  return optionalTrimmedString(2048).refine(
+    (value) => value === undefined || /^https?:\/\//.test(value),
+    "Image має бути коректним http/https URL.",
   );
 }
 
@@ -161,8 +229,9 @@ const productFieldValueSchema = z.object({
   valueText: optionalTextField(2000),
 });
 
-const productFieldValuesSchema = z.array(productFieldValueSchema).superRefine(
-  (values, ctx) => {
+const productFieldValuesSchema = z
+  .array(productFieldValueSchema)
+  .superRefine((values, ctx) => {
     const seenFieldIds = new Set<string>();
 
     values.forEach((value, index) => {
@@ -177,8 +246,7 @@ const productFieldValuesSchema = z.array(productFieldValueSchema).superRefine(
 
       seenFieldIds.add(value.fieldId);
     });
-  },
-);
+  });
 
 const productImageSchema = z.object({
   id: optionalIdField(),
@@ -189,59 +257,63 @@ const productImageSchema = z.object({
   isPrimary: z.coerce.boolean().default(false),
 });
 
-const productImagesSchema = z.array(productImageSchema).superRefine((images, ctx) => {
-  const primaryImages = images.filter((image) => image.isPrimary);
-  const galleryImagesCount = images.filter((image) => !image.isPrimary).length;
+const productImagesSchema = z
+  .array(productImageSchema)
+  .superRefine((images, ctx) => {
+    const primaryImages = images.filter((image) => image.isPrimary);
+    const galleryImagesCount = images.filter(
+      (image) => !image.isPrimary,
+    ).length;
 
-  if (images.length === 0) {
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      message: "Потрібно додати головне фото товару.",
-      path: [],
-    });
-  }
-
-  if (primaryImages.length !== 1) {
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      message: "Товар повинен мати рівно одне головне фото.",
-      path: [],
-    });
-  }
-
-  if (galleryImagesCount > 10) {
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      message: "У галереї може бути не більше 10 фото.",
-      path: [],
-    });
-  }
-
-  if (images.length > 11) {
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      message: "Товар може містити максимум 11 фото разом із головним.",
-      path: [],
-    });
-  }
-
-  const seenPublicIds = new Set<string>();
-
-  images.forEach((image, index) => {
-    const normalizedPublicId = image.publicId.trim().toLowerCase();
-
-    if (seenPublicIds.has(normalizedPublicId)) {
+    if (images.length === 0) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
-        message: "Одне й те саме зображення не можна додавати двічі.",
-        path: [index, "publicId"],
+        message: "Потрібно додати головне фото товару.",
+        path: [],
       });
-      return;
     }
 
-    seenPublicIds.add(normalizedPublicId);
+    if (primaryImages.length !== 1) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Товар повинен мати рівно одне головне фото.",
+        path: [],
+      });
+    }
+
+    if (galleryImagesCount > 10) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "У галереї може бути не більше 10 фото.",
+        path: [],
+      });
+    }
+
+    if (images.length > 11) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Товар може містити максимум 11 фото разом із головним.",
+        path: [],
+      });
+    }
+
+    const seenPublicIds = new Set<string>();
+
+    images.forEach((image, index) => {
+      const normalizedPublicId = image.publicId.trim().toLowerCase();
+
+      if (seenPublicIds.has(normalizedPublicId)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Одне й те саме зображення не можна додавати двічі.",
+          path: [index, "publicId"],
+        });
+        return;
+      }
+
+      seenPublicIds.add(normalizedPublicId);
+    });
   });
-});
 
 const subcategoryFieldBaseSchema = z.object({
   subcategoryId: idField(),
@@ -293,31 +365,48 @@ function validateFieldOptions(
   });
 }
 
-export const updateCategorySchema = z.object({
-  id: idField(),
-  name: requiredName(120),
-  slug: slugField(),
-  sortOrder: sortOrderField(),
-  seoTitle: optionalTrimmedString(160),
-  seoDescription: optionalTrimmedString(320),
-});
+const categoryBaseSchema = z.intersection(
+  slugFromNameSchema(),
+  z.object({
+    image: optionalImageField(),
+    description: optionalTrimmedString(500),
+    sortOrder: sortOrderField(),
+    isActive: z.coerce.boolean().default(true),
+    seoTitle: optionalTrimmedString(160),
+    seoDescription: optionalTrimmedString(320),
+  }),
+);
 
-export const createSubcategorySchema = z.object({
-  categoryId: idField(),
-  name: requiredName(120),
-  slug: slugField(),
-  description: optionalTrimmedString(500),
-  sortOrder: sortOrderField(),
-  isActive: z.coerce.boolean().default(true),
-  seoTitle: optionalTrimmedString(160),
-  seoDescription: optionalTrimmedString(320),
-});
+export const createCategorySchema = categoryBaseSchema;
 
-export const updateSubcategorySchema = createSubcategorySchema.extend({
-  id: idField(),
-});
+export const updateCategorySchema = categoryBaseSchema.and(
+  z.object({
+    id: idField(),
+  }),
+);
 
-export const deleteSubcategorySchema = z.object({
+const subcategoryBaseSchema = z.intersection(
+  slugFromNameSchema(),
+  z.object({
+    categoryId: idField(),
+    image: optionalImageField(),
+    description: optionalTrimmedString(500),
+    sortOrder: sortOrderField(),
+    isActive: z.coerce.boolean().default(true),
+    seoTitle: optionalTrimmedString(160),
+    seoDescription: optionalTrimmedString(320),
+  }),
+);
+
+export const createSubcategorySchema = subcategoryBaseSchema;
+
+export const updateSubcategorySchema = subcategoryBaseSchema.and(
+  z.object({
+    id: idField(),
+  }),
+);
+
+const deleteSubcategorySchema = z.object({
   id: idField(),
 });
 
@@ -337,14 +426,14 @@ export const deleteBrandSchema = z.object({
   id: idField(),
 });
 
-export const createSubcategoryFieldSchema = subcategoryFieldBaseSchema.superRefine(
-  validateFieldOptions,
-);
+export const createSubcategoryFieldSchema =
+  subcategoryFieldBaseSchema.superRefine(validateFieldOptions);
 
-export const updateSubcategoryFieldSchema =
-  subcategoryFieldBaseSchema.extend({
+export const updateSubcategoryFieldSchema = subcategoryFieldBaseSchema
+  .extend({
     id: idField(),
-  }).superRefine(validateFieldOptions);
+  })
+  .superRefine(validateFieldOptions);
 
 export const deleteSubcategoryFieldSchema = z.object({
   id: idField(),
@@ -385,10 +474,10 @@ export const deleteProductSchema = z.object({
   id: idField(),
 });
 
+export type CreateCategoryInput = z.infer<typeof createCategorySchema>;
 export type UpdateCategoryInput = z.infer<typeof updateCategorySchema>;
 export type CreateSubcategoryInput = z.infer<typeof createSubcategorySchema>;
 export type UpdateSubcategoryInput = z.infer<typeof updateSubcategorySchema>;
-export type DeleteSubcategoryInput = z.infer<typeof deleteSubcategorySchema>;
 export type CreateBrandInput = z.infer<typeof createBrandSchema>;
 export type UpdateBrandInput = z.infer<typeof updateBrandSchema>;
 export type DeleteBrandInput = z.infer<typeof deleteBrandSchema>;
