@@ -13,9 +13,7 @@ import { StorefrontMobileMenu } from "@/components/storefront/mobile-menu";
 import { StorefrontSearchForm } from "@/components/storefront/storefront-search-form";
 import {
   storefrontBrand,
-  storefrontCategories,
   storefrontInfoLinks,
-  storefrontMainNavigation,
 } from "@/components/storefront/storefront-config";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -101,36 +99,6 @@ export function StorefrontHeader() {
           <StorefrontCartLink />
         </div>
       </div>
-
-      <nav
-        className="border-border/60 bg-card/80 hidden border-t lg:block"
-        aria-label="Основні категорії"
-      >
-        <div className="mx-auto flex w-full max-w-screen-2xl items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center gap-1">
-            {storefrontMainNavigation.map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                className="text-muted-foreground hover:text-foreground hover:border-primary border-b-2 border-transparent px-4 py-3 text-sm font-medium transition"
-              >
-                {item.label}
-              </Link>
-            ))}
-          </div>
-          <div className="flex items-center gap-1">
-            {storefrontCategories.map((category) => (
-              <Link
-                key={category.href}
-                href={category.href}
-                className="text-muted-foreground hover:text-foreground hover:bg-accent rounded-md px-3 py-2 text-sm transition"
-              >
-                {category.label}
-              </Link>
-            ))}
-          </div>
-        </div>
-      </nav>
     </header>
   );
 }
