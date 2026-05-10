@@ -28,7 +28,11 @@ type BrandPageProps = {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 };
 
-function resolveBrandPageTitle(brand: NonNullable<Awaited<ReturnType<typeof getActiveStorefrontBrandBySlug>>>) {
+type StorefrontBrandPageData = NonNullable<
+  Awaited<ReturnType<typeof getActiveStorefrontBrandBySlug>>
+>;
+
+function resolveBrandPageTitle(brand: StorefrontBrandPageData) {
   return brand.seoTitle || `${brand.subcategory.name} ${brand.name}`;
 }
 
@@ -91,7 +95,6 @@ export default async function BrandPage({
       <StorefrontPageHeader
         breadcrumbs={[
           { href: "/", label: "Головна" },
-          { href: "/category", label: "Категорії" },
           {
             href: `/category/${brand.subcategory.category.slug}`,
             label: brand.subcategory.category.name,

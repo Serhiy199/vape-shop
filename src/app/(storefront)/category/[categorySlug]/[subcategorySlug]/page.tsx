@@ -5,6 +5,7 @@ import {
   CatalogFilterSidebar,
   CatalogToolbar,
 } from "@/components/storefront/catalog-controls";
+import { CatalogTopTabs } from "@/components/storefront/catalog-top-tabs";
 import { StorefrontProductGrid } from "@/components/storefront/product-grid";
 import {
   StorefrontBadge,
@@ -75,6 +76,12 @@ export default async function SubcategoryPage({
   }
 
   const basePath = `/category/${categorySlug}/${subcategorySlug}`;
+  const brandTabs = subcategory.brands.map((brand) => ({
+    count: brand._count.products,
+    href: `${basePath}/${brand.slug}`,
+    label: brand.name,
+    value: brand.slug,
+  }));
 
   return (
     <>
@@ -135,7 +142,8 @@ export default async function SubcategoryPage({
             filterOptions={filterOptions}
             filters={routeFilters}
           />
-          <div>
+          <div className="space-y-5">
+            <CatalogTopTabs items={brandTabs} />
             <CatalogToolbar
               basePath={basePath}
               count={products.length}
