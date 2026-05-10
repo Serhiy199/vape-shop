@@ -404,7 +404,6 @@ const subcategoryBaseSchema = z.intersection(
   slugFromNameSchema(),
   z.object({
     categoryId: idField(),
-    image: optionalImageField(),
     description: optionalTrimmedString(500),
     sortOrder: sortOrderField(),
     isActive: z.coerce.boolean().default(true),
@@ -429,7 +428,10 @@ export const createBrandSchema = z.intersection(
   slugFromNameSchema(),
   z.object({
     subcategoryId: idField(),
+    description: optionalTrimmedString(500),
     isActive: z.coerce.boolean().default(true),
+    seoTitle: optionalTrimmedString(160),
+    seoDescription: optionalTrimmedString(320),
   }),
 );
 

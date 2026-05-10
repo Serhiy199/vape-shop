@@ -9,8 +9,11 @@ import {
   AdminFormGrid,
   AdminFormSection,
   AdminInputField,
-  AdminTextareaField,
 } from "@/components/admin/admin-form-primitives";
+import {
+  AdminOptionalInputField,
+  AdminOptionalTextareaField,
+} from "@/components/admin/admin-optional-fields";
 import { AdminEmptyState } from "@/components/admin/admin-primitives";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
@@ -151,7 +154,7 @@ function CategoryFormFields({
           onUploadingChange={onImageUploadingChange}
           error={errors.image}
         />
-        <AdminInputField
+        <AdminOptionalInputField
           id={`${heading}-seo-title`}
           name="seoTitle"
           label="SEO title"
@@ -162,7 +165,7 @@ function CategoryFormFields({
       </AdminFormGrid>
 
       <div className="mt-4 space-y-4">
-        <AdminTextareaField
+        <AdminOptionalTextareaField
           id={`${heading}-description`}
           name="description"
           label="Опис"
@@ -171,7 +174,7 @@ function CategoryFormFields({
           error={errors.description}
           rows={3}
         />
-        <AdminTextareaField
+        <AdminOptionalTextareaField
           id={`${heading}-seo-description`}
           name="seoDescription"
           label="SEO description"

@@ -27,7 +27,6 @@ export async function listAdminCategories() {
           id: true,
           name: true,
           slug: true,
-          image: true,
           sortOrder: true,
           isActive: true,
           _count: {
@@ -70,7 +69,6 @@ export async function getAdminCategoryById(categoryId: string) {
           id: true,
           name: true,
           slug: true,
-          image: true,
           sortOrder: true,
           isActive: true,
           _count: {
@@ -96,7 +94,6 @@ export async function listAdminSubcategories() {
       categoryId: true,
       name: true,
       slug: true,
-      image: true,
       description: true,
       sortOrder: true,
       isActive: true,
@@ -130,7 +127,6 @@ export async function getAdminSubcategoryById(subcategoryId: string) {
       categoryId: true,
       name: true,
       slug: true,
-      image: true,
       description: true,
       sortOrder: true,
       isActive: true,
@@ -181,6 +177,8 @@ export async function listAdminBrands() {
       name: true,
       slug: true,
       description: true,
+      seoTitle: true,
+      seoDescription: true,
       sortOrder: true,
       isActive: true,
       subcategory: {
@@ -219,6 +217,8 @@ export async function getAdminBrandById(brandId: string) {
       name: true,
       slug: true,
       description: true,
+      seoTitle: true,
+      seoDescription: true,
       sortOrder: true,
       isActive: true,
       createdAt: true,
@@ -430,7 +430,6 @@ export async function createSubcategory(input: {
   categoryId: string;
   name: string;
   slug: string;
-  image?: string | null;
   description?: string;
   sortOrder: number;
   isActive: boolean;
@@ -444,7 +443,6 @@ export async function createSubcategory(input: {
       categoryId: true,
       name: true,
       slug: true,
-      image: true,
       isActive: true,
     },
   });
@@ -455,7 +453,6 @@ export async function updateSubcategory(input: {
   categoryId: string;
   name: string;
   slug: string;
-  image?: string | null;
   description?: string;
   sortOrder: number;
   isActive: boolean;
@@ -470,7 +467,6 @@ export async function updateSubcategory(input: {
       categoryId: input.categoryId,
       name: input.name,
       slug: input.slug,
-      image: input.image,
       description: input.description,
       sortOrder: input.sortOrder,
       isActive: input.isActive,
@@ -482,7 +478,6 @@ export async function updateSubcategory(input: {
       categoryId: true,
       name: true,
       slug: true,
-      image: true,
       isActive: true,
     },
   });
@@ -857,21 +852,30 @@ export async function createBrand(input: {
   subcategoryId: string;
   name: string;
   slug: string;
+  description?: string;
   isActive: boolean;
+  seoTitle?: string;
+  seoDescription?: string;
 }) {
   return prisma.brand.create({
     data: {
       subcategoryId: input.subcategoryId,
       name: input.name,
       slug: input.slug,
+      description: input.description,
       isActive: input.isActive,
+      seoTitle: input.seoTitle,
+      seoDescription: input.seoDescription,
     },
     select: {
       id: true,
       subcategoryId: true,
       name: true,
       slug: true,
+      description: true,
       isActive: true,
+      seoTitle: true,
+      seoDescription: true,
     },
   });
 }
@@ -881,7 +885,10 @@ export async function updateBrand(input: {
   subcategoryId: string;
   name: string;
   slug: string;
+  description?: string;
   isActive: boolean;
+  seoTitle?: string;
+  seoDescription?: string;
 }) {
   return prisma.brand.update({
     where: {
@@ -891,14 +898,20 @@ export async function updateBrand(input: {
       subcategoryId: input.subcategoryId,
       name: input.name,
       slug: input.slug,
+      description: input.description,
       isActive: input.isActive,
+      seoTitle: input.seoTitle,
+      seoDescription: input.seoDescription,
     },
     select: {
       id: true,
       subcategoryId: true,
       name: true,
       slug: true,
+      description: true,
       isActive: true,
+      seoTitle: true,
+      seoDescription: true,
     },
   });
 }

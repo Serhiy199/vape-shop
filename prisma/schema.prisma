@@ -128,7 +128,6 @@ model Subcategory {
   categoryId     String
   name           String
   slug           String
-  image          String?
   description    String?
   sortOrder      Int                @default(0)
   isActive       Boolean            @default(true)
@@ -147,17 +146,19 @@ model Subcategory {
 }
 
 model Brand {
-  id            String      @id @default(cuid())
-  subcategoryId String
-  name          String
-  slug          String
-  description   String?
-  sortOrder     Int         @default(0)
-  isActive      Boolean     @default(true)
-  createdAt     DateTime    @default(now())
-  updatedAt     DateTime    @updatedAt
-  subcategory   Subcategory @relation(fields: [subcategoryId], references: [id], onDelete: Restrict)
-  products      Product[]
+  id             String      @id @default(cuid())
+  subcategoryId  String
+  name           String
+  slug           String
+  description    String?
+  seoTitle       String?
+  seoDescription String?
+  sortOrder      Int         @default(0)
+  isActive       Boolean     @default(true)
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+  subcategory    Subcategory @relation(fields: [subcategoryId], references: [id], onDelete: Restrict)
+  products       Product[]
 
   @@unique([subcategoryId, name])
   @@unique([subcategoryId, slug])

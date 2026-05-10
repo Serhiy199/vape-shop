@@ -50,7 +50,7 @@ export default async function AdminSubcategoriesPage({
       <AdminPageHeader
         eyebrow="Підкатегорії"
         title="Керування підкатегоріями каталогу"
-        description="Створюйте підкатегорії, прив'язуйте їх до категорій, оновлюйте фото та керуйте активністю без фізичного видалення записів."
+        description="Створюйте підкатегорії, прив'язуйте їх до категорій та керуйте активністю без фізичного видалення записів."
         badges={["categoryId обов'язковий", "soft status"]}
       />
 
@@ -107,7 +107,6 @@ export default async function AdminSubcategoriesPage({
                   categoryId: selectedSubcategory.categoryId,
                   description: selectedSubcategory.description,
                   id: selectedSubcategory.id,
-                  image: selectedSubcategory.image,
                   isActive: selectedSubcategory.isActive,
                   name: selectedSubcategory.name,
                   productsCount: selectedSubcategory._count.products,
@@ -123,7 +122,7 @@ export default async function AdminSubcategoriesPage({
 
       <AdminSectionCard
         title="Список підкатегорій"
-        description="Тут видно фото, назву, категорію, slug, статус і кількість пов'язаних записів."
+        description="Тут видно назву, категорію, slug, статус і кількість пов'язаних записів."
       >
         <AdminSplitLayout
           list={
@@ -145,28 +144,16 @@ export default async function AdminSubcategoriesPage({
                     key: "subcategory",
                     header: "Підкатегорія",
                     cell: (subcategory) => (
-                      <div className="flex min-w-0 items-center gap-3">
-                        <div className="bg-muted border-border/70 h-12 w-12 shrink-0 overflow-hidden rounded-md border">
-                          {subcategory.image ? (
-                            // eslint-disable-next-line @next/next/no-img-element
-                            <img
-                              src={subcategory.image}
-                              alt=""
-                              className="h-full w-full object-cover"
-                            />
-                          ) : null}
-                        </div>
-                        <div className="min-w-0 space-y-1">
-                          <Link
-                            href={`/admin/subcategories?selected=${subcategory.id}`}
-                            className="font-medium hover:underline"
-                          >
-                            {subcategory.name}
-                          </Link>
-                          <p className="text-muted-foreground truncate text-xs">
-                            {subcategory.slug}
-                          </p>
-                        </div>
+                      <div className="min-w-0 space-y-1">
+                        <Link
+                          href={`/admin/subcategories?selected=${subcategory.id}`}
+                          className="font-medium hover:underline"
+                        >
+                          {subcategory.name}
+                        </Link>
+                        <p className="text-muted-foreground truncate text-xs">
+                          {subcategory.slug}
+                        </p>
                       </div>
                     ),
                   },
@@ -228,17 +215,6 @@ export default async function AdminSubcategoriesPage({
                     категорії.
                   </p>
                 </div>
-
-                {selectedSubcategory.image ? (
-                  <div className="border-border/70 bg-muted/30 overflow-hidden rounded-lg border">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={selectedSubcategory.image}
-                      alt=""
-                      className="h-48 w-full object-cover"
-                    />
-                  </div>
-                ) : null}
 
                 <AdminDetailList
                   items={[
@@ -332,7 +308,7 @@ export default async function AdminSubcategoriesPage({
               <AdminEmptyState
                 icon={getAdminModuleIcon("subcategories")}
                 title="Немає обраної підкатегорії"
-                description="Оберіть запис зі списку, щоб побачити деталі, фото, зв'язки та попередження щодо зміни категорії."
+                description="Оберіть запис зі списку, щоб побачити деталі, зв'язки та попередження щодо зміни категорії."
               />
             )
           }

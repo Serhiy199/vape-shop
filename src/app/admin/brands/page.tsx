@@ -84,7 +84,7 @@ export default async function AdminBrandsPage({
           { href: "/admin/products", label: "Відкрити товари", variant: "outline" },
           { href: "/admin/subcategories", label: "Підкатегорії", variant: "outline" },
         ]}
-        note="Форма виробника не має SEO чи фото: тільки підкатегорія, назва та статус."
+        note="Фото для виробника не потрібне. Description і SEO-поля додаються за потреби через кнопку + Додати."
       />
 
       <AdminSectionCard
@@ -167,6 +167,9 @@ export default async function AdminBrandsPage({
                       {
                         label: "Назва",
                         value: selectedBrand.name,
+                        note:
+                          selectedBrand.description ??
+                          "Опис виробника ще не заповнений.",
                       },
                       {
                         label: "Slug",
@@ -187,15 +190,27 @@ export default async function AdminBrandsPage({
                         label: "Пов'язані товари",
                         value: selectedBrand._count.products.toString(),
                       },
+                      {
+                        label: "SEO",
+                        value:
+                          selectedBrand.seoTitle ??
+                          "SEO title ще не заповнений",
+                        note:
+                          selectedBrand.seoDescription ??
+                          "SEO description ще не заповнений.",
+                      },
                     ]}
                   />
 
                   <AdminBrandCrud
                     selectedBrand={{
+                      description: selectedBrand.description,
                       id: selectedBrand.id,
                       isActive: selectedBrand.isActive,
                       name: selectedBrand.name,
                       productsCount: selectedBrand._count.products,
+                      seoDescription: selectedBrand.seoDescription,
+                      seoTitle: selectedBrand.seoTitle,
                       slug: selectedBrand.slug,
                       subcategoryId: selectedBrand.subcategoryId,
                     }}

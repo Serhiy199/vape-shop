@@ -42,7 +42,6 @@ const storefrontCategorySelect = {
       id: true,
       name: true,
       slug: true,
-      image: true,
       description: true,
       seoTitle: true,
       seoDescription: true,

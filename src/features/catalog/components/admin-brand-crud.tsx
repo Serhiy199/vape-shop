@@ -11,6 +11,10 @@ import {
   AdminInputField,
 } from "@/components/admin/admin-form-primitives";
 import {
+  AdminOptionalInputField,
+  AdminOptionalTextareaField,
+} from "@/components/admin/admin-optional-fields";
+import {
   AdminEmptyState,
   AdminSectionCard,
 } from "@/components/admin/admin-primitives";
@@ -38,17 +42,23 @@ type SubcategoryOption = {
 };
 
 type SelectedBrand = {
+  description: string | null;
   id: string;
   isActive: boolean;
   name: string;
   productsCount: number;
+  seoDescription: string | null;
+  seoTitle: string | null;
   slug: string;
   subcategoryId: string;
 };
 
 type BrandFormValues = {
+  description: string;
   isActive: boolean;
   name: string;
+  seoDescription: string;
+  seoTitle: string;
   slug: string;
   subcategoryId: string;
 };
@@ -62,8 +72,11 @@ type AdminBrandCrudProps = {
 
 function buildCreateValues(subcategories: SubcategoryOption[]): BrandFormValues {
   return {
+    description: "",
     isActive: true,
     name: "",
+    seoDescription: "",
+    seoTitle: "",
     slug: "",
     subcategoryId: subcategories[0]?.id ?? "",
   };
@@ -71,8 +84,11 @@ function buildCreateValues(subcategories: SubcategoryOption[]): BrandFormValues 
 
 function buildEditValues(selectedBrand: SelectedBrand): BrandFormValues {
   return {
+    description: selectedBrand.description ?? "",
     isActive: selectedBrand.isActive,
     name: selectedBrand.name,
+    seoDescription: selectedBrand.seoDescription ?? "",
+    seoTitle: selectedBrand.seoTitle ?? "",
     slug: selectedBrand.slug,
     subcategoryId: selectedBrand.subcategoryId,
   };
@@ -82,8 +98,11 @@ function mapFieldErrors(
   fieldErrors?: Record<string, string[] | undefined>,
 ): BrandFieldErrors {
   return {
+    description: fieldErrors?.description?.[0],
     isActive: fieldErrors?.isActive?.[0],
     name: fieldErrors?.name?.[0],
+    seoDescription: fieldErrors?.seoDescription?.[0],
+    seoTitle: fieldErrors?.seoTitle?.[0],
     slug: fieldErrors?.slug?.[0],
     subcategoryId: fieldErrors?.subcategoryId?.[0],
   };
@@ -161,9 +180,40 @@ function BrandFormFields({
           error={errors.slug}
           hint="Можна залишити порожнім, тоді slug згенерується з назви."
         />
+
+        <AdminOptionalInputField
+          id={`${heading}-seo-title`}
+          name="seoTitle"
+          label="SEO title"
+          value={values.seoTitle}
+          onChange={(event) => onInputChange("seoTitle", event.target.value)}
+          error={errors.seoTitle}
+        />
       </AdminFormGrid>
 
       <div className="mt-4 space-y-4">
+        <AdminOptionalTextareaField
+          id={`${heading}-description`}
+          name="description"
+          label="Опис"
+          value={values.description}
+          onChange={(event) => onInputChange("description", event.target.value)}
+          error={errors.description}
+          rows={3}
+        />
+
+        <AdminOptionalTextareaField
+          id={`${heading}-seo-description`}
+          name="seoDescription"
+          label="SEO description"
+          value={values.seoDescription}
+          onChange={(event) =>
+            onInputChange("seoDescription", event.target.value)
+          }
+          error={errors.seoDescription}
+          rows={3}
+        />
+
         <AdminField label="Статус" error={errors.isActive}>
           <div className="border-border/70 bg-muted/30 flex items-start justify-between gap-4 rounded-lg border px-4 py-3">
             <div className="space-y-1">

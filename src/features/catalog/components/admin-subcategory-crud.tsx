@@ -9,8 +9,11 @@ import {
   AdminFormGrid,
   AdminFormSection,
   AdminInputField,
-  AdminTextareaField,
 } from "@/components/admin/admin-form-primitives";
+import {
+  AdminOptionalInputField,
+  AdminOptionalTextareaField,
+} from "@/components/admin/admin-optional-fields";
 import { AdminEmptyState } from "@/components/admin/admin-primitives";
 import { Button } from "@/components/ui/button";
 import {
@@ -25,7 +28,6 @@ import {
   createSubcategoryAction,
   updateSubcategoryAction,
 } from "@/features/catalog/actions/admin-catalog";
-import { CatalogImageUploadField } from "@/features/catalog/components/catalog-image-upload-field";
 
 type CategoryOption = {
   id: string;
@@ -36,7 +38,6 @@ type CategoryOption = {
 type SubcategoryFormValues = {
   categoryId: string;
   description: string;
-  image: string;
   isActive: boolean;
   name: string;
   seoDescription: string;
@@ -53,7 +54,6 @@ type SelectedSubcategory = {
   categoryId: string;
   description: string | null;
   id: string;
-  image: string | null;
   isActive: boolean;
   name: string;
   productsCount: number;
@@ -71,7 +71,6 @@ type AdminSubcategoryCrudProps = {
 const emptyValues: SubcategoryFormValues = {
   categoryId: "",
   description: "",
-  image: "",
   isActive: true,
   name: "",
   seoDescription: "",
@@ -95,7 +94,6 @@ function buildEditValues(
   return {
     categoryId: subcategory.categoryId,
     description: subcategory.description ?? "",
-    image: subcategory.image ?? "",
     isActive: subcategory.isActive,
     name: subcategory.name,
     seoDescription: subcategory.seoDescription ?? "",
@@ -111,7 +109,6 @@ function mapFieldErrors(
   return {
     categoryId: fieldErrors?.categoryId?.[0],
     description: fieldErrors?.description?.[0],
-    image: fieldErrors?.image?.[0],
     isActive: fieldErrors?.isActive?.[0],
     name: fieldErrors?.name?.[0],
     seoDescription: fieldErrors?.seoDescription?.[0],
@@ -129,8 +126,6 @@ function SubcategoryFormFields({
   values,
   onActiveChange,
   onCategoryChange,
-  onImageChange,
-  onImageUploadingChange,
   onInputChange,
 }: {
   categories: CategoryOption[];
@@ -140,12 +135,10 @@ function SubcategoryFormFields({
   values: SubcategoryFormValues;
   onActiveChange: (value: boolean) => void;
   onCategoryChange: (value: string | null) => void;
-  onImageChange: (value: string) => void;
-  onImageUploadingChange: (value: boolean) => void;
   onInputChange: (
     field: keyof Omit<
       SubcategoryFormValues,
-      "categoryId" | "image" | "isActive"
+      "categoryId" | "isActive"
     >,
     value: string,
   ) => void;
@@ -214,18 +207,7 @@ function SubcategoryFormFields({
           required
         />
 
-        <CatalogImageUploadField
-          id={`${heading}-image`}
-          entityType="subcategory"
-          entitySlug={values.slug || values.name}
-          label="Фото підкатегорії"
-          value={values.image}
-          onChange={onImageChange}
-          onUploadingChange={onImageUploadingChange}
-          error={errors.image}
-        />
-
-        <AdminInputField
+        <AdminOptionalInputField
           id={`${heading}-seo-title`}
           name="seoTitle"
           label="SEO title"
@@ -236,7 +218,7 @@ function SubcategoryFormFields({
       </AdminFormGrid>
 
       <div className="mt-4 space-y-4">
-        <AdminTextareaField
+        <AdminOptionalTextareaField
           id={`${heading}-description`}
           name="description"
           label="Опис"
@@ -246,7 +228,7 @@ function SubcategoryFormFields({
           rows={3}
         />
 
-        <AdminTextareaField
+        <AdminOptionalTextareaField
           id={`${heading}-seo-description`}
           name="seoDescription"
           label="SEO description"
@@ -297,8 +279,6 @@ export function AdminSubcategoryCrud({
   const [activeAction, setActiveAction] = useState<"create" | "update" | null>(
     null,
   );
-  const [isCreateImageUploading, setIsCreateImageUploading] = useState(false);
-  const [isEditImageUploading, setIsEditImageUploading] = useState(false);
 
   const initialCreateValues = useMemo(
     () => buildCreateValues(categories),
@@ -341,7 +321,7 @@ export function AdminSubcategoryCrud({
   const updateCreateField = (
     field: keyof Omit<
       SubcategoryFormValues,
-      "categoryId" | "image" | "isActive"
+      "categoryId" | "isActive"
     >,
     value: string,
   ) => {
@@ -360,7 +340,7 @@ export function AdminSubcategoryCrud({
   const updateEditField = (
     field: keyof Omit<
       SubcategoryFormValues,
-      "categoryId" | "image" | "isActive"
+      "categoryId" | "isActive"
     >,
     value: string,
   ) => {
@@ -483,17 +463,6 @@ export function AdminSubcategoryCrud({
               isActive: undefined,
             }));
           }}
-          onImageChange={(image) => {
-            setCreateValues((current) => ({
-              ...current,
-              image,
-            }));
-            setCreateErrors((current) => ({
-              ...current,
-              image: undefined,
-            }));
-          }}
-          onImageUploadingChange={setIsCreateImageUploading}
           onInputChange={updateCreateField}
         />
 
@@ -509,7 +478,7 @@ export function AdminSubcategoryCrud({
         ) : null}
 
         <div className="flex justify-end">
-          <Button type="submit" disabled={isPending || isCreateImageUploading}>
+          <Button type="submit" disabled={isPending}>
             {activeAction === "create" ? "Створюємо..." : "Створити"}
           </Button>
         </div>
@@ -553,21 +522,6 @@ export function AdminSubcategoryCrud({
                 isActive: undefined,
               }));
             }}
-            onImageChange={(image) => {
-              setEditValues((current) =>
-                current
-                  ? {
-                      ...current,
-                      image,
-                    }
-                  : current,
-              );
-              setEditErrors((current) => ({
-                ...current,
-                image: undefined,
-              }));
-            }}
-            onImageUploadingChange={setIsEditImageUploading}
             onInputChange={updateEditField}
           />
 
@@ -585,7 +539,7 @@ export function AdminSubcategoryCrud({
           <div className="flex justify-end">
             <Button
               type="submit"
-              disabled={isPending || categoryChangeBlocked || isEditImageUploading}
+              disabled={isPending || categoryChangeBlocked}
             >
               {activeAction === "update" ? "Зберігаємо..." : "Зберегти зміни"}
             </Button>

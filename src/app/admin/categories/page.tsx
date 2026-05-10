@@ -245,23 +245,11 @@ export default async function AdminCategoriesPage({
                           key={subcategory.id}
                           className="border-border/70 bg-card/70 flex items-start justify-between gap-3 rounded-lg border p-4"
                         >
-                          <div className="flex items-center gap-3">
-                            <div className="bg-muted border-border/70 h-10 w-10 shrink-0 overflow-hidden rounded-md border">
-                              {subcategory.image ? (
-                                // eslint-disable-next-line @next/next/no-img-element
-                                <img
-                                  src={subcategory.image}
-                                  alt=""
-                                  className="h-full w-full object-cover"
-                                />
-                              ) : null}
-                            </div>
-                            <div className="space-y-1">
-                              <p className="font-medium">{subcategory.name}</p>
-                              <p className="text-muted-foreground text-xs">
-                                {subcategory.slug}
-                              </p>
-                            </div>
+                          <div className="space-y-1">
+                            <p className="font-medium">{subcategory.name}</p>
+                            <p className="text-muted-foreground text-xs">
+                              {subcategory.slug}
+                            </p>
                           </div>
                           <div className="flex flex-wrap items-center gap-2">
                             <Badge
