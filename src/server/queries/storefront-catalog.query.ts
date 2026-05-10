@@ -23,6 +23,20 @@ const storefrontVisibleProductWhere = {
   subcategory: {
     isActive: true,
   },
+  AND: [
+    {
+      OR: [
+        {
+          brandId: null,
+        },
+        {
+          brand: {
+            isActive: true,
+          },
+        },
+      ],
+    },
+  ],
 } satisfies Prisma.ProductWhereInput;
 
 const storefrontCategorySelect = {
@@ -77,6 +91,22 @@ const storefrontBrandSelect = {
   name: true,
   slug: true,
   description: true,
+  seoTitle: true,
+  seoDescription: true,
+  subcategory: {
+    select: {
+      id: true,
+      name: true,
+      slug: true,
+      category: {
+        select: {
+          id: true,
+          name: true,
+          slug: true,
+        },
+      },
+    },
+  },
   _count: {
     select: {
       products: {
@@ -234,7 +264,7 @@ function mapCategoryToCard(
     href: `/category/${category.slug}`,
     icon: visual.icon,
     label: category.name,
-    links: category.subcategories.slice(0, 3).map((subcategory) => ({
+    links: category.subcategories.map((subcategory) => ({
       href: `/category/${category.slug}/${subcategory.slug}`,
       label: subcategory.name,
     })),
@@ -270,8 +300,9 @@ function mapSubcategoryToOption(
 function mapBrandToOption(brand: StorefrontBrandRecord): CatalogOption {
   return {
     count: brand._count.products,
-    href: `/catalog?brand=${brand.slug}`,
+    href: `/category/${brand.subcategory.category.slug}/${brand.subcategory.slug}/${brand.slug}`,
     label: brand.name,
+    parentSlug: brand.subcategory.slug,
     value: brand.slug,
   };
 }
@@ -561,6 +592,26 @@ export async function getActiveStorefrontSubcategoryBySlug(input: {
           slug: true,
         },
       },
+      brands: {
+        where: {
+          isActive: true,
+        },
+        orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
+        select: {
+          id: true,
+          name: true,
+          slug: true,
+          _count: {
+            select: {
+              products: {
+                where: {
+                  ...storefrontVisibleProductWhere,
+                },
+              },
+            },
+          },
+        },
+      },
       fields: {
         where: {
           isFilterable: true,
@@ -582,6 +633,28 @@ export async function getActiveStorefrontSubcategoryBySlug(input: {
         },
       },
     },
+  });
+}
+
+export async function getActiveStorefrontBrandBySlug(input: {
+  brandSlug: string;
+  categorySlug: string;
+  subcategorySlug: string;
+}) {
+  return prisma.brand.findFirst({
+    where: {
+      isActive: true,
+      slug: input.brandSlug,
+      subcategory: {
+        isActive: true,
+        slug: input.subcategorySlug,
+        category: {
+          isActive: true,
+          slug: input.categorySlug,
+        },
+      },
+    },
+    select: storefrontBrandSelect,
   });
 }
 
