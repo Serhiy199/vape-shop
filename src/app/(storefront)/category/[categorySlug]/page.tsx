@@ -1,4 +1,3 @@
-import Link from "next/link";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
@@ -6,14 +5,12 @@ import {
   CatalogFilterSidebar,
   CatalogToolbar,
 } from "@/components/storefront/catalog-controls";
+import { CatalogTopTabs } from "@/components/storefront/catalog-top-tabs";
 import { StorefrontProductGrid } from "@/components/storefront/product-grid";
 import {
   StorefrontActionLink,
-  StorefrontCard,
-  StorefrontGrid,
   StorefrontPageHeader,
   StorefrontSection,
-  storefrontPatterns,
 } from "@/components/storefront/storefront-primitives";
 import { normalizeCatalogFilters } from "@/lib/storefront/catalog-filters";
 import {
@@ -31,6 +28,10 @@ type CategoryPageProps = {
   }>;
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 };
+
+function resolveTabValue(href: string) {
+  return href.split("/").filter(Boolean).at(-1) ?? href;
+}
 
 export async function generateMetadata({
   params,
@@ -74,6 +75,11 @@ export default async function CategoryPage({
   }
 
   const basePath = `/category/${categorySlug}`;
+  const subcategoryTabs = category.links.map((link) => ({
+    href: link.href,
+    label: link.label,
+    value: resolveTabValue(link.href),
+  }));
 
   return (
     <>
@@ -97,21 +103,6 @@ export default async function CategoryPage({
         }
       />
 
-      <StorefrontSection tone="muted" spacing="sm">
-        <StorefrontGrid variant="content">
-          {category.links.map((link) => (
-            <StorefrontCard key={link.href} interactive className="p-4">
-              <Link href={link.href} className="space-y-2">
-                <h2 className="font-semibold tracking-tight">{link.label}</h2>
-                <p className={storefrontPatterns.bodyText}>
-                  Перейти до підкатегорії та переглянути доступні товари.
-                </p>
-              </Link>
-            </StorefrontCard>
-          ))}
-        </StorefrontGrid>
-      </StorefrontSection>
-
       <StorefrontSection>
         <div className="grid gap-6 lg:grid-cols-[280px_minmax(0,1fr)]">
           <CatalogFilterSidebar
@@ -119,7 +110,8 @@ export default async function CategoryPage({
             filterOptions={filterOptions}
             filters={routeFilters}
           />
-          <div>
+          <div className="space-y-5">
+            <CatalogTopTabs items={subcategoryTabs} />
             <CatalogToolbar
               basePath={basePath}
               count={products.length}
