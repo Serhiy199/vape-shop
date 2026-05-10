@@ -8,9 +8,6 @@ import {
 import { CatalogTopTabs } from "@/components/storefront/catalog-top-tabs";
 import { StorefrontProductGrid } from "@/components/storefront/product-grid";
 import {
-  StorefrontBadge,
-  StorefrontCard,
-  StorefrontGrid,
   StorefrontPageHeader,
   StorefrontSection,
 } from "@/components/storefront/storefront-primitives";
@@ -86,6 +83,8 @@ export default async function SubcategoryPage({
   return (
     <>
       <StorefrontPageHeader
+        tone="catalog"
+        className="border-b-0"
         breadcrumbs={[
           { href: "/", label: "Головна" },
           { href: "/category", label: "Категорії" },
@@ -97,45 +96,11 @@ export default async function SubcategoryPage({
         ]}
         eyebrow="Підкатегорія"
         title={subcategory.name}
+        summary={`Знайдено товарів: ${products.length}`}
         description={subcategory.description ?? undefined}
       />
 
-      {subcategory.fields.length > 0 ? (
-        <StorefrontSection tone="muted" spacing="sm">
-          <StorefrontGrid variant="content">
-            {subcategory.fields.map((field) => (
-              <StorefrontCard key={field.id} className="p-4">
-                <div className="space-y-3">
-                  <div className="flex items-start justify-between gap-3">
-                    <h2 className="font-semibold tracking-tight">
-                      {field.label}
-                    </h2>
-                    <StorefrontBadge tone="muted">{field.type}</StorefrontBadge>
-                  </div>
-                  {field.options.length > 0 ? (
-                    <div className="flex flex-wrap gap-2">
-                      {field.options.slice(0, 6).map((option) => (
-                        <span
-                          key={option.id}
-                          className="text-muted-foreground bg-muted rounded-md px-2.5 py-1 text-xs"
-                        >
-                          {option.label}
-                        </span>
-                      ))}
-                    </div>
-                  ) : (
-                    <p className="text-muted-foreground text-sm">
-                      Це поле доступне для уточнення товарів цієї підкатегорії.
-                    </p>
-                  )}
-                </div>
-              </StorefrontCard>
-            ))}
-          </StorefrontGrid>
-        </StorefrontSection>
-      ) : null}
-
-      <StorefrontSection>
+      <StorefrontSection tone="catalog" spacing="sm" className="pt-0">
         <div className="grid gap-6 lg:grid-cols-[280px_minmax(0,1fr)]">
           <CatalogFilterSidebar
             basePath={basePath}

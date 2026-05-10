@@ -8,7 +8,6 @@ import {
 import { CatalogTopTabs } from "@/components/storefront/catalog-top-tabs";
 import { StorefrontProductGrid } from "@/components/storefront/product-grid";
 import {
-  StorefrontActionLink,
   StorefrontPageHeader,
   StorefrontSection,
 } from "@/components/storefront/storefront-primitives";
@@ -84,6 +83,8 @@ export default async function CategoryPage({
   return (
     <>
       <StorefrontPageHeader
+        tone="catalog"
+        className="border-b-0"
         breadcrumbs={[
           { href: "/", label: "Головна" },
           { href: "/category", label: "Категорії" },
@@ -91,19 +92,11 @@ export default async function CategoryPage({
         ]}
         eyebrow="Категорія"
         title={category.label}
+        summary={`Знайдено товарів: ${products.length}`}
         description={category.description}
-        actions={
-          <StorefrontActionLink
-            href="/catalog"
-            variant="outline"
-            size="default"
-          >
-            Увесь каталог
-          </StorefrontActionLink>
-        }
       />
 
-      <StorefrontSection>
+      <StorefrontSection tone="catalog" spacing="sm" className="pt-0">
         <div className="grid gap-6 lg:grid-cols-[280px_minmax(0,1fr)]">
           <CatalogFilterSidebar
             basePath={basePath}

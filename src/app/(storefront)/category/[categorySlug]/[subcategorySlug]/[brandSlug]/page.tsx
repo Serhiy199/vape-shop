@@ -93,6 +93,8 @@ export default async function BrandPage({
   return (
     <>
       <StorefrontPageHeader
+        tone="catalog"
+        className="border-b-0"
         breadcrumbs={[
           { href: "/", label: "Головна" },
           {
@@ -107,17 +109,18 @@ export default async function BrandPage({
         ]}
         eyebrow="Виробник"
         title={title}
+        summary={`Знайдено товарів: ${products.length}`}
         description={brand.description ?? undefined}
       />
 
-      <StorefrontSection>
+      <StorefrontSection tone="catalog" spacing="sm" className="pt-0">
         <div className="grid gap-6 lg:grid-cols-[280px_minmax(0,1fr)]">
           <CatalogFilterSidebar
             basePath={basePath}
             filterOptions={filterOptions}
             filters={routeFilters}
           />
-          <div>
+          <div className="space-y-5">
             <CatalogToolbar
               basePath={basePath}
               count={products.length}

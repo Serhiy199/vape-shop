@@ -152,3 +152,17 @@ a {
     @apply font-sans;
   }
 }
+
+@layer utilities {
+  .storefront-catalog-pattern {
+    background-color: oklch(0.985 0.003 84.57);
+    background-image:
+      radial-gradient(circle at 16px 16px, oklch(0.902 0.008 84.57 / 0.34) 1.4px, transparent 1.6px),
+      radial-gradient(circle at 48px 42px, oklch(0.943 0.02 66.59 / 0.28) 1px, transparent 1.3px),
+      linear-gradient(180deg, oklch(1 0 0 / 0.72), oklch(0.958 0.006 84.57 / 0.82));
+    background-size:
+      64px 64px,
+      96px 96px,
+      100% 100%;
+  }
+}

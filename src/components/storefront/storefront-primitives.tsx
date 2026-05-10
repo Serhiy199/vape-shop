@@ -28,6 +28,7 @@ const sectionVariants = cva("w-full", {
       muted: "bg-muted/45",
       surface: "bg-card",
       dark: "bg-foreground text-background",
+      catalog: "storefront-catalog-pattern",
     },
     spacing: {
       sm: "py-6 sm:py-8",
@@ -161,18 +162,22 @@ export function StorefrontPageHeader({
   className,
   description,
   eyebrow,
+  summary,
   title,
+  tone = "surface",
 }: {
   actions?: React.ReactNode;
   breadcrumbs?: BreadcrumbItem[];
   className?: string;
   description?: string;
   eyebrow?: string;
+  summary?: React.ReactNode;
   title: string;
+  tone?: VariantProps<typeof sectionVariants>["tone"];
 }) {
   return (
     <StorefrontSection
-      tone="surface"
+      tone={tone}
       spacing="sm"
       className={cn("border-b border-border/70", className)}
     >
@@ -184,6 +189,11 @@ export function StorefrontPageHeader({
             <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">
               {title}
             </h1>
+            {summary ? (
+              <div className="text-muted-foreground text-sm leading-6">
+                {summary}
+              </div>
+            ) : null}
             {description ? (
               <p className={storefrontPatterns.bodyText}>{description}</p>
             ) : null}
