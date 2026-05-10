@@ -107,10 +107,8 @@ export default async function CategoryPage({
             <CatalogTopTabs items={subcategoryTabs} />
             <CatalogToolbar
               basePath={basePath}
-              count={products.length}
               filterOptions={filterOptions}
               filters={routeFilters}
-              title={category.label}
             />
             <StorefrontProductGrid
               products={products}

@@ -50,10 +50,8 @@ export default async function CatalogPage({ searchParams }: CatalogPageProps) {
           <div className="space-y-5">
             <CatalogToolbar
               basePath="/catalog"
-              count={products.length}
               filterOptions={filterOptions}
               filters={filters}
-              title="Каталог товарів"
             />
             <StorefrontProductGrid
               products={products}

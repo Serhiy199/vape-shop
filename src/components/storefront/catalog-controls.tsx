@@ -33,10 +33,8 @@ import { cn } from "@/lib/utils";
 
 type CatalogControlsProps = {
   basePath: string;
-  count: number;
   filters: CatalogFilterState;
   filterOptions?: CatalogFilterOptions;
-  title?: string;
 };
 
 type CatalogFilterOptions = {

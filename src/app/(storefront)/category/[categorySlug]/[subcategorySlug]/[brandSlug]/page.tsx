@@ -123,10 +123,8 @@ export default async function BrandPage({
           <div className="space-y-5">
             <CatalogToolbar
               basePath={basePath}
-              count={products.length}
               filterOptions={filterOptions}
               filters={routeFilters}
-              title={title}
             />
             <StorefrontProductGrid
               products={products}
