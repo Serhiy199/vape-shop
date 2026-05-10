@@ -231,9 +231,7 @@ function mapCategoryToCard(
   const visual = resolveCategoryVisual(category.slug, index);
 
   return {
-    description:
-      category.description ??
-      "Добірка активних товарів і підкатегорій, якими керує адмін-панель.",
+    description: category.description ?? undefined,
     href: `/category/${category.slug}`,
     icon: visual.icon,
     label: category.name,

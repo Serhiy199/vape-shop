@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
 import {
@@ -28,6 +29,29 @@ type SubcategoryPageProps = {
   }>;
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 };
+
+export async function generateMetadata({
+  params,
+}: {
+  params: SubcategoryPageProps["params"];
+}): Promise<Metadata> {
+  const { categorySlug, subcategorySlug } = await params;
+  const subcategory = await getActiveStorefrontSubcategoryBySlug({
+    categorySlug,
+    subcategorySlug,
+  });
+
+  if (!subcategory) {
+    return {};
+  }
+
+  return {
+    title: subcategory.seoTitle || subcategory.name,
+    description:
+      subcategory.seoDescription ||
+      `Купити ${subcategory.name} в категорії ${subcategory.category.name}. Великий вибір, швидке оформлення та доставка по Україні.`,
+  };
+}
 
 export default async function SubcategoryPage({
   params,
@@ -66,10 +90,7 @@ export default async function SubcategoryPage({
         ]}
         eyebrow="Підкатегорія"
         title={subcategory.name}
-        description={
-          subcategory.description ??
-          "Товари підкатегорії з характеристиками, які допомагають швидко звузити вибір."
-        }
+        description={subcategory.description ?? undefined}
       />
 
       {subcategory.fields.length > 0 ? (

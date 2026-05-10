@@ -1,4 +1,5 @@
 import Link from "next/link";
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
 import {
@@ -17,6 +18,7 @@ import {
 import { normalizeCatalogFilters } from "@/lib/storefront/catalog-filters";
 import {
   getActiveStorefrontCategoryBySlug,
+  getActiveStorefrontCategoryWithSubcategoriesBySlug,
   getStorefrontCatalogFilterOptions,
   listActiveStorefrontProducts,
 } from "@/server/queries/storefront-catalog.query";
@@ -29,6 +31,27 @@ type CategoryPageProps = {
   }>;
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 };
+
+export async function generateMetadata({
+  params,
+}: {
+  params: CategoryPageProps["params"];
+}): Promise<Metadata> {
+  const { categorySlug } = await params;
+  const category =
+    await getActiveStorefrontCategoryWithSubcategoriesBySlug(categorySlug);
+
+  if (!category) {
+    return {};
+  }
+
+  return {
+    title: category.seoTitle || category.name,
+    description:
+      category.seoDescription ||
+      `Купити ${category.name} в інтернет-магазині. Великий вибір, швидке оформлення та доставка по Україні.`,
+  };
+}
 
 export default async function CategoryPage({
   params,

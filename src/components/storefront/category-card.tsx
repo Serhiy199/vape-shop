@@ -40,7 +40,11 @@ export function StorefrontCategoryCard({
 
         <div className="space-y-2">
           <h3 className="text-xl font-semibold tracking-tight">{category.label}</h3>
-          <p className={storefrontPatterns.bodyText}>{category.description}</p>
+          {category.description ? (
+            <p className={storefrontPatterns.bodyText}>
+              {category.description}
+            </p>
+          ) : null}
         </div>
 
         <div className="mt-auto space-y-4">

@@ -33,7 +33,7 @@ export type StorefrontCategoryLink = {
 };
 
 export type StorefrontCategory = {
-  description: string;
+  description?: string;
   href: string;
   icon: LucideIcon;
   label: string;
