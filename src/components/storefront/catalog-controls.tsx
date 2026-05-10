@@ -1,7 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { CheckIcon, SlidersHorizontalIcon, XIcon } from "lucide-react";
+import {
+  CheckIcon,
+  ChevronDownIcon,
+  SlidersHorizontalIcon,
+  XIcon,
+} from "lucide-react";
 
 import { StorefrontSearchForm } from "@/components/storefront/storefront-search-form";
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -110,7 +115,7 @@ function resolveFilterGroups(
     },
     {
       key: "brandSlug",
-      label: "Бренд",
+      label: "Виробник",
       options: filterOptions.brands,
     },
   ];
@@ -273,26 +278,18 @@ function selectedFilterLabels(
 
 export function CatalogToolbar({
   basePath,
-  count,
   filterOptions = defaultFilterOptions,
   filters,
-  title = "Товари",
 }: CatalogControlsProps) {
   const activeLabels = selectedFilterLabels(filters, filterOptions);
 
   return (
-    <div className="border-border/70 bg-card mb-5 space-y-3 rounded-lg border p-3 shadow-sm">
+    <div className="space-y-3">
       <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
-        <div>
-          <p className="text-sm font-medium">{title}</p>
-          <p className="text-muted-foreground text-sm">
-            {count} товарів у добірці
-          </p>
-        </div>
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+        <div className="min-w-0 xl:w-80">
           <StorefrontSearchForm
             action={basePath}
-            className="min-w-0 sm:w-80"
+            className="min-w-0"
             defaultValue={filters.search}
             hiddenParams={{
               availability: filters.availability,
@@ -306,19 +303,20 @@ export function CatalogToolbar({
             placeholder="Пошук у каталозі"
             submitLabel="OK"
           />
-          <div className="flex flex-wrap gap-2">
-            <MobileFiltersButton
-              basePath={basePath}
-              filterOptions={filterOptions}
-              filters={filters}
-            />
-            <SortLink basePath={basePath} filters={filters} />
-          </div>
+        </div>
+        <div className="flex flex-wrap items-center justify-start gap-3 xl:justify-end">
+          <MobileFiltersButton
+            basePath={basePath}
+            filterOptions={filterOptions}
+            filters={filters}
+          />
+          <QuantityControl />
+          <SortLink basePath={basePath} filters={filters} />
         </div>
       </div>
 
       {activeLabels.length > 0 ? (
-        <div className="border-border/70 flex flex-wrap items-center gap-2 border-t pt-3">
+        <div className="flex flex-wrap items-center gap-2">
           {activeLabels.map((item) => (
             <Link
               key={`${item.key}-${item.label}`}
@@ -391,7 +389,7 @@ function MobileFiltersButton({
         <SheetHeader>
           <SheetTitle>Фільтри каталогу</SheetTitle>
           <SheetDescription>
-            Уточніть добірку за наявністю, ціною, брендом і типом товарів.
+            Уточніть добірку за наявністю, ціною, виробником і типом товарів.
           </SheetDescription>
         </SheetHeader>
         <div className="px-4 pb-4">
@@ -406,6 +404,19 @@ function MobileFiltersButton({
   );
 }
 
+function QuantityControl() {
+  return (
+    <button
+      type="button"
+      className="border-border bg-card hover:bg-muted inline-flex h-10 items-center gap-2 rounded-md border px-3 text-sm shadow-sm transition"
+      aria-label="Кількість товарів на сторінці"
+    >
+      Кількість: 24
+      <ChevronDownIcon className="text-muted-foreground size-4" />
+    </button>
+  );
+}
+
 function SortLink({
   basePath,
   filters,
@@ -413,15 +424,18 @@ function SortLink({
   const currentSort = filters.sort ?? "newest";
   const nextSort = currentSort === "popular" ? "newest" : "popular";
   const label =
-    catalogSortOptions.find((option) => option.value === currentSort)?.label ??
-    "Нові надходження";
+    currentSort === "newest"
+      ? "За замовчуванням"
+      : (catalogSortOptions.find((option) => option.value === currentSort)
+          ?.label ?? "За замовчуванням");
 
   return (
     <Link
       href={createCatalogHref(basePath, filters, { sort: nextSort })}
-      className={cn(buttonVariants({ variant: "outline" }), "h-10 rounded-lg")}
+      className="border-border bg-card hover:bg-muted inline-flex h-10 items-center gap-2 rounded-md border px-3 text-sm shadow-sm transition"
     >
       {label}
+      <ChevronDownIcon className="text-muted-foreground size-4" />
     </Link>
   );
 }
