@@ -73,7 +73,11 @@ export async function POST(request: Request) {
   }
 
   if (files.length === 0) {
-    return jsonError(400, "FILES_REQUIRED", "At least one image file is required.");
+    return jsonError(
+      400,
+      "FILES_REQUIRED",
+      "At least one image file is required.",
+    );
   }
 
   if (files.length > constraints.maxFilesPerRequest) {
@@ -143,7 +147,7 @@ export async function POST(request: Request) {
           ? "Cloudinary environment variables are not configured."
           : error.message === "PRODUCT_SLUG_REQUIRED"
             ? "Product slug is required before image upload."
-          : error.message
+            : error.message
         : "Image upload failed.";
 
     return jsonError(500, "UPLOAD_FAILED", message);

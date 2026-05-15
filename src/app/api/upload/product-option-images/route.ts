@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 
 import { auth } from "@/lib/auth/auth";
 import {
-  getCloudinaryUploadConstraints,
+  getProductOptionImageUploadConstraints,
   uploadProductOptionImageToCloudinary,
 } from "@/lib/cloudinary/upload";
 
@@ -50,10 +50,11 @@ export async function POST(request: Request) {
     typeof productSlugValue === "string" ? productSlugValue.trim() : "";
   const valueNumberValue = formData.get("valueNumber");
   const valueNumber = Number(valueNumberValue ?? 0);
-  const fileValue = formData.get("file");
-  const file =
-    fileValue instanceof File && fileValue.size > 0 ? fileValue : null;
-  const constraints = getCloudinaryUploadConstraints();
+  const files = formData
+    .getAll("file")
+    .filter((value): value is File => value instanceof File && value.size > 0);
+  const file = files[0] ?? null;
+  const constraints = getProductOptionImageUploadConstraints();
 
   if (!productSlug) {
     return jsonError(
@@ -76,6 +77,14 @@ export async function POST(request: Request) {
       400,
       "FILE_REQUIRED",
       "One option image file is required.",
+    );
+  }
+
+  if (files.length > constraints.maxFilesPerRequest) {
+    return jsonError(
+      400,
+      "TOO_MANY_FILES",
+      "You can upload exactly one option image file per request.",
     );
   }
 

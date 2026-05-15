@@ -92,6 +92,13 @@ export function getCatalogImageUploadConstraints() {
   };
 }
 
+export function getProductOptionImageUploadConstraints() {
+  return {
+    ...getCloudinaryUploadConstraints(),
+    maxFilesPerRequest: 1,
+  };
+}
+
 export async function uploadProductImageToCloudinary({
   file,
   imageNumber,
