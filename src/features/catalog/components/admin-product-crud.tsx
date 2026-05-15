@@ -75,7 +75,7 @@ type FieldDefinition = {
   options: FieldOption[];
   sortOrder: number;
   subcategoryId: string;
-  type: "TEXT" | "NUMBER" | "TEXTAREA" | "SELECT" | "BOOLEAN";
+  type: "TEXT" | "NUMBER" | "TEXTAREA" | "SELECT" | "MULTI_SELECT" | "BOOLEAN";
 };
 
 type SelectedProduct = {
@@ -118,6 +118,7 @@ type SelectedProduct = {
     url: string;
   }>;
   isActive: boolean;
+  isFeaturedDiscount: boolean;
   isFeaturedHit: boolean;
   isFeaturedNew: boolean;
   isFeaturedSale: boolean;
@@ -140,6 +141,7 @@ type ProductFormValues = {
   categoryId: string;
   description: string;
   isActive: boolean;
+  isFeaturedDiscount: boolean;
   isFeaturedHit: boolean;
   isFeaturedNew: boolean;
   isFeaturedSale: boolean;
@@ -319,6 +321,7 @@ function buildCreateValues(
     categoryId,
     description: "",
     isActive: true,
+    isFeaturedDiscount: false,
     isFeaturedHit: false,
     isFeaturedNew: false,
     isFeaturedSale: false,
@@ -338,6 +341,7 @@ function buildEditValues(selectedProduct: SelectedProduct): ProductFormValues {
     categoryId: selectedProduct.category.id,
     description: selectedProduct.description ?? "",
     isActive: selectedProduct.isActive,
+    isFeaturedDiscount: selectedProduct.isFeaturedDiscount,
     isFeaturedHit: selectedProduct.isFeaturedHit,
     isFeaturedNew: selectedProduct.isFeaturedNew,
     isFeaturedSale: selectedProduct.isFeaturedSale,

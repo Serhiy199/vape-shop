@@ -34,6 +34,7 @@ const FIELD_TYPE_OPTIONS = [
   { value: "NUMBER", label: "NUMBER" },
   { value: "TEXTAREA", label: "TEXTAREA" },
   { value: "SELECT", label: "SELECT" },
+  { value: "MULTI_SELECT", label: "MULTI_SELECT" },
   { value: "BOOLEAN", label: "BOOLEAN" },
 ] as const;
 
@@ -53,6 +54,7 @@ type FieldOptionValue = {
 };
 
 type SelectedField = {
+  isActive: boolean;
   id: string;
   isRequired: boolean;
   key: string;
@@ -66,6 +68,7 @@ type SelectedField = {
 };
 
 type FieldFormValues = {
+  isActive: boolean;
   isRequired: boolean;
   key: string;
   label: string;
@@ -98,9 +101,12 @@ function buildDefaultOption(index: number): FieldOptionValue {
   };
 }
 
-function buildCreateValues(subcategories: SubcategoryOption[]): FieldFormValues {
+function buildCreateValues(
+  subcategories: SubcategoryOption[],
+): FieldFormValues {
   return {
     isRequired: false,
+    isActive: true,
     key: "",
     label: "",
     options: [],
@@ -113,6 +119,7 @@ function buildCreateValues(subcategories: SubcategoryOption[]): FieldFormValues 
 function buildEditValues(selectedField: SelectedField): FieldFormValues {
   return {
     isRequired: selectedField.isRequired,
+    isActive: selectedField.isActive,
     key: selectedField.key,
     label: selectedField.label,
     options: selectedField.options.map((option, index) => ({
@@ -168,13 +175,14 @@ function FieldOptionsEditor({
           values.map((option, index) => (
             <div
               key={option.id ?? `option-${index}`}
-              className="space-y-4 rounded-2xl border border-border/70 bg-card/70 p-4"
+              className="border-border/70 bg-card/70 space-y-4 rounded-2xl border p-4"
             >
               <div className="flex items-center justify-between gap-3">
                 <div>
                   <p className="text-sm font-medium">Опція #{index + 1}</p>
                   <p className="text-muted-foreground text-sm leading-6">
-                    Користувач бачитиме `label`, а в базі зберігатиметься `value`.
+                    Користувач бачитиме `label`, а в базі зберігатиметься
+                    `value`.
                   </p>
                 </div>
                 <Button
@@ -236,7 +244,7 @@ function FieldOptionsEditor({
           </div>
         ) : null}
 
-        <div className="rounded-2xl border border-border/70 bg-muted/30 p-4">
+        <div className="border-border/70 bg-muted/30 rounded-2xl border p-4">
           <Button type="button" variant="outline" onClick={onAdd}>
             Додати опцію
           </Button>
@@ -274,11 +282,15 @@ function FieldFormFields({
   onSubcategoryChange: (value: string | null) => void;
   onTypeChange: (value: FieldType) => void;
   onValueChange: (
-    field: keyof Omit<FieldFormValues, "isRequired" | "options" | "subcategoryId" | "type">,
+    field: keyof Omit<
+      FieldFormValues,
+      "isRequired" | "options" | "subcategoryId" | "type"
+    >,
     value: string,
   ) => void;
 }) {
-  const isSelectType = values.type === "SELECT";
+  const isSelectType =
+    values.type === "SELECT" || values.type === "MULTI_SELECT";
 
   return (
     <div className="space-y-4">
@@ -364,12 +376,13 @@ function FieldFormFields({
           />
         </AdminFormGrid>
 
-        <div className="mt-4 rounded-2xl border border-border/70 bg-card/90 px-4 py-3">
+        <div className="border-border/70 bg-card/90 mt-4 rounded-2xl border px-4 py-3">
           <div className="flex items-start justify-between gap-4">
             <div className="space-y-1">
               <p className="text-sm font-medium">Обов&apos;язкове поле</p>
               <p className="text-muted-foreground text-sm leading-6">
-                Якщо ввімкнено, товар цієї підкатегорії не повинен залишатися без значення цього поля.
+                Якщо ввімкнено, товар цієї підкатегорії не повинен залишатися
+                без значення цього поля.
               </p>
             </div>
             <Switch
@@ -531,7 +544,7 @@ export function AdminFieldCrud({
         ...current,
         type: value,
         options:
-          value === "SELECT"
+          value === "SELECT" || value === "MULTI_SELECT"
             ? current.options.length
               ? current.options
               : [buildDefaultOption(1)]
@@ -552,7 +565,7 @@ export function AdminFieldCrud({
             ...current,
             type: value,
             options:
-              value === "SELECT"
+              value === "SELECT" || value === "MULTI_SELECT"
                 ? current.options.length
                   ? current.options
                   : [buildDefaultOption(1)]
@@ -634,9 +647,7 @@ export function AdminFieldCrud({
       return;
     }
 
-    const confirmed = window.confirm(
-      `Видалити поле "${selectedField.label}"?`,
-    );
+    const confirmed = window.confirm(`Видалити поле "${selectedField.label}"?`);
 
     if (!confirmed) {
       return;
@@ -751,9 +762,10 @@ export function AdminFieldCrud({
               </div>
             ) : null}
 
-            <div className="flex flex-col gap-3 rounded-2xl border border-border/70 bg-muted/30 p-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="border-border/70 bg-muted/30 flex flex-col gap-3 rounded-2xl border p-4 sm:flex-row sm:items-center sm:justify-between">
               <p className="text-muted-foreground text-sm leading-6">
-                Видалення доступне лише для полів, які ще не використовуються товарами.
+                Видалення доступне лише для полів, які ще не використовуються
+                товарами.
               </p>
               <div className="flex flex-wrap gap-2">
                 <Button
@@ -765,7 +777,9 @@ export function AdminFieldCrud({
                   {activeAction === "delete" ? "Видаляємо..." : "Видалити"}
                 </Button>
                 <Button type="submit" disabled={isPending}>
-                  {activeAction === "update" ? "Зберігаємо..." : "Зберегти зміни"}
+                  {activeAction === "update"
+                    ? "Зберігаємо..."
+                    : "Зберегти зміни"}
                 </Button>
               </div>
             </div>
@@ -853,9 +867,10 @@ export function AdminFieldCrud({
             </div>
           ) : null}
 
-          <div className="flex flex-col gap-3 rounded-2xl border border-border/70 bg-muted/30 p-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="border-border/70 bg-muted/30 flex flex-col gap-3 rounded-2xl border p-4 sm:flex-row sm:items-center sm:justify-between">
             <p className="text-muted-foreground text-sm leading-6">
-              Тепер структура характеристик збирається з адмінки, без ручного редагування seed чи коду.
+              Тепер структура характеристик збирається з адмінки, без ручного
+              редагування seed чи коду.
             </p>
             <Button type="submit" disabled={isPending}>
               {activeAction === "create" ? "Створюємо..." : "Створити поле"}

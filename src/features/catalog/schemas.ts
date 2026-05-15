@@ -204,6 +204,7 @@ const subcategoryFieldOptionSchema = z.object({
 const productFieldValueSchema = z.object({
   fieldId: idField(),
   optionId: optionalIdField(),
+  valueJson: z.array(z.string().trim().min(1).max(120)).max(100).optional(),
   valueBoolean: z
     .union([z.boolean(), z.string()])
     .optional()
@@ -272,6 +273,23 @@ const productImageSchema = z.object({
   isPrimary: z.coerce.boolean().default(false),
 });
 
+const productOptionValueSchema = z.object({
+  id: optionalIdField(),
+  label: requiredName(120),
+  image: z.string().trim().url().max(2048),
+  imagePublicId: optionalTrimmedString(255),
+  sortOrder: sortOrderField(),
+});
+
+const productOptionSchema = z.object({
+  id: optionalIdField(),
+  name: requiredName(80),
+  values: z
+    .array(productOptionValueSchema)
+    .min(1, "Потрібно додати хоча б одне значення опції товару.")
+    .max(100, "Опція товару може містити максимум 100 значень."),
+});
+
 const productImagesSchema = z
   .array(productImageSchema)
   .superRefine((images, ctx) => {
@@ -336,9 +354,17 @@ const subcategoryFieldBaseSchema = z.object({
   key: fieldKey(),
   type: fieldType(),
   isRequired: z.coerce.boolean().default(false),
+  isActive: z.coerce.boolean().default(true),
   sortOrder: sortOrderField(),
   options: z.array(subcategoryFieldOptionSchema).default([]),
 });
+
+function isOptionBackedFieldType(value: SubcategoryFieldType) {
+  return (
+    value === SubcategoryFieldType.SELECT ||
+    value === SubcategoryFieldType.MULTI_SELECT
+  );
+}
 
 function validateFieldOptions(
   value: z.input<typeof subcategoryFieldBaseSchema>,
@@ -346,18 +372,19 @@ function validateFieldOptions(
 ) {
   const options = value.options ?? [];
 
-  if (value.type === SubcategoryFieldType.SELECT) {
+  if (isOptionBackedFieldType(value.type)) {
     if (options.length === 0) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
-        message: "Для поля типу SELECT потрібно додати хоча б одну опцію.",
+        message:
+          "Для поля типу SELECT або MULTI_SELECT потрібно додати хоча б одну опцію.",
         path: ["options"],
       });
     }
   } else if (options.length > 0) {
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
-      message: "Опції дозволені лише для поля типу SELECT.",
+      message: "Опції дозволені лише для полів типу SELECT або MULTI_SELECT.",
       path: ["options"],
     });
   }
@@ -477,10 +504,15 @@ const productBaseSchema = z.object({
   isFeaturedNew: z.coerce.boolean().default(false),
   isFeaturedSale: z.coerce.boolean().default(false),
   isFeaturedHit: z.coerce.boolean().default(false),
+  isFeaturedDiscount: z.coerce.boolean().default(false),
   seoTitle: optionalTrimmedString(160),
   seoDescription: optionalTrimmedString(320),
   images: productImagesSchema,
   fieldValues: productFieldValuesSchema.default([]),
+  option: productOptionSchema
+    .nullable()
+    .optional()
+    .transform((value) => value ?? undefined),
 });
 
 export const createProductSchema = productBaseSchema;
@@ -514,6 +546,8 @@ export type DeleteSubcategoryFieldInput = z.infer<
 >;
 export type ProductFieldValueInput = z.infer<typeof productFieldValueSchema>;
 export type ProductImageInput = z.infer<typeof productImageSchema>;
+export type ProductOptionInput = z.infer<typeof productOptionSchema>;
+export type ProductOptionValueInput = z.infer<typeof productOptionValueSchema>;
 export type ValidateProductFieldValuesInput = z.infer<
   typeof validateProductFieldValuesSchema
 >;

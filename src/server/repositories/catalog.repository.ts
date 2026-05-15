@@ -156,6 +156,7 @@ export async function getAdminSubcategoryById(subcategoryId: string) {
           type: true,
           sortOrder: true,
           isRequired: true,
+          isActive: true,
           isFilterable: true,
         },
       },
@@ -517,6 +518,7 @@ export async function listAdminSubcategoryFields() {
       type: true,
       sortOrder: true,
       isRequired: true,
+      isActive: true,
       isFilterable: true,
       helpText: true,
       subcategory: {
@@ -566,6 +568,7 @@ export async function listSubcategoryFields(subcategoryId: string) {
       type: true,
       sortOrder: true,
       isRequired: true,
+      isActive: true,
       isFilterable: true,
       helpText: true,
       options: {
@@ -600,6 +603,7 @@ export async function getAdminSubcategoryFieldById(fieldId: string) {
       type: true,
       sortOrder: true,
       isRequired: true,
+      isActive: true,
       isFilterable: true,
       helpText: true,
       createdAt: true,
@@ -655,6 +659,7 @@ export async function getSubcategoryFieldById(fieldId: string) {
       type: true,
       sortOrder: true,
       isRequired: true,
+      isActive: true,
       isFilterable: true,
       helpText: true,
       options: {
@@ -700,8 +705,9 @@ export async function createSubcategoryField(input: {
   subcategoryId: string;
   label: string;
   key: string;
-  type: "TEXT" | "NUMBER" | "TEXTAREA" | "SELECT" | "BOOLEAN";
+  type: "TEXT" | "NUMBER" | "TEXTAREA" | "SELECT" | "MULTI_SELECT" | "BOOLEAN";
   isRequired: boolean;
+  isActive: boolean;
   sortOrder: number;
   helpText?: string;
   isFilterable?: boolean;
@@ -718,6 +724,7 @@ export async function createSubcategoryField(input: {
       key: input.key,
       type: input.type,
       isRequired: input.isRequired,
+      isActive: input.isActive,
       sortOrder: input.sortOrder,
       helpText: input.helpText,
       isFilterable: input.isFilterable ?? false,
@@ -742,8 +749,9 @@ export async function updateSubcategoryField(input: {
   subcategoryId: string;
   label: string;
   key: string;
-  type: "TEXT" | "NUMBER" | "TEXTAREA" | "SELECT" | "BOOLEAN";
+  type: "TEXT" | "NUMBER" | "TEXTAREA" | "SELECT" | "MULTI_SELECT" | "BOOLEAN";
   isRequired: boolean;
+  isActive: boolean;
   sortOrder: number;
   helpText?: string;
   isFilterable?: boolean;
@@ -763,6 +771,7 @@ export async function updateSubcategoryField(input: {
       key: input.key,
       type: input.type,
       isRequired: input.isRequired,
+      isActive: input.isActive,
       sortOrder: input.sortOrder,
       helpText: input.helpText,
       isFilterable: input.isFilterable ?? false,
@@ -960,6 +969,7 @@ type ProductWriteInput = {
   price: number;
   availability: ProductAvailability;
   isActive: boolean;
+  isFeaturedDiscount: boolean;
   isFeaturedNew: boolean;
   isFeaturedSale: boolean;
   isFeaturedHit: boolean;
@@ -976,6 +986,7 @@ const adminProductListSelect = {
   price: true,
   availability: true,
   isActive: true,
+  isFeaturedDiscount: true,
   isFeaturedNew: true,
   isFeaturedSale: true,
   isFeaturedHit: true,
@@ -1039,6 +1050,7 @@ const adminProductDetailSelect = {
   price: true,
   availability: true,
   isActive: true,
+  isFeaturedDiscount: true,
   isFeaturedNew: true,
   isFeaturedSale: true,
   isFeaturedHit: true,
@@ -1229,6 +1241,7 @@ export async function createProduct(input: ProductWriteInput) {
         price: input.price,
         availability: input.availability,
         isActive: input.isActive,
+        isFeaturedDiscount: input.isFeaturedDiscount,
         isFeaturedNew: input.isFeaturedNew,
         isFeaturedSale: input.isFeaturedSale,
         isFeaturedHit: input.isFeaturedHit,
@@ -1283,6 +1296,7 @@ export async function updateProduct(input: ProductWriteInput & { id: string }) {
         price: input.price,
         availability: input.availability,
         isActive: input.isActive,
+        isFeaturedDiscount: input.isFeaturedDiscount,
         isFeaturedNew: input.isFeaturedNew,
         isFeaturedSale: input.isFeaturedSale,
         isFeaturedHit: input.isFeaturedHit,

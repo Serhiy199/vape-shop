@@ -122,9 +122,12 @@ export default async function AdminFieldsPage({
                           {field.label}
                         </Link>
                         <p className="text-muted-foreground text-xs">
-                          {field.subcategory.category.name} / {field.subcategory.name}
+                          {field.subcategory.category.name} /{" "}
+                          {field.subcategory.name}
                         </p>
-                        <p className="text-muted-foreground text-xs">{field.key}</p>
+                        <p className="text-muted-foreground text-xs">
+                          {field.key}
+                        </p>
                       </div>
                     ),
                   },
@@ -132,7 +135,9 @@ export default async function AdminFieldsPage({
                     key: "type",
                     header: "Тип",
                     className: "w-32",
-                    cell: (field) => <Badge variant="outline">{field.type}</Badge>,
+                    cell: (field) => (
+                      <Badge variant="outline">{field.type}</Badge>
+                    ),
                   },
                   {
                     key: "options",
@@ -168,8 +173,8 @@ export default async function AdminFieldsPage({
                 <div>
                   <p className="text-sm font-medium">Деталі поля</p>
                   <p className="text-muted-foreground text-sm leading-6">
-                    Detail panel уже показує реальні дані поля, його підкатегорію,
-                    тип, опції та рівень використання в товарах.
+                    Detail panel уже показує реальні дані поля, його
+                    підкатегорію, тип, опції та рівень використання в товарах.
                   </p>
                 </div>
 
@@ -201,7 +206,7 @@ export default async function AdminFieldsPage({
                     },
                     {
                       label: "Параметри",
-                      value: `${selectedField.isRequired ? "Обов'язкове" : "Необов'язкове"} / #${selectedField.sortOrder}`,
+                      value: `${selectedField.isRequired ? "Обов'язкове" : "Необов'язкове"} / ${selectedField.isActive ? "Активне" : "Неактивне"} / #${selectedField.sortOrder}`,
                     },
                     {
                       label: "Використання",
@@ -218,6 +223,7 @@ export default async function AdminFieldsPage({
                   }))}
                   selectedField={{
                     id: selectedField.id,
+                    isActive: selectedField.isActive,
                     isRequired: selectedField.isRequired,
                     key: selectedField.key,
                     label: selectedField.label,
@@ -244,7 +250,7 @@ export default async function AdminFieldsPage({
                       selectedField.options.map((option) => (
                         <div
                           key={option.id}
-                          className="flex items-start justify-between gap-3 rounded-2xl border border-border/70 bg-card/70 p-4"
+                          className="border-border/70 bg-card/70 flex items-start justify-between gap-3 rounded-2xl border p-4"
                         >
                           <div className="space-y-1">
                             <p className="font-medium">{option.label}</p>

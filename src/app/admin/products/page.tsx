@@ -91,7 +91,10 @@ export default async function AdminProductsPage({
   ).length;
   const featuredCount = products.filter(
     (product) =>
-      product.isFeaturedHit || product.isFeaturedNew || product.isFeaturedSale,
+      product.isFeaturedHit ||
+      product.isFeaturedNew ||
+      product.isFeaturedSale ||
+      product.isFeaturedDiscount,
   ).length;
   const productsWithBrands = products.filter((product) => product.brand).length;
 
@@ -373,6 +376,9 @@ export default async function AdminProductsPage({
                   {selectedProduct.isFeaturedHit ? (
                     <Badge variant="secondary">Hit</Badge>
                   ) : null}
+                  {selectedProduct.isFeaturedDiscount ? (
+                    <Badge variant="secondary">Знижка</Badge>
+                  ) : null}
                 </div>
 
                 <AdminProductCrud
@@ -425,6 +431,7 @@ export default async function AdminProductsPage({
                       url: image.url,
                     })),
                     isActive: selectedProduct.isActive,
+                    isFeaturedDiscount: selectedProduct.isFeaturedDiscount,
                     isFeaturedHit: selectedProduct.isFeaturedHit,
                     isFeaturedNew: selectedProduct.isFeaturedNew,
                     isFeaturedSale: selectedProduct.isFeaturedSale,

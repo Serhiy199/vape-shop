@@ -95,6 +95,7 @@ type NormalizedProductWritePayload = {
   id?: string;
   images: ProductImageInput[];
   isActive: boolean;
+  isFeaturedDiscount: boolean;
   isFeaturedHit: boolean;
   isFeaturedNew: boolean;
   isFeaturedSale: boolean;
@@ -1085,6 +1086,7 @@ async function normalizeProductWritePayload(
     id: "id" in payload ? payload.id : undefined,
     images: payload.images,
     isActive: payload.isActive,
+    isFeaturedDiscount: payload.isFeaturedDiscount,
     isFeaturedHit: payload.isFeaturedHit,
     isFeaturedNew: payload.isFeaturedNew,
     isFeaturedSale: payload.isFeaturedSale,
