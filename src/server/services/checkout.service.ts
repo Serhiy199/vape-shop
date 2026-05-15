@@ -40,6 +40,9 @@ type NormalizedCheckoutItem = {
   lineTotal: number;
   product: CheckoutProductRecord;
   quantity: number;
+  selectedOptionName?: string;
+  selectedOptionValue?: string;
+  selectedOptionValueId?: string;
   unitPrice: number;
 };
 
@@ -72,19 +75,24 @@ function extractCityFromManualAddress(deliveryAddress: string) {
 }
 
 function aggregateItems(items: CheckoutCartItemInput[]) {
-  const quantitiesByProductId = new Map<string, number>();
+  const itemsByLineId = new Map<
+    string,
+    CheckoutCartItemInput & { quantity: number }
+  >();
 
   items.forEach((item) => {
-    quantitiesByProductId.set(
-      item.productId,
-      (quantitiesByProductId.get(item.productId) ?? 0) + item.quantity,
-    );
+    const lineItemId = item.selectedOptionValueId
+      ? `${item.productId}:${item.selectedOptionValueId}`
+      : item.productId;
+    const current = itemsByLineId.get(lineItemId);
+
+    itemsByLineId.set(lineItemId, {
+      ...item,
+      quantity: (current?.quantity ?? 0) + item.quantity,
+    });
   });
 
-  return [...quantitiesByProductId.entries()].map(([productId, quantity]) => ({
-    productId,
-    quantity,
-  }));
+  return [...itemsByLineId.values()];
 }
 
 async function resolveCheckoutItems(items: CheckoutCartItemInput[]) {
@@ -122,6 +130,9 @@ async function resolveCheckoutItems(items: CheckoutCartItemInput[]) {
       lineTotal,
       product,
       quantity: item.quantity,
+      selectedOptionName: item.selectedOptionName,
+      selectedOptionValue: item.selectedOptionValue,
+      selectedOptionValueId: item.selectedOptionValueId,
       unitPrice,
     });
   }
@@ -185,6 +196,9 @@ export async function createStorefrontCheckoutOrder(
       productSlug: item.product.slug,
       productTitle: item.product.title,
       quantity: item.quantity,
+      selectedOptionName: item.selectedOptionName,
+      selectedOptionValue: item.selectedOptionValue,
+      selectedOptionValueId: item.selectedOptionValueId,
       unitPrice: item.unitPrice,
     })),
     lastName: payload.lastName,

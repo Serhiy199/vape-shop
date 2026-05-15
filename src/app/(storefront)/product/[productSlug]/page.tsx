@@ -1,8 +1,7 @@
 import { notFound } from "next/navigation";
 
-import { StorefrontProductGallery } from "@/components/storefront/product-gallery";
+import { StorefrontProductDetailExperience } from "@/components/storefront/product-detail-experience";
 import { StorefrontProductGrid } from "@/components/storefront/product-grid";
-import { StorefrontProductPurchasePanel } from "@/components/storefront/product-purchase-panel";
 import {
   StorefrontCard,
   StorefrontPageHeader,
@@ -67,16 +66,13 @@ export default async function ProductPage({ params }: ProductPageProps) {
       />
 
       <StorefrontSection>
-        <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_420px]">
-          <StorefrontProductGallery
-            images={product.images}
-            title={product.title}
-          />
-          <StorefrontProductPurchasePanel
-            highlights={purchaseHighlights}
-            product={product.card}
-          />
-        </div>
+        <StorefrontProductDetailExperience
+          highlights={purchaseHighlights}
+          images={product.images}
+          option={product.option}
+          product={product.card}
+          title={product.title}
+        />
       </StorefrontSection>
 
       <StorefrontSection tone="muted">

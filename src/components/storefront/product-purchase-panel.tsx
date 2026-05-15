@@ -1,13 +1,20 @@
+"use client";
+
 import { HeartIcon, ShieldCheckIcon, TruckIcon } from "lucide-react";
 
 import { AddToCartButton } from "@/components/storefront/add-to-cart-button";
-import type { StorefrontProductCardItem } from "@/components/storefront/product-types";
+import type {
+  StorefrontProductCardItem,
+  StorefrontProductOption,
+  StorefrontProductOptionValue,
+} from "@/components/storefront/product-types";
 import { currencyFormatter } from "@/components/storefront/product-card";
 import {
   StorefrontBadge,
   StorefrontCard,
 } from "@/components/storefront/storefront-primitives";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 type ProductPurchaseHighlight = {
   label: string;
@@ -16,12 +23,19 @@ type ProductPurchaseHighlight = {
 
 export function StorefrontProductPurchasePanel({
   highlights = [],
+  onSelectOptionValue,
+  option,
   product,
+  selectedOptionValue,
 }: {
   highlights?: ProductPurchaseHighlight[];
+  onSelectOptionValue?: (value: StorefrontProductOptionValue) => void;
+  option?: StorefrontProductOption | null;
   product: StorefrontProductCardItem;
+  selectedOptionValue?: StorefrontProductOptionValue | null;
 }) {
   const isAvailable = product.availability === "in_stock";
+  const requiresOption = Boolean(option && option.values.length > 0);
 
   return (
     <StorefrontCard className="p-5 lg:sticky lg:top-40">
@@ -55,7 +69,7 @@ export function StorefrontProductPurchasePanel({
         <div className="space-y-1">
           {product.brand ? (
             <p className="text-muted-foreground text-sm">
-              Бренд: {product.brand}
+              Виробник: {product.brand}
             </p>
           ) : null}
           <p className="text-3xl font-semibold tracking-tight">
@@ -63,8 +77,70 @@ export function StorefrontProductPurchasePanel({
           </p>
         </div>
 
+        {option && option.values.length > 0 ? (
+          <div className="space-y-3">
+            <div className="flex items-center justify-between gap-3">
+              <p className="font-medium">{option.name}</p>
+              {selectedOptionValue ? (
+                <span className="text-muted-foreground text-sm">
+                  {selectedOptionValue.label}
+                </span>
+              ) : null}
+            </div>
+            <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 lg:grid-cols-3 xl:grid-cols-4">
+              {option.values.map((value) => {
+                const isSelected = selectedOptionValue?.id === value.id;
+
+                return (
+                  <button
+                    key={value.id}
+                    className={cn(
+                      "bg-background hover:border-primary/60 rounded-lg border p-2 text-left transition",
+                      isSelected
+                        ? "border-primary ring-primary/20 ring-2"
+                        : "border-border/70",
+                    )}
+                    onClick={() => onSelectOptionValue?.(value)}
+                    type="button"
+                  >
+                    <span className="bg-muted/70 grid aspect-square place-items-center overflow-hidden rounded-md">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={value.image}
+                        alt={value.label}
+                        className="h-full w-full object-cover"
+                      />
+                    </span>
+                    <span className="mt-2 block truncate text-xs font-medium">
+                      {value.label}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        ) : null}
+
         <div className="grid gap-2 sm:grid-cols-[1fr_auto] lg:grid-cols-1 xl:grid-cols-[1fr_auto]">
-          <AddToCartButton className="h-12 rounded-lg" product={product} />
+          <AddToCartButton
+            className="h-12 rounded-lg"
+            disabledReason={
+              requiresOption && !selectedOptionValue
+                ? "Оберіть продукт вище"
+                : undefined
+            }
+            product={product}
+            selectedOption={
+              selectedOptionValue && option
+                ? {
+                    image: selectedOptionValue.image,
+                    label: selectedOptionValue.label,
+                    name: option.name,
+                    valueId: selectedOptionValue.id,
+                  }
+                : null
+            }
+          />
           <Button
             variant="outline"
             size="icon"

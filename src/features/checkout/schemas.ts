@@ -43,6 +43,9 @@ export const checkoutPaymentOptions = [
 
 export const checkoutCartItemSchema = z.object({
   productId: idField(),
+  selectedOptionName: optionalText(120),
+  selectedOptionValue: optionalText(120),
+  selectedOptionValueId: optionalText(191),
   quantity: z.coerce
     .number({
       invalid_type_error: "Кількість має бути числом.",
@@ -80,10 +83,14 @@ export const createCheckoutOrderSchema = checkoutCustomerSchema
       .max(50, "У кошику може бути не більше 50 позицій."),
   })
   .superRefine((value, ctx) => {
-    const seenProductIds = new Set<string>();
+    const seenLineItemIds = new Set<string>();
 
     value.items.forEach((item, index) => {
-      if (seenProductIds.has(item.productId)) {
+      const lineItemId = item.selectedOptionValueId
+        ? `${item.productId}:${item.selectedOptionValueId}`
+        : item.productId;
+
+      if (seenLineItemIds.has(lineItemId)) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
           message: "Один товар не можна передавати декількома позиціями.",
@@ -92,7 +99,7 @@ export const createCheckoutOrderSchema = checkoutCustomerSchema
         return;
       }
 
-      seenProductIds.add(item.productId);
+      seenLineItemIds.add(lineItemId);
     });
   });
 

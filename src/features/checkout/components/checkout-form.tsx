@@ -238,7 +238,7 @@ export function CheckoutForm() {
 
             <div className="max-h-72 space-y-3 overflow-y-auto pr-1">
               {items.map((item) => (
-                <div key={item.productId} className="flex gap-3 text-sm">
+                <div key={item.lineItemId} className="flex gap-3 text-sm">
                   <Link
                     href={`/product/${item.slug}`}
                     className="bg-muted/70 grid size-14 shrink-0 place-items-center overflow-hidden rounded-lg"
@@ -264,6 +264,11 @@ export function CheckoutForm() {
                     <p className="text-muted-foreground">
                       {item.quantity} x {currencyFormatter.format(item.price)}
                     </p>
+                    {item.selectedOptionName && item.selectedOptionValue ? (
+                      <p className="text-muted-foreground">
+                        {item.selectedOptionName}: {item.selectedOptionValue}
+                      </p>
+                    ) : null}
                   </div>
                 </div>
               ))}

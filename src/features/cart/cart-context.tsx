@@ -19,25 +19,29 @@ export type CartProductSnapshot = {
   imageSrc?: string;
   price: number;
   productId: string;
+  selectedOptionName?: string;
+  selectedOptionValue?: string;
+  selectedOptionValueId?: string;
   slug: string;
   title: string;
 };
 
 export type CartItem = CartProductSnapshot & {
+  lineItemId: string;
   quantity: number;
 };
 
 type CartContextValue = {
   addItem: (product: CartProductSnapshot, quantity?: number) => void;
   clearCart: () => void;
-  decrementItem: (productId: string) => void;
-  incrementItem: (productId: string) => void;
+  decrementItem: (lineItemId: string) => void;
+  incrementItem: (lineItemId: string) => void;
   isHydrated: boolean;
   itemCount: number;
   items: CartItem[];
-  removeItem: (productId: string) => void;
+  removeItem: (lineItemId: string) => void;
   totalAmount: number;
-  updateQuantity: (productId: string, quantity: number) => void;
+  updateQuantity: (lineItemId: string, quantity: number) => void;
 };
 
 const CartContext = createContext<CartContextValue | null>(null);
@@ -71,14 +75,45 @@ function normalizeStoredItem(value: unknown): CartItem | null {
       item.availability === "out_of_stock" ? "out_of_stock" : "in_stock",
     imageAlt: typeof item.imageAlt === "string" ? item.imageAlt : undefined,
     imageSrc: typeof item.imageSrc === "string" ? item.imageSrc : undefined,
+    lineItemId:
+      typeof item.lineItemId === "string"
+        ? item.lineItemId
+        : createCartLineItemId({
+            productId: item.productId,
+            selectedOptionValueId:
+              typeof item.selectedOptionValueId === "string"
+                ? item.selectedOptionValueId
+                : undefined,
+          }),
     price: item.price,
     productId: item.productId,
     quantity: clampQuantity(
       typeof item.quantity === "number" ? item.quantity : MIN_QUANTITY,
     ),
+    selectedOptionName:
+      typeof item.selectedOptionName === "string"
+        ? item.selectedOptionName
+        : undefined,
+    selectedOptionValue:
+      typeof item.selectedOptionValue === "string"
+        ? item.selectedOptionValue
+        : undefined,
+    selectedOptionValueId:
+      typeof item.selectedOptionValueId === "string"
+        ? item.selectedOptionValueId
+        : undefined,
     slug: item.slug,
     title: item.title,
   };
+}
+
+function createCartLineItemId(product: {
+  productId: string;
+  selectedOptionValueId?: string;
+}) {
+  return product.selectedOptionValueId
+    ? `${product.productId}:${product.selectedOptionValueId}`
+    : product.productId;
 }
 
 function readStoredCart() {
@@ -127,18 +162,20 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   const addItem = useCallback(
     (product: CartProductSnapshot, quantity = MIN_QUANTITY) => {
       const quantityToAdd = clampQuantity(quantity);
+      const lineItemId = createCartLineItemId(product);
 
       setItems((currentItems) => {
         const existingItem = currentItems.find(
-          (item) => item.productId === product.productId,
+          (item) => item.lineItemId === lineItemId,
         );
 
         if (existingItem) {
           return currentItems.map((item) =>
-            item.productId === product.productId
+            item.lineItemId === lineItemId
               ? {
                   ...item,
                   ...product,
+                  lineItemId,
                   quantity: clampQuantity(item.quantity + quantityToAdd),
                 }
               : item,
@@ -149,6 +186,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
           ...currentItems,
           {
             ...product,
+            lineItemId,
             quantity: quantityToAdd,
           },
         ];
@@ -157,16 +195,16 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     [],
   );
 
-  const removeItem = useCallback((productId: string) => {
+  const removeItem = useCallback((lineItemId: string) => {
     setItems((currentItems) =>
-      currentItems.filter((item) => item.productId !== productId),
+      currentItems.filter((item) => item.lineItemId !== lineItemId),
     );
   }, []);
 
-  const updateQuantity = useCallback((productId: string, quantity: number) => {
+  const updateQuantity = useCallback((lineItemId: string, quantity: number) => {
     setItems((currentItems) =>
       currentItems.map((item) =>
-        item.productId === productId
+        item.lineItemId === lineItemId
           ? {
               ...item,
               quantity: clampQuantity(quantity),
@@ -176,10 +214,10 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     );
   }, []);
 
-  const incrementItem = useCallback((productId: string) => {
+  const incrementItem = useCallback((lineItemId: string) => {
     setItems((currentItems) =>
       currentItems.map((item) =>
-        item.productId === productId
+        item.lineItemId === lineItemId
           ? {
               ...item,
               quantity: clampQuantity(item.quantity + 1),
@@ -189,10 +227,10 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     );
   }, []);
 
-  const decrementItem = useCallback((productId: string) => {
+  const decrementItem = useCallback((lineItemId: string) => {
     setItems((currentItems) =>
       currentItems.map((item) =>
-        item.productId === productId
+        item.lineItemId === lineItemId
           ? {
               ...item,
               quantity: clampQuantity(item.quantity - 1),

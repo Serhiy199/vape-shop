@@ -49,7 +49,7 @@ function CartQuantityControls({ item }: { item: CartItem }) {
           aria-label="Зменшити кількість"
           className="size-10 rounded-r-none border-0"
           disabled={item.quantity <= 1}
-          onClick={() => decrementItem(item.productId)}
+          onClick={() => decrementItem(item.lineItemId)}
           size="icon"
           type="button"
           variant="outline"
@@ -63,7 +63,7 @@ function CartQuantityControls({ item }: { item: CartItem }) {
           min={1}
           max={99}
           onChange={(event) =>
-            updateQuantity(item.productId, Number(event.target.value))
+            updateQuantity(item.lineItemId, Number(event.target.value))
           }
           type="number"
           value={item.quantity}
@@ -72,7 +72,7 @@ function CartQuantityControls({ item }: { item: CartItem }) {
           aria-label="Збільшити кількість"
           className="size-10 rounded-l-none border-0"
           disabled={item.quantity >= 99}
-          onClick={() => incrementItem(item.productId)}
+          onClick={() => incrementItem(item.lineItemId)}
           size="icon"
           type="button"
           variant="outline"
@@ -82,7 +82,7 @@ function CartQuantityControls({ item }: { item: CartItem }) {
       </div>
       <Button
         aria-label="Видалити товар"
-        onClick={() => removeItem(item.productId)}
+        onClick={() => removeItem(item.lineItemId)}
         size="icon"
         type="button"
         variant="destructive"
@@ -110,6 +110,11 @@ function CartItemRow({ item }: { item: CartItem }) {
               <p className="text-muted-foreground text-sm">
                 {currencyFormatter.format(item.price)} за одиницю
               </p>
+              {item.selectedOptionName && item.selectedOptionValue ? (
+                <p className="text-muted-foreground text-sm">
+                  {item.selectedOptionName}: {item.selectedOptionValue}
+                </p>
+              ) : null}
             </div>
             <p className="text-lg font-semibold tracking-tight">
               {currencyFormatter.format(item.price * item.quantity)}
@@ -166,7 +171,7 @@ export function CartView() {
     <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_380px]">
       <div className="space-y-3">
         {items.map((item) => (
-          <CartItemRow key={item.productId} item={item} />
+          <CartItemRow key={item.lineItemId} item={item} />
         ))}
       </div>
 

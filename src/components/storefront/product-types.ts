@@ -14,3 +14,17 @@ export type StorefrontProductCardItem = {
   slug: string;
   title: string;
 };
+
+export type StorefrontProductOptionValue = {
+  id: string;
+  image: string;
+  imagePublicId?: string | null;
+  label: string;
+  sortOrder: number;
+};
+
+export type StorefrontProductOption = {
+  id: string;
+  name: string;
+  values: StorefrontProductOptionValue[];
+};

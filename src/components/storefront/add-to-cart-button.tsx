@@ -8,23 +8,35 @@ import { Button } from "@/components/ui/button";
 import { useCart } from "@/features/cart/cart-context";
 import { cn } from "@/lib/utils";
 
+type SelectedCartOption = {
+  image?: string;
+  label: string;
+  name: string;
+  valueId: string;
+};
+
 export function AddToCartButton({
   className,
+  disabledReason,
   product,
   quantity = 1,
+  selectedOption,
   size = "default",
 }: {
   className?: string;
+  disabledReason?: string;
   product: StorefrontProductCardItem;
   quantity?: number;
+  selectedOption?: SelectedCartOption | null;
   size?: React.ComponentProps<typeof Button>["size"];
 }) {
   const { addItem } = useCart();
   const [isAdded, setIsAdded] = useState(false);
   const isAvailable = product.availability === "in_stock";
+  const isDisabled = !isAvailable || Boolean(disabledReason);
 
   function handleAddToCart() {
-    if (!isAvailable) {
+    if (isDisabled) {
       return;
     }
 
@@ -32,9 +44,12 @@ export function AddToCartButton({
       {
         availability: product.availability,
         imageAlt: product.imageAlt,
-        imageSrc: product.imageSrc,
+        imageSrc: selectedOption?.image ?? product.imageSrc,
         price: product.price,
         productId: product.id,
+        selectedOptionName: selectedOption?.name,
+        selectedOptionValue: selectedOption?.label,
+        selectedOptionValueId: selectedOption?.valueId,
         slug: product.slug,
         title: product.title,
       },
@@ -47,18 +62,20 @@ export function AddToCartButton({
   return (
     <Button
       className={cn("gap-2", className)}
-      disabled={!isAvailable}
+      disabled={isDisabled}
       onClick={handleAddToCart}
       size={size}
       type="button"
-      variant={isAvailable ? "default" : "outline"}
+      variant={isDisabled ? "outline" : "default"}
     >
       {isAdded ? (
         <CheckIcon className="size-4" />
       ) : (
         <ShoppingCartIcon className="size-4" />
       )}
-      {isAvailable ? (isAdded ? "Додано" : "До кошика") : "Товар недоступний"}
+      {isAvailable
+        ? disabledReason || (isAdded ? "Додано" : "До кошика")
+        : "Товар недоступний"}
     </Button>
   );
 }
