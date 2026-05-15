@@ -123,6 +123,12 @@ export async function POST(request: Request) {
       { status: 201 },
     );
   } catch (error) {
+    console.error("[catalog-image-upload] Upload failed", {
+      entitySlug,
+      entityType,
+      message: error instanceof Error ? error.message : "Unknown error",
+    });
+
     const message =
       error instanceof Error
         ? error.message === "CLOUDINARY_CONFIG_MISSING"

@@ -544,6 +544,12 @@ export async function listActiveStorefrontBrands(limit?: number) {
   const brands = await prisma.brand.findMany({
     where: {
       isActive: true,
+      subcategory: {
+        isActive: true,
+        category: {
+          isActive: true,
+        },
+      },
       products: {
         some: {
           ...storefrontVisibleProductWhere,
@@ -639,6 +645,7 @@ export async function getActiveStorefrontSubcategoryBySlug(input: {
       },
       fields: {
         where: {
+          isActive: true,
           isFilterable: true,
         },
         orderBy: [{ sortOrder: "asc" }, { label: "asc" }],

@@ -36,6 +36,13 @@ function resolveBrandPageTitle(brand: StorefrontBrandPageData) {
   return brand.seoTitle || `${brand.subcategory.name} ${brand.name}`;
 }
 
+function resolveBrandPageDescription(brand: StorefrontBrandPageData) {
+  return (
+    brand.seoDescription ||
+    `Купити ${brand.name} в категорії ${brand.subcategory.name}. Великий вибір, швидке оформлення та доставка по Україні.`
+  );
+}
+
 export async function generateMetadata({
   params,
 }: {
@@ -54,9 +61,7 @@ export async function generateMetadata({
 
   return {
     title: resolveBrandPageTitle(brand),
-    description:
-      brand.seoDescription ||
-      `Купити ${brand.name} в категорії ${brand.subcategory.name}. Великий вибір, швидке оформлення та доставка по Україні.`,
+    description: resolveBrandPageDescription(brand),
   };
 }
 
