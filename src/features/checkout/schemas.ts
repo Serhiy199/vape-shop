@@ -7,11 +7,14 @@ function requiredText(max: number, message: string) {
 }
 
 function optionalText(max: number) {
-  return z
-    .string()
-    .trim()
-    .transform((value) => (value.length === 0 ? undefined : value))
-    .pipe(z.string().max(max).optional());
+  return z.preprocess(
+    (value) => (value == null ? "" : value),
+    z
+      .string()
+      .trim()
+      .transform((value) => (value.length === 0 ? undefined : value))
+      .pipe(z.string().max(max).optional()),
+  );
 }
 
 function idField() {

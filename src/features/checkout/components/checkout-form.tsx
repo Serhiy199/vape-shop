@@ -1,5 +1,7 @@
 "use client";
 
+import type { FormEvent } from "react";
+import { useState, useTransition } from "react";
 import Link from "next/link";
 import { CreditCardIcon, PackageCheckIcon, TruckIcon } from "lucide-react";
 
@@ -17,6 +19,7 @@ import {
   checkoutFieldPlaceholders,
   checkoutPaymentOptions,
 } from "@/features/checkout/schemas";
+import { createCheckoutOrderAction } from "@/features/checkout/actions/checkout";
 import { useCart } from "@/features/cart/cart-context";
 import { cn } from "@/lib/utils";
 
@@ -83,7 +86,47 @@ function EmptyCheckout() {
 }
 
 export function CheckoutForm() {
-  const { isHydrated, itemCount, items, totalAmount } = useCart();
+  const { clearCart, isHydrated, itemCount, items, totalAmount } = useCart();
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [isPending, startTransition] = useTransition();
+
+  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    const formData = new FormData(event.currentTarget);
+    const payload = {
+      customerNote: formData.get("customerNote"),
+      deliveryAddress: formData.get("deliveryAddress"),
+      email: formData.get("email"),
+      firstName: formData.get("firstName"),
+      items: items.map((item) => ({
+        productId: item.productId,
+        quantity: item.quantity,
+        selectedOptionName: item.selectedOptionName,
+        selectedOptionValue: item.selectedOptionValue,
+        selectedOptionValueId: item.selectedOptionValueId,
+      })),
+      lastName: formData.get("lastName"),
+      paymentMethod: formData.get("paymentMethod"),
+      phone: formData.get("phone"),
+    };
+
+    setErrorMessage(null);
+    setSuccessMessage(null);
+
+    startTransition(() => {
+      void createCheckoutOrderAction(payload).then((result) => {
+        if (!result.ok) {
+          setErrorMessage(result.error);
+          return;
+        }
+
+        clearCart();
+        setSuccessMessage(`Замовлення ${result.data.id} створено.`);
+      });
+    });
+  }
 
   if (!isHydrated) {
     return (
@@ -94,17 +137,34 @@ export function CheckoutForm() {
     );
   }
 
+  if (items.length === 0 && successMessage) {
+    return (
+      <StorefrontCard className="grid place-items-center p-8 text-center">
+        <div className="max-w-sm space-y-4">
+          <span className="bg-primary/10 text-primary mx-auto grid size-14 place-items-center rounded-lg">
+            <PackageCheckIcon className="size-7" />
+          </span>
+          <div className="space-y-2">
+            <h2 className="text-2xl font-semibold tracking-tight">
+              Замовлення створено
+            </h2>
+            <p className={storefrontPatterns.bodyText}>{successMessage}</p>
+          </div>
+          <StorefrontActionLink href="/catalog" size="default">
+            Повернутися в каталог
+          </StorefrontActionLink>
+        </div>
+      </StorefrontCard>
+    );
+  }
+
   if (items.length === 0) {
     return <EmptyCheckout />;
   }
 
   return (
     <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_380px]">
-      <form
-        id="checkout-form"
-        className="space-y-5"
-        onSubmit={(event) => event.preventDefault()}
-      >
+      <form id="checkout-form" className="space-y-5" onSubmit={handleSubmit}>
         <StorefrontCard className="p-5">
           <div className="space-y-5">
             <div className="space-y-1">
@@ -219,8 +279,24 @@ export function CheckoutForm() {
           </div>
         </StorefrontCard>
 
+        {errorMessage ? (
+          <div className="border-destructive/20 bg-destructive/8 text-destructive rounded-2xl border px-4 py-3 text-sm">
+            {errorMessage}
+          </div>
+        ) : null}
+
+        {successMessage ? (
+          <div className="border-primary/20 bg-primary/8 rounded-2xl border px-4 py-3 text-sm">
+            {successMessage}
+          </div>
+        ) : null}
+
         <div className="lg:hidden">
-          <Button className="h-12 w-full rounded-lg" type="submit">
+          <Button
+            className="h-12 w-full rounded-lg"
+            disabled={isPending}
+            type="submit"
+          >
             Перейти до створення замовлення
           </Button>
         </div>
@@ -293,6 +369,7 @@ export function CheckoutForm() {
 
             <Button
               className="hidden h-12 w-full rounded-lg lg:inline-flex"
+              disabled={isPending}
               form="checkout-form"
               type="submit"
             >

@@ -123,6 +123,26 @@ async function resolveCheckoutItems(items: CheckoutCartItemInput[]) {
       };
     }
 
+    const selectedOptionValue = item.selectedOptionValueId
+      ? product.option?.values.find(
+          (value) => value.id === item.selectedOptionValueId,
+        )
+      : null;
+
+    if (product.option && !selectedOptionValue) {
+      return {
+        ok: false as const,
+        error: `Для товару "${product.title}" потрібно обрати опцію.`,
+      };
+    }
+
+    if (!product.option && item.selectedOptionValueId) {
+      return {
+        ok: false as const,
+        error: `Товар "${product.title}" не має опцій для вибору.`,
+      };
+    }
+
     const unitPrice = Number(product.price);
     const lineTotal = roundMoney(unitPrice * item.quantity);
 
@@ -130,9 +150,10 @@ async function resolveCheckoutItems(items: CheckoutCartItemInput[]) {
       lineTotal,
       product,
       quantity: item.quantity,
-      selectedOptionName: item.selectedOptionName,
-      selectedOptionValue: item.selectedOptionValue,
-      selectedOptionValueId: item.selectedOptionValueId,
+      selectedOptionName:
+        product.option && selectedOptionValue ? product.option.name : undefined,
+      selectedOptionValue: selectedOptionValue?.label,
+      selectedOptionValueId: selectedOptionValue?.id,
       unitPrice,
     });
   }
