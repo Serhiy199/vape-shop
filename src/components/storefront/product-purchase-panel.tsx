@@ -30,9 +30,21 @@ export function StorefrontProductPurchasePanel({
           {product.badges?.map((badge) => (
             <StorefrontBadge
               key={badge}
-              tone={badge === "sale" ? "sale" : badge === "hit" ? "hit" : "new"}
+              tone={
+                badge === "sale" || badge === "discount"
+                  ? "sale"
+                  : badge === "hit"
+                    ? "hit"
+                    : "new"
+              }
             >
-              {badge === "sale" ? "Акція" : badge === "hit" ? "Топ" : "Новинка"}
+              {badge === "sale"
+                ? "Акція"
+                : badge === "discount"
+                  ? "Знижка"
+                  : badge === "hit"
+                    ? "Топ"
+                    : "Новинка"}
             </StorefrontBadge>
           ))}
           <StorefrontBadge tone={isAvailable ? "stock" : "muted"}>

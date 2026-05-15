@@ -13,6 +13,7 @@ import {
   deleteAdminSubcategoryField,
   setAdminBrandActiveStatus,
   setAdminCategoryActiveStatus,
+  setAdminSubcategoryFieldActiveStatus,
   setAdminSubcategoryActiveStatus,
   updateAdminBrand,
   updateAdminProduct,
@@ -162,6 +163,19 @@ export async function deleteSubcategoryFieldAction(input: unknown) {
   });
 }
 
+export async function toggleSubcategoryFieldStatusAction(input: unknown) {
+  return withAdminAccess(async () => {
+    const result = await setAdminSubcategoryFieldActiveStatus(input);
+
+    if (result.ok) {
+      revalidateCatalogAdminPaths();
+      revalidateStorefrontCatalogPaths();
+    }
+
+    return result;
+  });
+}
+
 export async function createBrandAction(input: unknown) {
   return withAdminAccess(async () => {
     const result = await createAdminBrand(input);
@@ -203,7 +217,8 @@ export async function createProductAction(input: unknown) {
     const result = await createAdminProduct(input);
 
     if (result.ok) {
-      revalidateCatalogAdminPaths();
+      revalidateCatalogPaths();
+      revalidatePath("/product/[productSlug]", "page");
     }
 
     return result;
@@ -215,7 +230,8 @@ export async function updateProductAction(input: unknown) {
     const result = await updateAdminProduct(input);
 
     if (result.ok) {
-      revalidateCatalogAdminPaths();
+      revalidateCatalogPaths();
+      revalidatePath("/product/[productSlug]", "page");
     }
 
     return result;
@@ -227,7 +243,8 @@ export async function deleteProductAction(input: unknown) {
     const result = await deleteAdminProduct(input);
 
     if (result.ok) {
-      revalidateCatalogAdminPaths();
+      revalidateCatalogPaths();
+      revalidatePath("/product/[productSlug]", "page");
     }
 
     return result;

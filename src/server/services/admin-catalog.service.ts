@@ -22,6 +22,7 @@ import {
   type DeleteSubcategoryFieldInput,
   type ProductFieldValueInput,
   type ProductImageInput,
+  type ProductOptionInput,
   type UpdateBrandInput,
   type UpdateCategoryInput,
   type UpdateProductInput,
@@ -54,6 +55,7 @@ import {
   listSubcategoryFields,
   setBrandActiveStatus,
   setCategoryActiveStatus,
+  setSubcategoryFieldActiveStatus,
   setSubcategoryActiveStatus,
   softDeleteProduct,
   updateBrand,
@@ -82,6 +84,7 @@ type NormalizedProductFieldValue = {
   fieldId: string;
   optionId?: string;
   valueBoolean?: boolean;
+  valueJson?: string[];
   valueNumber?: number;
   valueText?: string;
 };
@@ -100,6 +103,7 @@ type NormalizedProductWritePayload = {
   isFeaturedNew: boolean;
   isFeaturedSale: boolean;
   price: number;
+  option?: ProductOptionInput;
   seoDescription?: string;
   seoTitle?: string;
   slug: string;
@@ -376,7 +380,10 @@ function validateFieldUsageCompatibility(input: {
     };
   }
 
-  if (input.nextType !== SubcategoryFieldType.SELECT) {
+  if (
+    input.nextType !== SubcategoryFieldType.SELECT &&
+    input.nextType !== SubcategoryFieldType.MULTI_SELECT
+  ) {
     return null;
   }
 
@@ -710,6 +717,34 @@ export async function deleteAdminSubcategoryField(input: unknown): Promise<
   return ok(deletedField);
 }
 
+export async function setAdminSubcategoryFieldActiveStatus(
+  input: unknown,
+): Promise<
+  MutationResult<{
+    id: string;
+    isActive: boolean;
+  }>
+> {
+  const parsed = activeStatusSchema.safeParse(input);
+
+  if (!parsed.success) {
+    return validationError(parsed.error.flatten().fieldErrors);
+  }
+
+  const field = await getSubcategoryFieldById(parsed.data.id);
+
+  if (!field) {
+    return {
+      ok: false,
+      error: "Поле підкатегорії не знайдено.",
+    };
+  }
+
+  const updatedField = await setSubcategoryFieldActiveStatus(parsed.data);
+
+  return ok(updatedField);
+}
+
 function hasTextValue(value: ProductFieldValueInput) {
   return (
     typeof value.valueText === "string" && value.valueText.trim().length > 0
@@ -726,6 +761,10 @@ function hasBooleanValue(value: ProductFieldValueInput) {
   return typeof value.valueBoolean === "boolean";
 }
 
+function hasJsonArrayValue(value: ProductFieldValueInput) {
+  return Array.isArray(value.valueJson) && value.valueJson.length > 0;
+}
+
 function getNumberValue(value: ProductFieldValueInput) {
   return typeof value.valueNumber === "number" ? value.valueNumber : undefined;
 }
@@ -734,6 +773,10 @@ function getBooleanValue(value: ProductFieldValueInput) {
   return typeof value.valueBoolean === "boolean"
     ? value.valueBoolean
     : undefined;
+}
+
+function getJsonArrayValue(value: ProductFieldValueInput) {
+  return Array.isArray(value.valueJson) ? value.valueJson : undefined;
 }
 
 function mapProductFieldValueErrors(
@@ -827,6 +870,37 @@ export async function validateProductFieldValuesCompatibility(
       continue;
     }
 
+    if (field.type === SubcategoryFieldType.MULTI_SELECT) {
+      if (!hasJsonArrayValue(fieldValue)) {
+        fieldValueErrors.push({
+          fieldId: field.key,
+          message:
+            "Для MULTI_SELECT-поля потрібно вибрати хоча б одну дозволену опцію.",
+        });
+        continue;
+      }
+
+      const selectedOptionIds = getJsonArrayValue(fieldValue) ?? [];
+      const hasUnknownOption = selectedOptionIds.some(
+        (optionId) => !field.optionMap.has(optionId),
+      );
+
+      if (hasUnknownOption) {
+        fieldValueErrors.push({
+          fieldId: field.key,
+          message:
+            "Одна з обраних опцій не належить до цього поля підкатегорії.",
+        });
+        continue;
+      }
+
+      normalizedValues.push({
+        fieldId: field.id,
+        valueJson: selectedOptionIds,
+      });
+      continue;
+    }
+
     if (field.type === SubcategoryFieldType.NUMBER) {
       if (!hasNumberValue(fieldValue)) {
         fieldValueErrors.push({
@@ -878,7 +952,8 @@ export async function validateProductFieldValuesCompatibility(
     payload.fieldValues.map((value) => value.fieldId),
   );
   const missingRequiredFields = allowedFields.filter(
-    (field) => field.isRequired && !providedFieldIds.has(field.id),
+    (field) =>
+      field.isActive && field.isRequired && !providedFieldIds.has(field.id),
   );
 
   for (const field of missingRequiredFields) {
@@ -1090,6 +1165,7 @@ async function normalizeProductWritePayload(
     isFeaturedHit: payload.isFeaturedHit,
     isFeaturedNew: payload.isFeaturedNew,
     isFeaturedSale: payload.isFeaturedSale,
+    option: payload.option,
     price: payload.price,
     seoDescription: payload.seoDescription,
     seoTitle: payload.seoTitle,

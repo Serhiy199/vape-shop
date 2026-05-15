@@ -73,7 +73,7 @@ const adminNavGroups: AdminNavGroup[] = [
       {
         href: "/admin/fields",
         icon: ScanSearchIcon,
-        label: "Поля",
+        label: "Характеристики",
         enabled: true,
       },
     ],
@@ -133,7 +133,7 @@ function AdminNavigationList({
     <nav className="space-y-5" aria-label="Навігація адмінки">
       {adminNavGroups.map((group) => (
         <div key={group.label} className="space-y-2">
-          <p className="text-muted-foreground px-3 text-xs uppercase tracking-[0.24em]">
+          <p className="text-muted-foreground px-3 text-xs tracking-[0.24em] uppercase">
             {group.label}
           </p>
           <div className="space-y-1">
@@ -146,7 +146,7 @@ function AdminNavigationList({
                   <div
                     key={item.href}
                     className={cn(
-                      "text-muted-foreground/80 flex items-center justify-between rounded-2xl border border-dashed border-border/70 px-3 py-3",
+                      "text-muted-foreground/80 border-border/70 flex items-center justify-between rounded-2xl border border-dashed px-3 py-3",
                       compact ? "text-sm" : "text-[0.95rem]",
                     )}
                   >
@@ -171,7 +171,7 @@ function AdminNavigationList({
                     compact ? "text-sm" : "text-[0.95rem]",
                     active
                       ? "border-primary/25 bg-primary/10 text-foreground"
-                      : "border-transparent hover:border-border/70 hover:bg-muted/60",
+                      : "hover:border-border/70 hover:bg-muted/60 border-transparent",
                   )}
                 >
                   <span
@@ -196,11 +196,7 @@ function AdminNavigationList({
   );
 }
 
-export function AdminNavigation({
-  compact = false,
-}: {
-  compact?: boolean;
-}) {
+export function AdminNavigation({ compact = false }: { compact?: boolean }) {
   const pathname = usePathname();
 
   return <AdminNavigationList pathname={pathname} compact={compact} />;

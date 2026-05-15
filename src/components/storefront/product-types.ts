@@ -1,4 +1,4 @@
-export type StorefrontProductBadge = "new" | "sale" | "hit";
+export type StorefrontProductBadge = "new" | "sale" | "hit" | "discount";
 
 export type StorefrontProductCardItem = {
   availability: "in_stock" | "out_of_stock";

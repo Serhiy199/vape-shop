@@ -188,7 +188,11 @@ export default async function AdminProductsPage({
             label: "Відкрити підкатегорії",
             variant: "outline",
           },
-          { href: "/admin/fields", label: "Відкрити поля", variant: "outline" },
+          {
+            href: "/admin/fields",
+            label: "Відкрити характеристики",
+            variant: "outline",
+          },
         ]}
         note="Фільтри, список, detail panel і product wizard уже працюють як єдина products page без розриву між read-side і write-side."
       />
@@ -314,7 +318,7 @@ export default async function AdminProductsPage({
                   <p className="text-sm font-medium">Деталі товару</p>
                   <p className="text-muted-foreground text-sm leading-6">
                     Detail panel уже показує повний admin payload товару:
-                    category, subcategory, brand, SEO, images і dynamic fields.
+                    category, subcategory, brand, SEO, images і характеристики.
                   </p>
                 </div>
 
@@ -416,6 +420,7 @@ export default async function AdminProductsPage({
                             }
                           : null,
                         optionId: fieldValue.optionId,
+                        valueJson: fieldValue.valueJson,
                         valueBoolean: fieldValue.valueBoolean,
                         valueNumber: fieldValue.valueNumber,
                         valueText: fieldValue.valueText,
@@ -430,6 +435,21 @@ export default async function AdminProductsPage({
                       sortOrder: image.sortOrder,
                       url: image.url,
                     })),
+                    option: selectedProduct.option
+                      ? {
+                          id: selectedProduct.option.id,
+                          name: selectedProduct.option.name,
+                          values: selectedProduct.option.values.map(
+                            (value) => ({
+                              id: value.id,
+                              image: value.image,
+                              imagePublicId: value.imagePublicId,
+                              label: value.label,
+                              sortOrder: value.sortOrder,
+                            }),
+                          ),
+                        }
+                      : null,
                     isActive: selectedProduct.isActive,
                     isFeaturedDiscount: selectedProduct.isFeaturedDiscount,
                     isFeaturedHit: selectedProduct.isFeaturedHit,

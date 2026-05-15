@@ -67,7 +67,7 @@ export default async function AdminSubcategoriesPage({
             note: "Ці записи можуть використовуватися у публічному каталозі.",
           },
           {
-            label: "Поля",
+            label: "Характеристики",
             value: totalFields.toString(),
             note: "Скільки характеристик уже прив'язано до підкатегорій.",
           },
@@ -88,7 +88,7 @@ export default async function AdminSubcategoriesPage({
           },
           {
             href: "/admin/fields",
-            label: "Поля підкатегорій",
+            label: "Характеристики",
             variant: "outline",
           },
         ]}
@@ -188,7 +188,7 @@ export default async function AdminSubcategoriesPage({
                     header: "Зв'язки",
                     className: "w-32",
                     cell: (subcategory) =>
-                      `${subcategory._count.fields} полів / ${subcategory._count.products} товарів`,
+                      `${subcategory._count.fields} характеристик / ${subcategory._count.products} товарів`,
                   },
                 ]}
                 emptyState={
@@ -255,7 +255,7 @@ export default async function AdminSubcategoriesPage({
                     },
                     {
                       label: "Зв'язки",
-                      value: `${selectedSubcategory._count.fields} полів / ${selectedSubcategory._count.products} товарів`,
+                      value: `${selectedSubcategory._count.fields} характеристик / ${selectedSubcategory._count.products} товарів`,
                       note:
                         selectedSubcategory._count.products > 0
                           ? "Зміну категорії для цієї підкатегорії буде заблоковано."
@@ -265,7 +265,7 @@ export default async function AdminSubcategoriesPage({
                 />
 
                 <AdminSectionCard
-                  title="Поля підкатегорії"
+                  title="Характеристики підкатегорії"
                   description="Пов'язані характеристики товарів для цієї гілки каталогу."
                 >
                   <div className="space-y-3">
@@ -298,7 +298,7 @@ export default async function AdminSubcategoriesPage({
                     ) : (
                       <AdminEmptyState
                         title="Полів ще немає"
-                        description="Це нормальний стан для нової підкатегорії. Поля можна додати в окремому розділі."
+                        description="Це нормальний стан для нової підкатегорії. Характеристики можна додати в окремому розділі."
                       />
                     )}
                   </div>

@@ -104,6 +104,7 @@ type SelectedProduct = {
       label: string;
     } | null;
     optionId: string | null;
+    valueJson: unknown;
     valueBoolean: boolean | null;
     valueNumber: { toString(): string } | null;
     valueText: string | null;
@@ -117,6 +118,17 @@ type SelectedProduct = {
     sortOrder: number;
     url: string;
   }>;
+  option: {
+    id: string;
+    name: string;
+    values: Array<{
+      id: string;
+      image: string;
+      imagePublicId: string | null;
+      label: string;
+      sortOrder: number;
+    }>;
+  } | null;
   isActive: boolean;
   isFeaturedDiscount: boolean;
   isFeaturedHit: boolean;
@@ -158,6 +170,7 @@ type ProductFieldErrors = Partial<Record<keyof ProductFormValues, string>>;
 type ProductDynamicValue = {
   fieldId: string;
   optionId: string;
+  optionIds: string[];
   valueBoolean: "" | "false" | "true";
   valueNumber: string;
   valueText: string;
@@ -171,10 +184,34 @@ type ProductImageDraft = {
   url: string;
 };
 
+type ProductOptionValueDraft = {
+  id?: string;
+  image: string;
+  imagePublicId: string;
+  label: string;
+  sortOrder: string;
+};
+
+type ProductOptionDraft = {
+  id?: string;
+  name: string;
+  values: ProductOptionValueDraft[];
+};
+
+type ProductOptionErrors = {
+  general?: string;
+  name?: string;
+  values?: Record<number, { image?: string; label?: string }>;
+};
+
 type NormalizedSubmittedFieldValue =
   | {
       fieldId: string;
       optionId: string;
+    }
+  | {
+      fieldId: string;
+      valueJson: string[];
     }
   | {
       fieldId: string;
@@ -200,6 +237,7 @@ type ProductStepId =
   | "dynamic"
   | "base"
   | "images"
+  | "options"
   | "seo";
 
 type AdminProductCrudProps = {
@@ -225,10 +263,11 @@ const BOOLEAN_OPTIONS = [
 const PRODUCT_STEPS: Array<{ id: ProductStepId; label: string }> = [
   { id: "category", label: "1. Category" },
   { id: "subcategory", label: "2. Subcategory" },
-  { id: "dynamic", label: "3. Dynamic fields" },
+  { id: "dynamic", label: "3. Характеристики" },
   { id: "base", label: "4. Base data" },
   { id: "images", label: "5. Images" },
-  { id: "seo", label: "6. SEO" },
+  { id: "options", label: "6. Опції товару" },
+  { id: "seo", label: "7. SEO" },
 ];
 
 function findFirstSubcategoryId(
@@ -367,6 +406,11 @@ function buildDynamicValueMap(
       {
         fieldId: fieldValue.field.id,
         optionId: fieldValue.optionId ?? "",
+        optionIds: Array.isArray(fieldValue.valueJson)
+          ? fieldValue.valueJson.filter(
+              (optionId): optionId is string => typeof optionId === "string",
+            )
+          : [],
         valueBoolean:
           typeof fieldValue.valueBoolean === "boolean"
             ? fieldValue.valueBoolean
@@ -394,6 +438,26 @@ function buildImageDrafts(selectedProduct: SelectedProduct | null) {
   }));
 }
 
+function buildProductOptionDraft(
+  selectedProduct: SelectedProduct | null,
+): ProductOptionDraft | null {
+  if (!selectedProduct?.option) {
+    return null;
+  }
+
+  return {
+    id: selectedProduct.option.id,
+    name: selectedProduct.option.name,
+    values: selectedProduct.option.values.map((value, index) => ({
+      id: value.id,
+      image: value.image,
+      imagePublicId: value.imagePublicId ?? "",
+      label: value.label,
+      sortOrder: value.sortOrder.toString() || (index + 1).toString(),
+    })),
+  };
+}
+
 function getSubcategoryFields(
   fields: FieldDefinition[],
   subcategoryId: string,
@@ -407,6 +471,7 @@ function getEmptyDynamicValue(fieldId: string): ProductDynamicValue {
   return {
     fieldId,
     optionId: "",
+    optionIds: [],
     valueBoolean: "",
     valueNumber: "",
     valueText: "",
@@ -421,6 +486,65 @@ function normalizeImages(images: ProductImageDraft[]) {
     sortOrder: index,
     url: image.url.trim(),
   }));
+}
+
+function normalizeProductOption(option: ProductOptionDraft | null) {
+  if (!option) {
+    return undefined;
+  }
+
+  return {
+    id: option.id,
+    name: option.name,
+    values: option.values.map((value, index) => ({
+      id: value.id,
+      image: value.image,
+      imagePublicId: value.imagePublicId || undefined,
+      label: value.label,
+      sortOrder: Number(value.sortOrder || index),
+    })),
+  };
+}
+
+function validateProductOption(option: ProductOptionDraft | null) {
+  const errors: ProductOptionErrors = {};
+
+  if (!option) {
+    return errors;
+  }
+
+  if (!option.name.trim()) {
+    errors.name = "Вкажіть назву опції, наприклад Смак, Колір або Опір.";
+  }
+
+  if (option.values.length === 0) {
+    errors.general = "Додайте хоча б одне значення опції або вимкніть блок.";
+    return errors;
+  }
+
+  const valueErrors: NonNullable<ProductOptionErrors["values"]> = {};
+
+  option.values.forEach((value, index) => {
+    const current: { image?: string; label?: string } = {};
+
+    if (!value.label.trim()) {
+      current.label = "Вкажіть назву значення.";
+    }
+
+    if (!value.image.trim()) {
+      current.image = "Завантажте фото для цього значення.";
+    }
+
+    if (current.label || current.image) {
+      valueErrors[index] = current;
+    }
+  });
+
+  if (Object.keys(valueErrors).length > 0) {
+    errors.values = valueErrors;
+  }
+
+  return errors;
 }
 
 function normalizeFieldValues(
@@ -440,6 +564,20 @@ function normalizeFieldValues(
       normalizedValues.push({
         fieldId: field.id,
         optionId: value.optionId,
+      });
+      return;
+    }
+
+    if (field.type === "MULTI_SELECT") {
+      const optionIds = value.optionIds.filter(Boolean);
+
+      if (optionIds.length === 0) {
+        return;
+      }
+
+      normalizedValues.push({
+        fieldId: field.id,
+        valueJson: optionIds,
       });
       return;
     }
@@ -527,7 +665,15 @@ function validateDynamicFields(
 
     if (field.type === "SELECT") {
       if (field.isRequired && !value.optionId) {
-        errors[field.id] = "Оберіть значення для цього поля.";
+        errors[field.id] = "Оберіть значення для цієї характеристики.";
+      }
+      return;
+    }
+
+    if (field.type === "MULTI_SELECT") {
+      if (field.isRequired && value.optionIds.length === 0) {
+        errors[field.id] =
+          "Оберіть хоча б одне значення для цієї характеристики.";
       }
       return;
     }
@@ -555,7 +701,7 @@ function validateDynamicFields(
     }
 
     if (field.isRequired && !value.valueText.trim()) {
-      errors[field.id] = "Заповніть це поле.";
+      errors[field.id] = "Заповніть цю характеристику.";
     }
   });
 
@@ -688,6 +834,7 @@ function ProductWizard({
   fields,
   initialDynamicValues,
   initialImages,
+  initialOption,
   initialValues,
   mode,
   onDelete,
@@ -700,6 +847,7 @@ function ProductWizard({
   fields: FieldDefinition[];
   initialDynamicValues: Record<string, ProductDynamicValue>;
   initialImages: ProductImageDraft[];
+  initialOption: ProductOptionDraft | null;
   initialValues: ProductFormValues;
   mode: "create" | "edit";
   onDelete?: () => void;
@@ -712,9 +860,16 @@ function ProductWizard({
   const [values, setValues] = useState(initialValues);
   const [dynamicValues, setDynamicValues] = useState(initialDynamicValues);
   const [images, setImages] = useState<ProductImageDraft[]>(initialImages);
+  const [optionDraft, setOptionDraft] = useState<ProductOptionDraft | null>(
+    initialOption,
+  );
   const [fieldErrors, setFieldErrors] = useState<ProductFieldErrors>({});
   const [dynamicErrors, setDynamicErrors] = useState<Record<string, string>>(
     {},
+  );
+  const [optionErrors, setOptionErrors] = useState<ProductOptionErrors>({});
+  const [optionUploadIndex, setOptionUploadIndex] = useState<number | null>(
+    null,
   );
   const [imageItemErrors, setImageItemErrors] = useState<
     Record<number, { publicId?: string; url?: string }>
@@ -803,17 +958,26 @@ function ProductWizard({
       setValues(initialValues);
       setDynamicValues(initialDynamicValues);
       setImages(initialImages);
+      setOptionDraft(initialOption);
       setCurrentStep("category");
       setFieldErrors({});
       setDynamicErrors({});
       setImageItemErrors({});
+      setOptionErrors({});
+      setOptionUploadIndex(null);
       setSelectedUploadFiles([]);
       setGeneralMessage(null);
       setSuccessMessage(null);
     }, 0);
 
     return () => window.clearTimeout(timeoutId);
-  }, [initialDynamicValues, initialImages, initialValues, productId]);
+  }, [
+    initialDynamicValues,
+    initialImages,
+    initialOption,
+    initialValues,
+    productId,
+  ]);
 
   useEffect(() => {
     if (selectedUploadFiles.length === 0) {
@@ -1030,6 +1194,157 @@ function ProductWizard({
     });
   };
 
+  const enableProductOption = () => {
+    setOptionDraft({
+      name: "",
+      values: [
+        {
+          image: "",
+          imagePublicId: "",
+          label: "",
+          sortOrder: "0",
+        },
+      ],
+    });
+    setOptionErrors({});
+    clearMessages();
+  };
+
+  const disableProductOption = () => {
+    setOptionDraft(null);
+    setOptionErrors({});
+    clearMessages();
+  };
+
+  const updateOption = (patch: Partial<ProductOptionDraft>) => {
+    setOptionDraft((current) =>
+      current
+        ? {
+            ...current,
+            ...patch,
+          }
+        : current,
+    );
+    setOptionErrors({});
+    clearMessages();
+  };
+
+  const updateOptionValue = (
+    index: number,
+    patch: Partial<ProductOptionValueDraft>,
+  ) => {
+    setOptionDraft((current) =>
+      current
+        ? {
+            ...current,
+            values: current.values.map((value, valueIndex) =>
+              valueIndex === index
+                ? {
+                    ...value,
+                    ...patch,
+                  }
+                : value,
+            ),
+          }
+        : current,
+    );
+    setOptionErrors({});
+    clearMessages();
+  };
+
+  const addOptionValue = () => {
+    setOptionDraft((current) =>
+      current
+        ? {
+            ...current,
+            values: [
+              ...current.values,
+              {
+                image: "",
+                imagePublicId: "",
+                label: "",
+                sortOrder: current.values.length.toString(),
+              },
+            ],
+          }
+        : current,
+    );
+    setOptionErrors({});
+    clearMessages();
+  };
+
+  const removeOptionValue = (index: number) => {
+    setOptionDraft((current) =>
+      current
+        ? {
+            ...current,
+            values: current.values.filter(
+              (_, valueIndex) => valueIndex !== index,
+            ),
+          }
+        : current,
+    );
+    setOptionErrors({});
+    clearMessages();
+  };
+
+  const uploadOptionValueImage = async (index: number, file: File) => {
+    const productSlug = values.slug.trim();
+
+    if (!productSlug) {
+      setGeneralMessage(
+        "Вкажіть slug товару перед upload фото значення опції.",
+      );
+      return;
+    }
+
+    const uploadFormData = new FormData();
+    uploadFormData.append("productSlug", productSlug);
+    uploadFormData.append("valueNumber", (index + 1).toString());
+    uploadFormData.append("file", file);
+
+    setGeneralMessage(null);
+    setSuccessMessage(null);
+    setOptionUploadIndex(index);
+
+    try {
+      const response = await fetch("/api/upload/product-option-images", {
+        body: uploadFormData,
+        method: "POST",
+      });
+
+      const payload = (await response.json().catch(() => null)) as {
+        data?: {
+          file?: {
+            publicId: string;
+            url: string;
+          };
+        };
+        error?: {
+          message?: string;
+        };
+        message?: string;
+        success?: boolean;
+      } | null;
+
+      if (!response.ok || !payload?.success || !payload.data?.file) {
+        setGeneralMessage(
+          payload?.error?.message ||
+            "Не вдалося завантажити фото значення опції.",
+        );
+        return;
+      }
+
+      updateOptionValue(index, {
+        image: payload.data.file.url,
+        imagePublicId: payload.data.file.publicId,
+      });
+      setSuccessMessage(payload.message || "Фото значення опції завантажено.");
+    } finally {
+      setOptionUploadIndex(null);
+    }
+  };
+
   const updateImage = (index: number, patch: Partial<ProductImageDraft>) => {
     setImages((current) =>
       current.map((image, imageIndex) =>
@@ -1118,7 +1433,7 @@ function ProductWizard({
 
       if (Object.keys(nextDynamicErrors).length > 0) {
         setGeneralMessage(
-          "Заповніть обов'язкові dynamic fields перед переходом далі.",
+          "Заповніть обов'язкові характеристики перед переходом далі.",
         );
         isValid = false;
       }
@@ -1161,6 +1476,20 @@ function ProductWizard({
         setGeneralMessage(
           validation.generalError ?? "Перевірте дані зображень товару.",
         );
+        isValid = false;
+      }
+    }
+
+    if (step === "options") {
+      const nextOptionErrors = validateProductOption(optionDraft);
+      setOptionErrors(nextOptionErrors);
+
+      if (
+        nextOptionErrors.general ||
+        nextOptionErrors.name ||
+        nextOptionErrors.values
+      ) {
+        setGeneralMessage("Перевірте блок опцій товару.");
         isValid = false;
       }
     }
@@ -1231,9 +1560,11 @@ function ProductWizard({
       fieldValues: normalizeFieldValues(currentFieldDefinitions, dynamicValues),
       images: normalizeImages(images),
       isActive: values.isActive,
+      isFeaturedDiscount: values.isFeaturedDiscount,
       isFeaturedHit: values.isFeaturedHit,
       isFeaturedNew: values.isFeaturedNew,
       isFeaturedSale: values.isFeaturedSale,
+      option: normalizeProductOption(optionDraft),
       price: values.price,
       seoDescription: values.seoDescription,
       seoTitle: values.seoTitle,
@@ -1312,7 +1643,7 @@ function ProductWizard({
       {currentStep === "category" ? (
         <AdminFormSection
           title="Крок 1. Category"
-          description="Спершу визначаємо верхньорівневу category. Вона керує доступними subcategory та dynamic fields."
+          description="Спершу визначаємо верхньорівневу category. Вона керує доступними subcategory та характеристиками."
         >
           <AdminField label="Категорія" error={fieldErrors.categoryId} required>
             <Select
@@ -1346,7 +1677,7 @@ function ProductWizard({
       {currentStep === "subcategory" ? (
         <AdminFormSection
           title="Крок 2. Subcategory"
-          description="Після вибору subcategory форма перебудує dynamic fields саме під цю гілку каталогу."
+          description="Після вибору subcategory форма перебудує характеристики саме під цю гілку каталогу."
         >
           <AdminField
             label="Підкатегорія"
@@ -1378,8 +1709,8 @@ function ProductWizard({
 
       {currentStep === "dynamic" ? (
         <AdminFormSection
-          title="Крок 3. Dynamic fields"
-          description="Тут уже працює жива форма характеристик на основі конструктора полів підкатегорій."
+          title="Крок 3. Характеристики"
+          description="Тут працює жива форма характеристик на основі конструктора характеристик підкатегорій."
         >
           {currentFieldDefinitions.length ? (
             <div className="space-y-4">
@@ -1422,6 +1753,46 @@ function ProductWizard({
                           ))}
                         </SelectContent>
                       </Select>
+                    </AdminField>
+                  );
+                }
+
+                if (field.type === "MULTI_SELECT") {
+                  return (
+                    <AdminField
+                      key={field.id}
+                      label={field.label}
+                      error={error}
+                      hint={field.helpText ?? undefined}
+                      required={field.isRequired}
+                    >
+                      <div className="grid gap-2 sm:grid-cols-2">
+                        {field.options.map((option) => {
+                          const isSelected = value.optionIds.includes(
+                            option.id,
+                          );
+
+                          return (
+                            <Button
+                              key={option.id}
+                              type="button"
+                              variant={isSelected ? "default" : "outline"}
+                              className="justify-start"
+                              onClick={() => {
+                                updateDynamicValue(field.id, {
+                                  optionIds: isSelected
+                                    ? value.optionIds.filter(
+                                        (optionId) => optionId !== option.id,
+                                      )
+                                    : [...value.optionIds, option.id],
+                                });
+                              }}
+                            >
+                              {option.label}
+                            </Button>
+                          );
+                        })}
+                      </div>
                     </AdminField>
                   );
                 }
@@ -1518,7 +1889,7 @@ function ProductWizard({
             </div>
           ) : (
             <AdminEmptyState
-              title="Для цієї підкатегорії немає dynamic fields"
+              title="Для цієї підкатегорії немає характеристик"
               description="Це допустимий стан. Можна перейти далі й зберегти товар без додаткових характеристик."
             />
           )}
@@ -1691,6 +2062,22 @@ function ProductWizard({
                     updateValue("isFeaturedHit", checked)
                   }
                   aria-label="Hit"
+                />
+              </div>
+
+              <div className="border-border/70 bg-card/90 flex items-start justify-between gap-4 rounded-2xl border px-4 py-3">
+                <div className="space-y-1">
+                  <p className="text-sm font-medium">Знижка</p>
+                  <p className="text-muted-foreground text-sm leading-6">
+                    Badge для товарів зі знижкою.
+                  </p>
+                </div>
+                <Switch
+                  checked={values.isFeaturedDiscount}
+                  onCheckedChange={(checked) =>
+                    updateValue("isFeaturedDiscount", checked)
+                  }
+                  aria-label="Знижка"
                 />
               </div>
             </div>
@@ -1869,9 +2256,195 @@ function ProductWizard({
         </AdminFormSection>
       ) : null}
 
+      {currentStep === "options" ? (
+        <AdminFormSection
+          title="Крок 6. Опції товару"
+          description="Товар може мати 0 або 1 групу опцій. Якщо опцій немає, цей блок не потрапить у payload."
+        >
+          {optionDraft ? (
+            <div className="space-y-4">
+              <div className="border-border/70 bg-card/90 space-y-4 rounded-2xl border p-4">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                  <div className="space-y-1">
+                    <p className="text-sm font-medium">Група опцій</p>
+                    <p className="text-muted-foreground text-sm leading-6">
+                      Наприклад: Смак, Колір або Опір. Друга група опцій не
+                      створюється.
+                    </p>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={disableProductOption}
+                  >
+                    Вимкнути опції
+                  </Button>
+                </div>
+
+                <AdminInputField
+                  id={`${mode}-option-name`}
+                  label="Назва опції"
+                  value={optionDraft.name}
+                  onChange={(event) =>
+                    updateOption({ name: event.target.value })
+                  }
+                  error={optionErrors.name}
+                  required
+                />
+              </div>
+
+              {optionDraft.values.map((optionValue, index) => (
+                <div
+                  key={optionValue.id ?? `${mode}-option-value-${index}`}
+                  className="border-border/70 bg-card/90 space-y-4 rounded-2xl border p-4"
+                >
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                    <div className="space-y-1">
+                      <p className="text-sm font-medium">
+                        Значення #{index + 1}
+                      </p>
+                      <p className="text-muted-foreground text-sm leading-6">
+                        Кожне значення повинно мати назву і рівно одне фото.
+                      </p>
+                    </div>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => removeOptionValue(index)}
+                    >
+                      Видалити значення
+                    </Button>
+                  </div>
+
+                  {optionValue.image ? (
+                    <ProductThumbnail
+                      alt={optionValue.label || `Option ${index + 1}`}
+                      src={optionValue.image}
+                    />
+                  ) : null}
+
+                  <AdminFormGrid>
+                    <AdminInputField
+                      id={`${mode}-option-value-label-${index}`}
+                      label="Назва значення"
+                      value={optionValue.label}
+                      onChange={(event) =>
+                        updateOptionValue(index, {
+                          label: event.target.value,
+                        })
+                      }
+                      error={optionErrors.values?.[index]?.label}
+                      required
+                    />
+
+                    <AdminInputField
+                      id={`${mode}-option-value-sort-${index}`}
+                      type="number"
+                      min={0}
+                      step={1}
+                      label="Порядок"
+                      value={optionValue.sortOrder}
+                      onChange={(event) =>
+                        updateOptionValue(index, {
+                          sortOrder: event.target.value,
+                        })
+                      }
+                    />
+                  </AdminFormGrid>
+
+                  <AdminField
+                    label="Фото значення"
+                    error={optionErrors.values?.[index]?.image}
+                    hint="Фото зберігається в Cloudinary у product-options/."
+                    required
+                  >
+                    <Input
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp"
+                      onChange={(event) => {
+                        const file = event.target.files?.[0];
+
+                        if (file) {
+                          void uploadOptionValueImage(index, file);
+                        }
+                      }}
+                    />
+                  </AdminField>
+
+                  <AdminFormGrid>
+                    <AdminInputField
+                      id={`${mode}-option-value-image-${index}`}
+                      label="Image URL"
+                      value={optionValue.image}
+                      onChange={(event) =>
+                        updateOptionValue(index, {
+                          image: event.target.value,
+                        })
+                      }
+                      error={optionErrors.values?.[index]?.image}
+                      required
+                    />
+
+                    <AdminInputField
+                      id={`${mode}-option-value-public-id-${index}`}
+                      label="imagePublicId"
+                      value={optionValue.imagePublicId}
+                      onChange={(event) =>
+                        updateOptionValue(index, {
+                          imagePublicId: event.target.value,
+                        })
+                      }
+                    />
+                  </AdminFormGrid>
+
+                  {optionUploadIndex === index ? (
+                    <Badge variant="outline">Завантажуємо фото...</Badge>
+                  ) : null}
+                </div>
+              ))}
+
+              {optionErrors.general ? (
+                <div className="border-destructive/20 bg-destructive/8 text-destructive rounded-2xl border px-4 py-3 text-sm">
+                  {optionErrors.general}
+                </div>
+              ) : null}
+
+              <div className="border-border/70 bg-muted/30 flex flex-col gap-3 rounded-2xl border p-4 sm:flex-row sm:items-center sm:justify-between">
+                <p className="text-muted-foreground text-sm leading-6">
+                  Порядок на фронтенді відповідає порядку значень у цьому
+                  списку.
+                </p>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={addOptionValue}
+                >
+                  Додати значення
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <div className="border-border/70 bg-muted/30 space-y-4 rounded-2xl border border-dashed p-6">
+              <div className="space-y-2">
+                <h3 className="text-lg font-semibold tracking-tight">
+                  Опції товару не ввімкнені
+                </h3>
+                <p className="text-muted-foreground max-w-2xl text-sm leading-6">
+                  Це звичайний товар без варіантів. Увімкніть блок тільки якщо
+                  потрібно обрати смак, колір, опір або інший один тип опції.
+                </p>
+              </div>
+              <Button type="button" onClick={enableProductOption}>
+                Додати опції товару
+              </Button>
+            </div>
+          )}
+        </AdminFormSection>
+      ) : null}
+
       {currentStep === "seo" ? (
         <AdminFormSection
-          title="Крок 6. SEO"
+          title="Крок 7. SEO"
           description="Фінальний крок перед submit. Тут завершуємо SEO-поля і відправляємо повний payload товару."
         >
           <div className="space-y-4">
@@ -1914,8 +2487,8 @@ function ProductWizard({
       <div className="border-border/70 bg-muted/30 flex flex-col gap-3 rounded-2xl border p-4 sm:flex-row sm:items-center sm:justify-between">
         <p className="text-muted-foreground text-sm leading-6">
           Крок {currentStepIndex + 1} з {PRODUCT_STEPS.length}. Форма вже
-          валідовує category, subcategory, required dynamic fields, base data та
-          image rules до submit.
+          валідовує category, subcategory, обов'язкові характеристики, base data
+          та image rules до submit.
         </p>
         <div className="flex flex-wrap gap-2">
           {onDelete ? (
@@ -1988,6 +2561,10 @@ export function AdminProductCrud({
     () => buildCreateValues(createCategories, createSubcategories),
     [createCategories, createSubcategories],
   );
+  const editInitialOption = useMemo(
+    () => buildProductOptionDraft(selectedProduct),
+    [selectedProduct],
+  );
 
   const handleDelete = () => {
     if (!selectedProduct) {
@@ -2025,6 +2602,7 @@ export function AdminProductCrud({
             fields={fields}
             initialDynamicValues={buildDynamicValueMap(selectedProduct)}
             initialImages={buildImageDrafts(selectedProduct)}
+            initialOption={editInitialOption}
             initialValues={buildEditValues(selectedProduct)}
             mode="edit"
             onDelete={handleDelete}
@@ -2045,7 +2623,7 @@ export function AdminProductCrud({
 
       <AdminSectionCard
         title="Створення нового товару"
-        description="Create-flow уже розбитий на всі 6 кроків і може створювати повноцінні товари з характеристиками, flags, manual images та SEO."
+        description="Create-flow уже розбитий на всі 7 кроків і може створювати повноцінні товари з характеристиками, flags, images, опціями та SEO."
       >
         <ProductWizard
           brands={brands}
@@ -2053,6 +2631,7 @@ export function AdminProductCrud({
           fields={fields}
           initialDynamicValues={{}}
           initialImages={[]}
+          initialOption={null}
           initialValues={createInitialValues}
           mode="create"
           onSuccess={(id) => {

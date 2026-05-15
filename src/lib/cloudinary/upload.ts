@@ -15,6 +15,12 @@ type ProductImageUploadInput = {
   productSlug: string;
 };
 
+type ProductOptionImageUploadInput = {
+  file: File;
+  productSlug: string;
+  valueNumber: number;
+};
+
 type CatalogImageUploadInput = {
   entitySlug: string;
   entityType: "category" | "subcategory";
@@ -133,6 +139,71 @@ export async function uploadProductImageToCloudinary({
 
     throw new Error(
       payload?.error?.message || "Cloudinary image upload failed.",
+    );
+  }
+
+  const payload = (await response.json()) as {
+    public_id: string;
+    secure_url: string;
+  };
+
+  return {
+    publicId: payload.public_id,
+    url: payload.secure_url,
+  };
+}
+
+export async function uploadProductOptionImageToCloudinary({
+  file,
+  productSlug,
+  valueNumber,
+}: ProductOptionImageUploadInput) {
+  const config = getCloudinaryConfig();
+  const timestamp = Math.floor(Date.now() / 1000);
+  const safeSlug = normalizePathSegment(productSlug);
+  const folder = joinCloudinaryPath(
+    config.uploadRoot,
+    "product-options",
+    safeSlug,
+  );
+  const publicId = `option-${valueNumber}`;
+
+  if (!safeSlug) {
+    throw new Error("PRODUCT_SLUG_REQUIRED");
+  }
+
+  const signature = createUploadSignature({
+    apiSecret: config.apiSecret,
+    folder,
+    publicId,
+    timestamp,
+  });
+
+  const formData = new FormData();
+  formData.append("file", file);
+  formData.append("api_key", config.apiKey);
+  formData.append("timestamp", timestamp.toString());
+  formData.append("signature", signature);
+  formData.append("folder", folder);
+  formData.append("public_id", publicId);
+
+  const response = await fetch(
+    `https://api.cloudinary.com/v1_1/${config.cloudName}/image/upload`,
+    {
+      body: formData,
+      method: "POST",
+    },
+  );
+
+  if (!response.ok) {
+    const payload = (await response.json().catch(() => null)) as {
+      error?: {
+        message?: string;
+      };
+    } | null;
+
+    throw new Error(
+      payload?.error?.message || "Cloudinary option image upload failed.",
     );
   }
 

@@ -26,6 +26,7 @@ import { Switch } from "@/components/ui/switch";
 import {
   createSubcategoryFieldAction,
   deleteSubcategoryFieldAction,
+  toggleSubcategoryFieldStatusAction,
   updateSubcategoryFieldAction,
 } from "@/features/catalog/actions/admin-catalog";
 
@@ -54,12 +55,13 @@ type FieldOptionValue = {
 };
 
 type SelectedField = {
-  isActive: boolean;
   id: string;
+  isActive: boolean;
   isRequired: boolean;
   key: string;
   label: string;
   options: FieldOptionValue[];
+  productValuesCount: number;
   sortOrder: number;
   subcategory: {
     id: string;
@@ -79,6 +81,7 @@ type FieldFormValues = {
 };
 
 type FieldFormErrors = {
+  isActive?: string;
   isRequired?: string;
   key?: string;
   label?: string;
@@ -140,6 +143,7 @@ function mapFieldErrors(
   return {
     isRequired: fieldErrors?.isRequired?.[0],
     key: fieldErrors?.key?.[0],
+    isActive: fieldErrors?.isActive?.[0],
     label: fieldErrors?.label?.[0],
     options: fieldErrors?.options?.[0],
     sortOrder: fieldErrors?.sortOrder?.[0],
@@ -167,7 +171,7 @@ function FieldOptionsEditor({
 }) {
   return (
     <AdminFormSection
-      title="Select options"
+      title="Опції SELECT / MULTI_SELECT"
       description="Опції зберігаються прямо в полі підкатегорії та використовуються для валідації значень товару."
     >
       <div className="space-y-4">
@@ -234,7 +238,7 @@ function FieldOptionsEditor({
         ) : (
           <AdminEmptyState
             title="Ще немає жодної опції"
-            description="Для поля типу SELECT додайте хоча б одну опцію, інакше сервер не дозволить зберегти зміни."
+            description="Для типу SELECT або MULTI_SELECT додайте хоча б одну опцію, інакше сервер не дозволить зберегти зміни."
           />
         )}
 
@@ -260,6 +264,7 @@ function FieldFormFields({
   subcategories,
   values,
   onAddOption,
+  onActiveChange,
   onOptionChange,
   onOptionRemove,
   onRequiredChange,
@@ -272,6 +277,7 @@ function FieldFormFields({
   subcategories: SubcategoryOption[];
   values: FieldFormValues;
   onAddOption: () => void;
+  onActiveChange: (value: boolean) => void;
   onOptionChange: (
     index: number,
     field: keyof Omit<FieldOptionValue, "id">,
@@ -284,7 +290,7 @@ function FieldFormFields({
   onValueChange: (
     field: keyof Omit<
       FieldFormValues,
-      "isRequired" | "options" | "subcategoryId" | "type"
+      "isActive" | "isRequired" | "options" | "subcategoryId" | "type"
     >,
     value: string,
   ) => void;
@@ -296,7 +302,7 @@ function FieldFormFields({
     <div className="space-y-4">
       <AdminFormSection
         title={heading}
-        description="Форма напряму підключена до write-side конструктора полів підкатегорії."
+        description="Форма напряму підключена до write-side конструктора характеристик підкатегорії."
       >
         <AdminFormGrid>
           <AdminField
@@ -351,7 +357,7 @@ function FieldFormFields({
               onValueChange={(value) => onTypeChange(value as FieldType)}
             >
               <SelectTrigger className="w-full">
-                <SelectValue placeholder="Оберіть тип поля" />
+                <SelectValue placeholder="Оберіть тип характеристики" />
               </SelectTrigger>
               <SelectContent>
                 {FIELD_TYPE_OPTIONS.map((option) => (
@@ -377,19 +383,38 @@ function FieldFormFields({
         </AdminFormGrid>
 
         <div className="border-border/70 bg-card/90 mt-4 rounded-2xl border px-4 py-3">
-          <div className="flex items-start justify-between gap-4">
-            <div className="space-y-1">
-              <p className="text-sm font-medium">Обов&apos;язкове поле</p>
-              <p className="text-muted-foreground text-sm leading-6">
-                Якщо ввімкнено, товар цієї підкатегорії не повинен залишатися
-                без значення цього поля.
-              </p>
+          <div className="grid gap-4 md:grid-cols-2">
+            <div className="flex items-start justify-between gap-4">
+              <div className="space-y-1">
+                <p className="text-sm font-medium">
+                  Обов&apos;язкова характеристика
+                </p>
+                <p className="text-muted-foreground text-sm leading-6">
+                  Якщо ввімкнено, товар цієї підкатегорії не повинен залишатися
+                  без значення цієї характеристики.
+                </p>
+              </div>
+              <Switch
+                checked={values.isRequired}
+                onCheckedChange={onRequiredChange}
+                aria-label="Обов'язкова характеристика"
+              />
             </div>
-            <Switch
-              checked={values.isRequired}
-              onCheckedChange={onRequiredChange}
-              aria-label="Обов'язкове поле"
-            />
+
+            <div className="flex items-start justify-between gap-4">
+              <div className="space-y-1">
+                <p className="text-sm font-medium">Активна характеристика</p>
+                <p className="text-muted-foreground text-sm leading-6">
+                  Неактивні характеристики не показуються при створенні нових
+                  товарів, але старі значення залишаються доступними.
+                </p>
+              </div>
+              <Switch
+                checked={values.isActive}
+                onCheckedChange={onActiveChange}
+                aria-label="Активна характеристика"
+              />
+            </div>
           </div>
         </div>
       </AdminFormSection>
@@ -414,7 +439,7 @@ export function AdminFieldCrud({
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [activeAction, setActiveAction] = useState<
-    "create" | "delete" | "update" | null
+    "create" | "delete" | "toggle" | "update" | null
   >(null);
 
   const createInitialValues = useMemo(
@@ -469,7 +494,7 @@ export function AdminFieldCrud({
   const updateCreateField = (
     field: keyof Omit<
       FieldFormValues,
-      "isRequired" | "options" | "subcategoryId" | "type"
+      "isActive" | "isRequired" | "options" | "subcategoryId" | "type"
     >,
     value: string,
   ) => {
@@ -487,7 +512,7 @@ export function AdminFieldCrud({
   const updateEditField = (
     field: keyof Omit<
       FieldFormValues,
-      "isRequired" | "options" | "subcategoryId" | "type"
+      "isActive" | "isRequired" | "options" | "subcategoryId" | "type"
     >,
     value: string,
   ) => {
@@ -598,7 +623,7 @@ export function AdminFieldCrud({
         }
 
         setCreateErrors({});
-        setCreateSuccess("Поле підкатегорії створено.");
+        setCreateSuccess("Характеристику підкатегорії створено.");
         setCreateValues(buildCreateValues(subcategories));
         router.push(`/admin/fields?selected=${result.data.id}`);
         router.refresh();
@@ -633,7 +658,7 @@ export function AdminFieldCrud({
         }
 
         setEditErrors({});
-        setEditSuccess("Поле підкатегорії оновлено.");
+        setEditSuccess("Характеристику підкатегорії оновлено.");
         router.push(`/admin/fields?selected=${result.data.id}`);
         router.refresh();
       } finally {
@@ -647,7 +672,9 @@ export function AdminFieldCrud({
       return;
     }
 
-    const confirmed = window.confirm(`Видалити поле "${selectedField.label}"?`);
+    const confirmed = window.confirm(
+      `Видалити характеристику "${selectedField.label}"?`,
+    );
 
     if (!confirmed) {
       return;
@@ -676,19 +703,69 @@ export function AdminFieldCrud({
     });
   };
 
+  const handleToggleStatus = () => {
+    if (!selectedField) {
+      return;
+    }
+
+    setEditMessage(null);
+    setEditSuccess(null);
+
+    const nextStatus = !selectedField.isActive;
+
+    setActiveAction("toggle");
+    startTransition(async () => {
+      try {
+        const result = await toggleSubcategoryFieldStatusAction({
+          id: selectedField.id,
+          isActive: nextStatus,
+        });
+
+        if (!result.ok) {
+          setEditMessage(result.error);
+          return;
+        }
+
+        setEditSuccess(
+          nextStatus
+            ? "Характеристику активовано."
+            : "Характеристику деактивовано.",
+        );
+        router.refresh();
+      } finally {
+        setActiveAction(null);
+      }
+    });
+  };
+
   return (
     <div className="space-y-6">
       {selectedField && editValues ? (
         <AdminSectionCard
-          title="Редагування та видалення"
-          description="Тут уже працює реальний update/delete для вибраного поля підкатегорії."
+          title="Редагування характеристики"
+          description="Тут працює оновлення вибраної характеристики підкатегорії. Видалення доступне тільки для невикористаних записів."
         >
           <form className="space-y-4" onSubmit={handleUpdate}>
             <FieldFormFields
               errors={editErrors}
-              heading="Оновлення поля"
+              heading="Оновлення характеристики"
               subcategories={subcategories}
               values={editValues}
+              onActiveChange={(value) => {
+                setEditValues((current) =>
+                  current
+                    ? {
+                        ...current,
+                        isActive: value,
+                      }
+                    : current,
+                );
+                setEditErrors((current) => ({
+                  ...current,
+                  isActive: undefined,
+                }));
+                clearEditFeedback();
+              }}
               onAddOption={() => {
                 updateOptionList("edit", (options) => [
                   ...options,
@@ -764,18 +841,34 @@ export function AdminFieldCrud({
 
             <div className="border-border/70 bg-muted/30 flex flex-col gap-3 rounded-2xl border p-4 sm:flex-row sm:items-center sm:justify-between">
               <p className="text-muted-foreground text-sm leading-6">
-                Видалення доступне лише для полів, які ще не використовуються
-                товарами.
+                {selectedField.productValuesCount > 0
+                  ? `Характеристика вже використовується у ${selectedField.productValuesCount} значеннях товарів, тому фізичне видалення замінено на active/inactive.`
+                  : "Фізичне видалення доступне тільки для характеристик, які ще не використовуються товарами."}
               </p>
               <div className="flex flex-wrap gap-2">
-                <Button
-                  type="button"
-                  variant="destructive"
-                  onClick={handleDelete}
-                  disabled={isPending}
-                >
-                  {activeAction === "delete" ? "Видаляємо..." : "Видалити"}
-                </Button>
+                {selectedField.productValuesCount > 0 ? (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={handleToggleStatus}
+                    disabled={isPending}
+                  >
+                    {activeAction === "toggle"
+                      ? "Оновлюємо..."
+                      : selectedField.isActive
+                        ? "Деактивувати"
+                        : "Активувати"}
+                  </Button>
+                ) : (
+                  <Button
+                    type="button"
+                    variant="destructive"
+                    onClick={handleDelete}
+                    disabled={isPending}
+                  >
+                    {activeAction === "delete" ? "Видаляємо..." : "Видалити"}
+                  </Button>
+                )}
                 <Button type="submit" disabled={isPending}>
                   {activeAction === "update"
                     ? "Зберігаємо..."
@@ -787,21 +880,32 @@ export function AdminFieldCrud({
         </AdminSectionCard>
       ) : (
         <AdminEmptyState
-          title="Оберіть поле для редагування"
-          description="Create-форма вже доступна нижче, а щойно ви виберете поле зі списку, тут з'явиться реальний update/delete."
+          title="Оберіть характеристику для редагування"
+          description="Create-форма вже доступна нижче, а щойно ви виберете характеристику зі списку, тут з'явиться панель редагування."
         />
       )}
 
       <AdminSectionCard
-        title="Створення нового поля"
+        title="Створення нової характеристики"
         description="Форма створює нову характеристику для конкретної підкатегорії та одразу відкриває її в detail panel."
       >
         <form className="space-y-4" onSubmit={handleCreate}>
           <FieldFormFields
             errors={createErrors}
-            heading="Нове поле"
+            heading="Нова характеристика"
             subcategories={subcategories}
             values={createValues}
+            onActiveChange={(value) => {
+              setCreateValues((current) => ({
+                ...current,
+                isActive: value,
+              }));
+              setCreateErrors((current) => ({
+                ...current,
+                isActive: undefined,
+              }));
+              clearCreateFeedback();
+            }}
             onAddOption={() => {
               updateOptionList("create", (options) => [
                 ...options,
@@ -873,7 +977,9 @@ export function AdminFieldCrud({
               редагування seed чи коду.
             </p>
             <Button type="submit" disabled={isPending}>
-              {activeAction === "create" ? "Створюємо..." : "Створити поле"}
+              {activeAction === "create"
+                ? "Створюємо..."
+                : "Створити характеристику"}
             </Button>
           </div>
         </form>

@@ -127,6 +127,7 @@ const storefrontProductListSelect = {
   isFeaturedNew: true,
   isFeaturedSale: true,
   isFeaturedHit: true,
+  isFeaturedDiscount: true,
   category: {
     select: {
       id: true,
@@ -189,6 +190,22 @@ const storefrontProductDetailSelect = {
       sortOrder: true,
     },
   },
+  option: {
+    select: {
+      id: true,
+      name: true,
+      values: {
+        orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
+        select: {
+          id: true,
+          label: true,
+          image: true,
+          imagePublicId: true,
+          sortOrder: true,
+        },
+      },
+    },
+  },
   fieldValues: {
     orderBy: {
       field: {
@@ -200,6 +217,7 @@ const storefrontProductDetailSelect = {
       valueText: true,
       valueNumber: true,
       valueBoolean: true,
+      valueJson: true,
       field: {
         select: {
           id: true,
@@ -207,6 +225,13 @@ const storefrontProductDetailSelect = {
           key: true,
           type: true,
           sortOrder: true,
+          options: {
+            select: {
+              id: true,
+              label: true,
+              value: true,
+            },
+          },
         },
       },
       option: {
@@ -268,7 +293,7 @@ function mapCategoryToCard(
       href: `/category/${category.slug}/${subcategory.slug}`,
       label: subcategory.name,
     })),
-    stat: `${category._count.products} товарів`,
+    stat: `${category._count.products} С‚РѕРІР°СЂС–РІ`,
     tone: visual.tone,
   };
 }
@@ -310,13 +335,14 @@ function mapBrandToOption(brand: StorefrontBrandRecord): CatalogOption {
 function mapProductBadges(
   product: Pick<
     StorefrontProductListRecord,
-    "isFeaturedHit" | "isFeaturedNew" | "isFeaturedSale"
+    "isFeaturedHit" | "isFeaturedNew" | "isFeaturedSale" | "isFeaturedDiscount"
   >,
 ): StorefrontProductBadge[] {
   return [
     product.isFeaturedHit ? "hit" : null,
     product.isFeaturedNew ? "new" : null,
     product.isFeaturedSale ? "sale" : null,
+    product.isFeaturedDiscount ? "discount" : null,
   ].filter((badge): badge is StorefrontProductBadge => Boolean(badge));
 }
 
@@ -558,9 +584,8 @@ export async function getStorefrontCatalogFilterOptions(input?: {
 }
 
 export async function getActiveStorefrontCategoryBySlug(slug: string) {
-  const category = await getActiveStorefrontCategoryWithSubcategoriesBySlug(
-    slug,
-  );
+  const category =
+    await getActiveStorefrontCategoryWithSubcategoriesBySlug(slug);
 
   return category ? mapCategoryToCard(category, 0) : null;
 }
@@ -722,6 +747,38 @@ export async function getStorefrontSaleProducts(limit = 8) {
   });
 }
 
+type StorefrontProductDetailRecord = Prisma.ProductGetPayload<{
+  select: typeof storefrontProductDetailSelect;
+}>;
+
+function resolveStorefrontFieldValue(
+  fieldValue: StorefrontProductDetailRecord["fieldValues"][number],
+) {
+  if (Array.isArray(fieldValue.valueJson) && fieldValue.valueJson.length > 0) {
+    const selectedValues = fieldValue.valueJson;
+
+    return fieldValue.field.options
+      .filter((option) =>
+        selectedValues.some(
+          (selected) => typeof selected === "string" && selected === option.id,
+        ),
+      )
+      .map((option) => option.label)
+      .join(", ");
+  }
+
+  return (
+    fieldValue.option?.label ??
+    fieldValue.valueText ??
+    fieldValue.valueNumber?.toString() ??
+    (typeof fieldValue.valueBoolean === "boolean"
+      ? fieldValue.valueBoolean
+        ? "РўР°Рє"
+        : "РќС–"
+      : "")
+  );
+}
+
 export async function getActiveStorefrontProductBySlug(slug: string) {
   const product = await prisma.product.findFirst({
     where: {
@@ -743,15 +800,7 @@ export async function getActiveStorefrontProductBySlug(slug: string) {
       id: fieldValue.id,
       key: fieldValue.field.key,
       label: fieldValue.field.label,
-      value:
-        fieldValue.option?.label ??
-        fieldValue.valueText ??
-        fieldValue.valueNumber?.toString() ??
-        (typeof fieldValue.valueBoolean === "boolean"
-          ? fieldValue.valueBoolean
-            ? "Так"
-            : "Ні"
-          : ""),
+      value: resolveStorefrontFieldValue(fieldValue),
     })),
   };
 }

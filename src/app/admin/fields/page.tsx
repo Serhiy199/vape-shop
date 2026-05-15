@@ -29,8 +29,11 @@ export default async function AdminFieldsPage({
     params.selected,
   );
 
+  const activeCount = fields.filter((field) => field.isActive).length;
   const requiredCount = fields.filter((field) => field.isRequired).length;
-  const selectCount = fields.filter((field) => field.type === "SELECT").length;
+  const selectLikeCount = fields.filter(
+    (field) => field.type === "SELECT" || field.type === "MULTI_SELECT",
+  ).length;
   const totalOptions = fields.reduce(
     (sum, field) => sum + field._count.options,
     0,
@@ -42,10 +45,10 @@ export default async function AdminFieldsPage({
   return (
     <div className="space-y-6">
       <AdminPageHeader
-        eyebrow="Поля"
-        title="Конструктор характеристик підкатегорій уже працює в адмінці"
-        description="Тепер адміністратор може задавати власні поля для кожної підкатегорії, керувати типами значень і select-опціями без змін у коді. Усі операції проходять через валідацію та write-side правила сумісності."
-        badges={["Етап 6", "Dynamic Fields Constructor"]}
+        eyebrow="Характеристики"
+        title="Конструктор характеристик підкатегорій"
+        description="Адміністратор може задавати власні характеристики для кожної підкатегорії, керувати типами значень, SELECT і MULTI_SELECT опціями без змін у коді. Використані характеристики не видаляються фізично, а деактивуються."
+        badges={["Характеристики", "Active / inactive"]}
       />
 
       <AdminStatsGrid
@@ -53,22 +56,27 @@ export default async function AdminFieldsPage({
           {
             label: "Всього",
             value: fields.length.toString(),
-            note: "Бачимо всі поля підкатегорій, які формують динамічну структуру каталогу.",
+            note: "Усі характеристики підкатегорій, які формують динамічну структуру каталогу.",
+          },
+          {
+            label: "Активні",
+            value: activeCount.toString(),
+            note: "Активні характеристики доступні при створенні та редагуванні товарів.",
           },
           {
             label: "Обов'язкові",
             value: requiredCount.toString(),
-            note: "Ці поля повинні бути заповнені для товарів відповідних підкатегорій.",
+            note: "Ці характеристики повинні бути заповнені для товарів відповідних підкатегорій.",
           },
           {
-            label: "SELECT",
-            value: selectCount.toString(),
-            note: "Поля з наперед заданими варіантами значень для контрольованого вводу.",
+            label: "SELECT / MULTI",
+            value: selectLikeCount.toString(),
+            note: "Характеристики з наперед заданими варіантами значень для контрольованого вводу.",
           },
           {
             label: "Опції",
             value: totalOptions.toString(),
-            note: "Сумарна кількість select-опцій, які вже описані в конструкторі.",
+            note: "Сумарна кількість опцій, які вже описані в конструкторі.",
           },
         ]}
       />
@@ -86,22 +94,23 @@ export default async function AdminFieldsPage({
             variant: "outline",
           },
         ]}
-        note={`Полів, уже пов'язаних із товарами: ${usedByProductsCount}. Такі записи не можна небезпечно змінювати або видаляти.`}
+        note={`Характеристик, уже пов'язаних із товарами: ${usedByProductsCount}. Такі записи не видаляються фізично, для них використовується active/inactive.`}
       />
 
       <AdminSectionCard
-        title="Список і деталі полів"
-        description="Ліва колонка показує всі характеристики підкатегорій, права — деталі вибраного поля та робочий CRUD-конструктор."
+        title="Список і деталі характеристик"
+        description="Ліва колонка показує всі характеристики підкатегорій, права — деталі вибраної характеристики та робочий CRUD-конструктор."
       >
         <AdminSplitLayout
           list={
             <div className="space-y-4">
               <div className="flex items-center justify-between gap-3">
                 <div>
-                  <p className="text-sm font-medium">Поля каталогу</p>
+                  <p className="text-sm font-medium">Характеристики каталогу</p>
                   <p className="text-muted-foreground text-sm leading-6">
-                    Уже зараз видно, до якої підкатегорії належить поле, який у
-                    нього тип і чи використовується воно товарами.
+                    Уже зараз видно, до якої підкатегорії належить
+                    характеристика, який у неї тип, статус і чи використовується
+                    вона товарами.
                   </p>
                 </div>
                 <Badge variant="outline">{fields.length} записів</Badge>
@@ -112,7 +121,7 @@ export default async function AdminFieldsPage({
                 columns={[
                   {
                     key: "label",
-                    header: "Поле",
+                    header: "Характеристика",
                     cell: (field) => (
                       <div className="space-y-1">
                         <Link
@@ -128,6 +137,11 @@ export default async function AdminFieldsPage({
                         <p className="text-muted-foreground text-xs">
                           {field.key}
                         </p>
+                        <Badge
+                          variant={field.isActive ? "secondary" : "outline"}
+                        >
+                          {field.isActive ? "Активна" : "Неактивна"}
+                        </Badge>
                       </div>
                     ),
                   },
@@ -160,7 +174,7 @@ export default async function AdminFieldsPage({
                 emptyState={
                   <AdminEmptyState
                     icon={getAdminModuleIcon("fields")}
-                    title="Поля ще не знайдені"
+                    title="Характеристики ще не знайдені"
                     description="Щойно seed або перші CRUD-операції додадуть записи, ця сторінка одразу покаже реальний конструктор характеристик."
                   />
                 }
@@ -171,10 +185,11 @@ export default async function AdminFieldsPage({
             selectedField ? (
               <div className="space-y-4">
                 <div>
-                  <p className="text-sm font-medium">Деталі поля</p>
+                  <p className="text-sm font-medium">Деталі характеристики</p>
                   <p className="text-muted-foreground text-sm leading-6">
-                    Detail panel уже показує реальні дані поля, його
-                    підкатегорію, тип, опції та рівень використання в товарах.
+                    Detail panel показує реальні дані характеристики,
+                    підкатегорію, тип, опції, статус та рівень використання в
+                    товарах.
                   </p>
                 </div>
 
@@ -185,7 +200,7 @@ export default async function AdminFieldsPage({
                       value: selectedField.label,
                       note:
                         selectedField.helpText ??
-                        "Службова підказка для цього поля поки не задана.",
+                        "Службова підказка для цієї характеристики поки не задана.",
                     },
                     {
                       label: "Підкатегорія",
@@ -200,9 +215,10 @@ export default async function AdminFieldsPage({
                       label: "Тип",
                       value: selectedField.type,
                       note:
-                        selectedField.type === "SELECT"
-                          ? "Поле працює через наперед визначені опції."
-                          : "Поле зберігає пряме значення відповідного типу.",
+                        selectedField.type === "SELECT" ||
+                        selectedField.type === "MULTI_SELECT"
+                          ? "Характеристика працює через наперед визначені опції."
+                          : "Характеристика зберігає пряме значення відповідного типу.",
                     },
                     {
                       label: "Параметри",
@@ -238,12 +254,13 @@ export default async function AdminFieldsPage({
                       id: selectedField.subcategory.id,
                     },
                     type: selectedField.type,
+                    productValuesCount: selectedField._count.productValues,
                   }}
                 />
 
                 <AdminSectionCard
-                  title="Select options"
-                  description="Якщо поле має тип SELECT, тут видно повний набір дозволених значень і їх фактичне використання."
+                  title="Опції характеристики"
+                  description="Якщо характеристика має тип SELECT або MULTI_SELECT, тут видно повний набір дозволених значень і їх фактичне використання."
                 >
                   <div className="space-y-3">
                     {selectedField.options.length ? (
@@ -274,8 +291,8 @@ export default async function AdminFieldsPage({
                       ))
                     ) : (
                       <AdminEmptyState
-                        title="Для цього поля ще немає опцій"
-                        description="Це нормальний стан для не-SELECT полів. Якщо зміните тип на SELECT, тут з'являться дозволені варіанти значень."
+                        title="Для цієї характеристики ще немає опцій"
+                        description="Це нормальний стан для характеристик без варіантів. Якщо зміните тип на SELECT або MULTI_SELECT, тут з'являться дозволені варіанти значень."
                       />
                     )}
                   </div>
@@ -285,8 +302,8 @@ export default async function AdminFieldsPage({
               <div className="space-y-4">
                 <AdminEmptyState
                   icon={getAdminModuleIcon("fields")}
-                  title="Немає обраного поля"
-                  description="Можна одразу створити нове поле нижче, або вибрати існуюче зі списку для редагування."
+                  title="Немає обраної характеристики"
+                  description="Можна одразу створити нову характеристику нижче, або вибрати існуючу зі списку для редагування."
                 />
 
                 <AdminFieldCrud

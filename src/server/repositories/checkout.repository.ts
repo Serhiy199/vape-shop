@@ -36,6 +36,20 @@ const checkoutProductSelect = {
       url: true,
     },
   },
+  option: {
+    select: {
+      id: true,
+      name: true,
+      values: {
+        orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
+        select: {
+          id: true,
+          label: true,
+          image: true,
+        },
+      },
+    },
+  },
 } satisfies Prisma.ProductSelect;
 
 const checkoutOrderSelect = {
@@ -61,6 +75,9 @@ const checkoutOrderSelect = {
       productId: true,
       productTitle: true,
       productSlug: true,
+      selectedOptionName: true,
+      selectedOptionValue: true,
+      selectedOptionValueId: true,
       unitPrice: true,
       quantity: true,
       lineTotal: true,
@@ -81,6 +98,9 @@ export type CheckoutOrderItemWriteInput = {
   productId: string;
   productSlug: string;
   productTitle: string;
+  selectedOptionName?: string;
+  selectedOptionValue?: string;
+  selectedOptionValueId?: string;
   quantity: number;
   unitPrice: number;
 };
@@ -140,6 +160,9 @@ export async function createCheckoutOrder(input: {
           productId: item.productId,
           productSlug: item.productSlug,
           productTitle: item.productTitle,
+          selectedOptionName: item.selectedOptionName,
+          selectedOptionValue: item.selectedOptionValue,
+          selectedOptionValueId: item.selectedOptionValueId,
           quantity: item.quantity,
           unitPrice: item.unitPrice,
         })),

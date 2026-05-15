@@ -761,34 +761,69 @@ export async function updateSubcategoryField(input: {
     sortOrder: number;
   }>;
 }) {
-  return prisma.subcategoryField.update({
-    where: {
-      id: input.id,
-    },
-    data: {
-      subcategoryId: input.subcategoryId,
-      label: input.label,
-      key: input.key,
-      type: input.type,
-      isRequired: input.isRequired,
-      isActive: input.isActive,
-      sortOrder: input.sortOrder,
-      helpText: input.helpText,
-      isFilterable: input.isFilterable ?? false,
-      options: {
-        deleteMany: {},
-        create: (input.options ?? []).map((option) => ({
+  return prisma.$transaction(async (tx) => {
+    const updatedField = await tx.subcategoryField.update({
+      where: {
+        id: input.id,
+      },
+      data: {
+        subcategoryId: input.subcategoryId,
+        label: input.label,
+        key: input.key,
+        type: input.type,
+        isRequired: input.isRequired,
+        isActive: input.isActive,
+        sortOrder: input.sortOrder,
+        helpText: input.helpText,
+        isFilterable: input.isFilterable ?? false,
+      },
+      select: {
+        id: true,
+        label: true,
+        key: true,
+      },
+    });
+
+    const nextOptions = input.options ?? [];
+    const nextOptionValues = nextOptions.map((option) => option.value);
+
+    for (const option of nextOptions) {
+      await tx.subcategoryFieldOption.upsert({
+        where: {
+          fieldId_value: {
+            fieldId: input.id,
+            value: option.value,
+          },
+        },
+        update: {
+          label: option.label,
+          sortOrder: option.sortOrder,
+        },
+        create: {
+          fieldId: input.id,
           label: option.label,
           value: option.value,
           sortOrder: option.sortOrder,
-        })),
+        },
+        select: {
+          id: true,
+        },
+      });
+    }
+
+    await tx.subcategoryFieldOption.deleteMany({
+      where: {
+        fieldId: input.id,
+        value: {
+          notIn: nextOptionValues,
+        },
+        valuesUsed: {
+          none: {},
+        },
       },
-    },
-    select: {
-      id: true,
-      label: true,
-      key: true,
-    },
+    });
+
+    return updatedField;
   });
 }
 
@@ -799,6 +834,24 @@ export async function deleteSubcategoryField(fieldId: string) {
     },
     select: {
       id: true,
+    },
+  });
+}
+
+export async function setSubcategoryFieldActiveStatus(input: {
+  id: string;
+  isActive: boolean;
+}) {
+  return prisma.subcategoryField.update({
+    where: {
+      id: input.id,
+    },
+    data: {
+      isActive: input.isActive,
+    },
+    select: {
+      id: true,
+      isActive: true,
     },
   });
 }
@@ -947,6 +1000,7 @@ type ProductFieldValueWriteInput = {
   fieldId: string;
   optionId?: string;
   valueBoolean?: boolean;
+  valueJson?: string[];
   valueNumber?: number;
   valueText?: string;
 };
@@ -957,6 +1011,18 @@ type ProductImageWriteInput = {
   alt?: string;
   sortOrder: number;
   isPrimary: boolean;
+};
+
+type ProductOptionValueWriteInput = {
+  label: string;
+  image: string;
+  imagePublicId?: string;
+  sortOrder: number;
+};
+
+type ProductOptionWriteInput = {
+  name: string;
+  values: ProductOptionValueWriteInput[];
 };
 
 type ProductWriteInput = {
@@ -977,6 +1043,7 @@ type ProductWriteInput = {
   seoDescription?: string;
   images: ProductImageWriteInput[];
   fieldValues: ProductFieldValueWriteInput[];
+  option?: ProductOptionWriteInput;
 };
 
 const adminProductListSelect = {
@@ -1098,6 +1165,24 @@ const adminProductDetailSelect = {
       updatedAt: true,
     },
   },
+  option: {
+    select: {
+      id: true,
+      name: true,
+      values: {
+        orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
+        select: {
+          id: true,
+          label: true,
+          image: true,
+          imagePublicId: true,
+          sortOrder: true,
+          createdAt: true,
+          updatedAt: true,
+        },
+      },
+    },
+  },
   fieldValues: {
     select: {
       id: true,
@@ -1106,6 +1191,7 @@ const adminProductDetailSelect = {
       valueText: true,
       valueNumber: true,
       valueBoolean: true,
+      valueJson: true,
       field: {
         select: {
           id: true,
@@ -1247,6 +1333,21 @@ export async function createProduct(input: ProductWriteInput) {
         isFeaturedHit: input.isFeaturedHit,
         seoTitle: input.seoTitle,
         seoDescription: input.seoDescription,
+        option: input.option
+          ? {
+              create: {
+                name: input.option.name,
+                values: {
+                  create: input.option.values.map((value) => ({
+                    label: value.label,
+                    image: value.image,
+                    imagePublicId: value.imagePublicId,
+                    sortOrder: value.sortOrder,
+                  })),
+                },
+              },
+            }
+          : undefined,
         images: {
           create: input.images.map((image) => ({
             url: image.url,
@@ -1263,6 +1364,7 @@ export async function createProduct(input: ProductWriteInput) {
             valueText: fieldValue.valueText,
             valueNumber: fieldValue.valueNumber,
             valueBoolean: fieldValue.valueBoolean,
+            valueJson: fieldValue.valueJson,
           })),
         },
       },
@@ -1317,6 +1419,12 @@ export async function updateProduct(input: ProductWriteInput & { id: string }) {
       },
     });
 
+    await tx.productOption.deleteMany({
+      where: {
+        productId: input.id,
+      },
+    });
+
     if (input.images.length > 0) {
       await tx.productImage.createMany({
         data: input.images.map((image) => ({
@@ -1339,7 +1447,28 @@ export async function updateProduct(input: ProductWriteInput & { id: string }) {
           valueText: fieldValue.valueText,
           valueNumber: fieldValue.valueNumber,
           valueBoolean: fieldValue.valueBoolean,
+          valueJson: fieldValue.valueJson,
         })),
+      });
+    }
+
+    if (input.option) {
+      await tx.productOption.create({
+        data: {
+          productId: input.id,
+          name: input.option.name,
+          values: {
+            create: input.option.values.map((value) => ({
+              label: value.label,
+              image: value.image,
+              imagePublicId: value.imagePublicId,
+              sortOrder: value.sortOrder,
+            })),
+          },
+        },
+        select: {
+          id: true,
+        },
       });
     }
 

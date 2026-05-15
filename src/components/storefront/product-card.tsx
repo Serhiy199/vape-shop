@@ -18,6 +18,7 @@ const badgeLabels: Record<StorefrontProductBadge, string> = {
   hit: "Топ",
   new: "Новинка",
   sale: "Акція",
+  discount: "Знижка",
 };
 
 const badgeTones: Record<
@@ -27,6 +28,7 @@ const badgeTones: Record<
   hit: "hit",
   new: "new",
   sale: "sale",
+  discount: "sale",
 };
 
 export const currencyFormatter = new Intl.NumberFormat("uk-UA", {
