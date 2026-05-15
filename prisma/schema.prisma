@@ -41,6 +41,7 @@ enum SubcategoryFieldType {
   NUMBER
   TEXTAREA
   SELECT
+  MULTI_SELECT
   BOOLEAN
 }
 
@@ -173,6 +174,7 @@ model SubcategoryField {
   key           String
   type          SubcategoryFieldType
   isRequired    Boolean                  @default(false)
+  isActive      Boolean                  @default(true)
   sortOrder     Int                      @default(0)
   helpText      String?
   isFilterable  Boolean                  @default(false)
@@ -183,6 +185,7 @@ model SubcategoryField {
   productValues ProductFieldValue[]
 
   @@unique([subcategoryId, key])
+  @@index([isActive])
   @@index([subcategoryId, sortOrder])
 }
 
@@ -202,30 +205,32 @@ model SubcategoryFieldOption {
 }
 
 model Product {
-  id             String              @id @default(cuid())
-  categoryId     String
-  subcategoryId  String
-  brandId        String?
-  title          String
-  slug           String              @unique
-  description    String?             @db.Text
-  price          Decimal             @db.Decimal(10, 2)
-  availability   ProductAvailability @default(IN_STOCK)
-  isActive       Boolean             @default(true)
-  isFeaturedNew  Boolean             @default(false)
-  isFeaturedSale Boolean             @default(false)
-  isFeaturedHit  Boolean             @default(false)
-  seoTitle       String?
-  seoDescription String?
-  createdAt      DateTime            @default(now())
-  updatedAt      DateTime            @updatedAt
-  category       Category            @relation(fields: [categoryId], references: [id], onDelete: Restrict)
-  subcategory    Subcategory         @relation(fields: [subcategoryId], references: [id], onDelete: Restrict)
-  brand          Brand?              @relation(fields: [brandId], references: [id], onDelete: SetNull)
-  images         ProductImage[]
-  fieldValues    ProductFieldValue[]
-  orderItems     OrderItem[]
-  wishlistItems  WishlistItem[]
+  id                 String              @id @default(cuid())
+  categoryId         String
+  subcategoryId      String
+  brandId            String?
+  title              String
+  slug               String              @unique
+  description        String?             @db.Text
+  price              Decimal             @db.Decimal(10, 2)
+  availability       ProductAvailability @default(IN_STOCK)
+  isActive           Boolean             @default(true)
+  isFeaturedNew      Boolean             @default(false)
+  isFeaturedSale     Boolean             @default(false)
+  isFeaturedHit      Boolean             @default(false)
+  isFeaturedDiscount Boolean             @default(false)
+  seoTitle           String?
+  seoDescription     String?
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+  category           Category            @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  subcategory        Subcategory         @relation(fields: [subcategoryId], references: [id], onDelete: Restrict)
+  brand              Brand?              @relation(fields: [brandId], references: [id], onDelete: SetNull)
+  images             ProductImage[]
+  option             ProductOption?
+  fieldValues        ProductFieldValue[]
+  orderItems         OrderItem[]
+  wishlistItems      WishlistItem[]
 
   @@index([categoryId])
   @@index([subcategoryId])
@@ -249,6 +254,32 @@ model ProductImage {
   @@index([productId, sortOrder])
 }
 
+model ProductOption {
+  id        String               @id @default(cuid())
+  productId String               @unique
+  name      String
+  createdAt DateTime             @default(now())
+  updatedAt DateTime             @updatedAt
+  product   Product              @relation(fields: [productId], references: [id], onDelete: Cascade)
+  values    ProductOptionValue[]
+
+  @@index([productId])
+}
+
+model ProductOptionValue {
+  id              String        @id @default(cuid())
+  productOptionId String
+  label           String
+  image           String
+  imagePublicId   String?
+  sortOrder       Int           @default(0)
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  productOption   ProductOption @relation(fields: [productOptionId], references: [id], onDelete: Cascade)
+
+  @@index([productOptionId, sortOrder])
+}
+
 model ProductFieldValue {
   id           String                  @id @default(cuid())
   productId    String
@@ -257,6 +288,7 @@ model ProductFieldValue {
   valueText    String?
   valueNumber  Decimal?                @db.Decimal(10, 2)
   valueBoolean Boolean?
+  valueJson    Json?
   createdAt    DateTime                @default(now())
   updatedAt    DateTime                @updatedAt
   product      Product                 @relation(fields: [productId], references: [id], onDelete: Cascade)
@@ -300,21 +332,25 @@ model Order {
 }
 
 model OrderItem {
-  id           String   @id @default(cuid())
-  orderId      String
-  productId    String
-  productTitle String
-  productSlug  String
-  unitPrice    Decimal  @db.Decimal(10, 2)
-  quantity     Int
-  lineTotal    Decimal  @db.Decimal(10, 2)
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-  order        Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  product      Product  @relation(fields: [productId], references: [id], onDelete: Restrict)
+  id                    String   @id @default(cuid())
+  orderId               String
+  productId             String
+  productTitle          String
+  productSlug           String
+  selectedOptionName    String?
+  selectedOptionValue   String?
+  selectedOptionValueId String?
+  unitPrice             Decimal  @db.Decimal(10, 2)
+  quantity              Int
+  lineTotal             Decimal  @db.Decimal(10, 2)
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+  order                 Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product               Product  @relation(fields: [productId], references: [id], onDelete: Restrict)
 
   @@index([orderId])
   @@index([productId])
+  @@index([selectedOptionValueId])
 }
 
 model Address {
