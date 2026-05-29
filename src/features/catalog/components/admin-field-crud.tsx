@@ -10,6 +10,7 @@ import {
   AdminFormSection,
   AdminInputField,
 } from "@/components/admin/admin-form-primitives";
+import { showAdminToast } from "@/components/admin/admin-toast";
 import {
   AdminEmptyState,
   AdminSectionCard,
@@ -29,6 +30,7 @@ import {
   toggleSubcategoryFieldStatusAction,
   updateSubcategoryFieldAction,
 } from "@/features/catalog/actions/admin-catalog";
+import { fieldKeyFromLabel } from "@/lib/text/slug";
 
 const FIELD_TYPE_OPTIONS = [
   { value: "TEXT", label: "TEXT" },
@@ -92,6 +94,7 @@ type FieldFormErrors = {
 };
 
 type AdminFieldCrudProps = {
+  mode?: "all" | "create" | "edit";
   selectedField: SelectedField | null;
   subcategories: SubcategoryOption[];
 };
@@ -433,6 +436,7 @@ function FieldFormFields({
 }
 
 export function AdminFieldCrud({
+  mode = "all",
   selectedField,
   subcategories,
 }: AdminFieldCrudProps) {
@@ -449,15 +453,15 @@ export function AdminFieldCrud({
 
   const [createValues, setCreateValues] = useState(createInitialValues);
   const [createErrors, setCreateErrors] = useState<FieldFormErrors>({});
-  const [createMessage, setCreateMessage] = useState<string | null>(null);
-  const [createSuccess, setCreateSuccess] = useState<string | null>(null);
+  const [, setCreateMessage] = useState<string | null>(null);
+  const [, setCreateSuccess] = useState<string | null>(null);
 
   const [editValues, setEditValues] = useState<FieldFormValues | null>(
     selectedField ? buildEditValues(selectedField) : null,
   );
   const [editErrors, setEditErrors] = useState<FieldFormErrors>({});
-  const [editMessage, setEditMessage] = useState<string | null>(null);
-  const [editSuccess, setEditSuccess] = useState<string | null>(null);
+  const [, setEditMessage] = useState<string | null>(null);
+  const [, setEditSuccess] = useState<string | null>(null);
 
   useEffect(() => {
     const timeoutId = window.setTimeout(() => {
@@ -500,6 +504,10 @@ export function AdminFieldCrud({
   ) => {
     setCreateValues((current) => ({
       ...current,
+      key:
+        field === "label" && !current.key.trim()
+          ? fieldKeyFromLabel(value)
+          : current.key,
       [field]: value,
     }));
     setCreateErrors((current) => ({
@@ -520,6 +528,10 @@ export function AdminFieldCrud({
       current
         ? {
             ...current,
+            key:
+              field === "label" && !current.key.trim()
+                ? fieldKeyFromLabel(value)
+                : current.key,
             [field]: value,
           }
         : current,
@@ -619,11 +631,20 @@ export function AdminFieldCrud({
         if (!result.ok) {
           setCreateErrors(mapFieldErrors(result.fieldErrors));
           setCreateMessage(result.error);
+          showAdminToast({
+            title: "Не вдалося створити характеристику",
+            message: result.error,
+            variant: "error",
+          });
           return;
         }
 
         setCreateErrors({});
         setCreateSuccess("Характеристику підкатегорії створено.");
+        showAdminToast({
+          title: "Характеристику створено",
+          message: result.data.label,
+        });
         setCreateValues(buildCreateValues(subcategories));
         router.push(`/admin/fields?selected=${result.data.id}`);
         router.refresh();
@@ -654,11 +675,20 @@ export function AdminFieldCrud({
         if (!result.ok) {
           setEditErrors(mapFieldErrors(result.fieldErrors));
           setEditMessage(result.error);
+          showAdminToast({
+            title: "Не вдалося оновити характеристику",
+            message: result.error,
+            variant: "error",
+          });
           return;
         }
 
         setEditErrors({});
         setEditSuccess("Характеристику підкатегорії оновлено.");
+        showAdminToast({
+          title: "Характеристику оновлено",
+          message: result.data.label,
+        });
         router.push(`/admin/fields?selected=${result.data.id}`);
         router.refresh();
       } finally {
@@ -692,9 +722,18 @@ export function AdminFieldCrud({
 
         if (!result.ok) {
           setEditMessage(result.error);
+          showAdminToast({
+            title: "Не вдалося видалити характеристику",
+            message: result.error,
+            variant: "error",
+          });
           return;
         }
 
+        showAdminToast({
+          title: "Характеристику видалено",
+          message: selectedField.label,
+        });
         router.push("/admin/fields");
         router.refresh();
       } finally {
@@ -723,6 +762,11 @@ export function AdminFieldCrud({
 
         if (!result.ok) {
           setEditMessage(result.error);
+          showAdminToast({
+            title: "Не вдалося змінити статус",
+            message: result.error,
+            variant: "error",
+          });
           return;
         }
 
@@ -731,6 +775,12 @@ export function AdminFieldCrud({
             ? "Характеристику активовано."
             : "Характеристику деактивовано.",
         );
+        showAdminToast({
+          title: nextStatus
+            ? "Характеристику активовано"
+            : "Характеристику деактивовано",
+          message: selectedField.label,
+        });
         router.refresh();
       } finally {
         setActiveAction(null);
@@ -740,7 +790,7 @@ export function AdminFieldCrud({
 
   return (
     <div className="space-y-6">
-      {selectedField && editValues ? (
+      {mode !== "create" && selectedField && editValues ? (
         <AdminSectionCard
           title="Редагування характеристики"
           description="Тут працює оновлення вибраної характеристики підкатегорії. Видалення доступне тільки для невикористаних записів."
@@ -778,6 +828,10 @@ export function AdminFieldCrud({
                     optionIndex === index
                       ? {
                           ...option,
+                          value:
+                            field === "label" && !option.value.trim()
+                              ? fieldKeyFromLabel(value)
+                              : option.value,
                           [field]: value,
                         }
                       : option,
@@ -827,18 +881,6 @@ export function AdminFieldCrud({
               onValueChange={updateEditField}
             />
 
-            {editMessage ? (
-              <div className="border-destructive/20 bg-destructive/8 text-destructive rounded-2xl border px-4 py-3 text-sm">
-                {editMessage}
-              </div>
-            ) : null}
-
-            {editSuccess ? (
-              <div className="border-primary/20 bg-primary/8 rounded-2xl border px-4 py-3 text-sm">
-                {editSuccess}
-              </div>
-            ) : null}
-
             <div className="border-border/70 bg-muted/30 flex flex-col gap-3 rounded-2xl border p-4 sm:flex-row sm:items-center sm:justify-between">
               <p className="text-muted-foreground text-sm leading-6">
                 {selectedField.productValuesCount > 0
@@ -878,112 +920,106 @@ export function AdminFieldCrud({
             </div>
           </form>
         </AdminSectionCard>
-      ) : (
+      ) : mode !== "create" ? (
         <AdminEmptyState
           title="Оберіть характеристику для редагування"
           description="Create-форма вже доступна нижче, а щойно ви виберете характеристику зі списку, тут з'явиться панель редагування."
         />
-      )}
+      ) : null}
 
-      <AdminSectionCard
-        title="Створення нової характеристики"
-        description="Форма створює нову характеристику для конкретної підкатегорії та одразу відкриває її в detail panel."
-      >
-        <form className="space-y-4" onSubmit={handleCreate}>
-          <FieldFormFields
-            errors={createErrors}
-            heading="Нова характеристика"
-            subcategories={subcategories}
-            values={createValues}
-            onActiveChange={(value) => {
-              setCreateValues((current) => ({
-                ...current,
-                isActive: value,
-              }));
-              setCreateErrors((current) => ({
-                ...current,
-                isActive: undefined,
-              }));
-              clearCreateFeedback();
-            }}
-            onAddOption={() => {
-              updateOptionList("create", (options) => [
-                ...options,
-                buildDefaultOption(options.length + 1),
-              ]);
-            }}
-            onOptionChange={(index, field, value) => {
-              updateOptionList("create", (options) =>
-                options.map((option, optionIndex) =>
-                  optionIndex === index
-                    ? {
-                        ...option,
-                        [field]: value,
-                      }
-                    : option,
-                ),
-              );
-            }}
-            onOptionRemove={(index) => {
-              updateOptionList("create", (options) =>
-                options.filter((_, optionIndex) => optionIndex !== index),
-              );
-            }}
-            onRequiredChange={(value) => {
-              setCreateValues((current) => ({
-                ...current,
-                isRequired: value,
-              }));
-              setCreateErrors((current) => ({
-                ...current,
-                isRequired: undefined,
-              }));
-              clearCreateFeedback();
-            }}
-            onSubcategoryChange={(value) => {
-              if (!value) {
-                return;
-              }
+      {mode !== "edit" ? (
+        <AdminSectionCard
+          title="Створення нової характеристики"
+          description="Форма створює нову характеристику для конкретної підкатегорії та одразу відкриває її в detail panel."
+        >
+          <form className="space-y-4" onSubmit={handleCreate}>
+            <FieldFormFields
+              errors={createErrors}
+              heading="Нова характеристика"
+              subcategories={subcategories}
+              values={createValues}
+              onActiveChange={(value) => {
+                setCreateValues((current) => ({
+                  ...current,
+                  isActive: value,
+                }));
+                setCreateErrors((current) => ({
+                  ...current,
+                  isActive: undefined,
+                }));
+                clearCreateFeedback();
+              }}
+              onAddOption={() => {
+                updateOptionList("create", (options) => [
+                  ...options,
+                  buildDefaultOption(options.length + 1),
+                ]);
+              }}
+              onOptionChange={(index, field, value) => {
+                updateOptionList("create", (options) =>
+                  options.map((option, optionIndex) =>
+                    optionIndex === index
+                      ? {
+                          ...option,
+                          value:
+                            field === "label" && !option.value.trim()
+                              ? fieldKeyFromLabel(value)
+                              : option.value,
+                          [field]: value,
+                        }
+                      : option,
+                  ),
+                );
+              }}
+              onOptionRemove={(index) => {
+                updateOptionList("create", (options) =>
+                  options.filter((_, optionIndex) => optionIndex !== index),
+                );
+              }}
+              onRequiredChange={(value) => {
+                setCreateValues((current) => ({
+                  ...current,
+                  isRequired: value,
+                }));
+                setCreateErrors((current) => ({
+                  ...current,
+                  isRequired: undefined,
+                }));
+                clearCreateFeedback();
+              }}
+              onSubcategoryChange={(value) => {
+                if (!value) {
+                  return;
+                }
 
-              setCreateValues((current) => ({
-                ...current,
-                subcategoryId: value,
-              }));
-              setCreateErrors((current) => ({
-                ...current,
-                subcategoryId: undefined,
-              }));
-              clearCreateFeedback();
-            }}
-            onTypeChange={(value) => setTypeValue("create", value)}
-            onValueChange={updateCreateField}
-          />
+                setCreateValues((current) => ({
+                  ...current,
+                  subcategoryId: value,
+                }));
+                setCreateErrors((current) => ({
+                  ...current,
+                  subcategoryId: undefined,
+                }));
+                clearCreateFeedback();
+              }}
+              onTypeChange={(value) => setTypeValue("create", value)}
+              onValueChange={updateCreateField}
+            />
 
-          {createMessage ? (
-            <div className="border-destructive/20 bg-destructive/8 text-destructive rounded-2xl border px-4 py-3 text-sm">
-              {createMessage}
+            <div className="border-border/70 bg-muted/30 flex flex-col gap-3 rounded-2xl border p-4 sm:flex-row sm:items-center sm:justify-between">
+              <p className="text-muted-foreground text-sm leading-6">
+                Тепер структура характеристик збирається з адмінки, без ручного
+                редагування seed чи коду.
+              </p>
+              <Button type="submit" disabled={isPending}>
+                {activeAction === "create"
+                  ? "Створюємо..."
+                  : "Створити характеристику"}
+              </Button>
             </div>
-          ) : null}
-
-          {createSuccess ? (
-            <div className="border-primary/20 bg-primary/8 rounded-2xl border px-4 py-3 text-sm">
-              {createSuccess}
-            </div>
-          ) : null}
-
-          <div className="border-border/70 bg-muted/30 flex flex-col gap-3 rounded-2xl border p-4 sm:flex-row sm:items-center sm:justify-between">
-            <p className="text-muted-foreground text-sm leading-6">
-              Тепер структура характеристик збирається з адмінки, без ручного
-              редагування seed чи коду.
-            </p>
-            <Button type="submit" disabled={isPending}>
-              {activeAction === "create"
-                ? "Створюємо..."
-                : "Створити характеристику"}
-            </Button>
-          </div>
-        </form>
-      </AdminSectionCard>
+          </form>
+        </AdminSectionCard>
+      ) : null}
     </div>
   );
 }

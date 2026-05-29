@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import { AdminField } from "@/components/admin/admin-form-primitives";
 import { Button } from "@/components/ui/button";
@@ -58,7 +58,7 @@ export function CatalogImageUploadField({
   const [message, setMessage] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
 
-  const clearLocalPreview = () => {
+  const clearLocalPreview = useCallback(() => {
     setLocalPreviewUrl((current) => {
       if (current) {
         URL.revokeObjectURL(current);
@@ -66,7 +66,7 @@ export function CatalogImageUploadField({
 
       return null;
     });
-  };
+  }, []);
 
   useEffect(() => {
     return () => {
@@ -75,6 +75,22 @@ export function CatalogImageUploadField({
       }
     };
   }, [localPreviewUrl]);
+
+  useEffect(() => {
+    if (value) {
+      return;
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      clearLocalPreview();
+      setMessage(null);
+      if (inputRef.current) {
+        inputRef.current.value = "";
+      }
+    }, 0);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [clearLocalPreview, value]);
 
   const previewUrl = localPreviewUrl ?? value;
 

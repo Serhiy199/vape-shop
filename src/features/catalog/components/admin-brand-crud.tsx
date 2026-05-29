@@ -10,6 +10,7 @@ import {
   AdminFormSection,
   AdminInputField,
 } from "@/components/admin/admin-form-primitives";
+import { showAdminToast } from "@/components/admin/admin-toast";
 import {
   AdminOptionalInputField,
   AdminOptionalTextareaField,
@@ -66,11 +67,14 @@ type BrandFormValues = {
 type BrandFieldErrors = Partial<Record<keyof BrandFormValues, string>>;
 
 type AdminBrandCrudProps = {
+  mode?: "all" | "create" | "edit";
   selectedBrand: SelectedBrand | null;
   subcategories: SubcategoryOption[];
 };
 
-function buildCreateValues(subcategories: SubcategoryOption[]): BrandFormValues {
+function buildCreateValues(
+  subcategories: SubcategoryOption[],
+): BrandFormValues {
   return {
     description: "",
     isActive: true,
@@ -133,11 +137,7 @@ function BrandFormFields({
   return (
     <AdminFormSection title={heading}>
       <AdminFormGrid>
-        <AdminField
-          label="Підкатегорія"
-          error={errors.subcategoryId}
-          required
-        >
+        <AdminField label="Підкатегорія" error={errors.subcategoryId} required>
           <Select
             items={subcategories.map((subcategory) => ({
               label: `${subcategory.category.name} / ${subcategory.name}`,
@@ -235,7 +235,7 @@ function BrandFormFields({
 
         {subcategoryChangeBlocked ? (
           <div className="border-destructive/20 bg-destructive/8 text-destructive rounded-lg border px-4 py-3 text-sm leading-6">
-            До цього виробника вже прив'язані товари. Зміну підкатегорії
+            До цього виробника вже прив&apos;язані товари. Зміну підкатегорії
             заблоковано, щоб не розірвати структуру каталогу.
           </div>
         ) : null}
@@ -245,6 +245,7 @@ function BrandFormFields({
 }
 
 export function AdminBrandCrud({
+  mode = "all",
   selectedBrand,
   subcategories,
 }: AdminBrandCrudProps) {
@@ -262,28 +263,36 @@ export function AdminBrandCrud({
   const [createValues, setCreateValues] =
     useState<BrandFormValues>(initialCreateValues);
   const [createErrors, setCreateErrors] = useState<BrandFieldErrors>({});
-  const [createMessage, setCreateMessage] = useState<string | null>(null);
-  const [createSuccess, setCreateSuccess] = useState<string | null>(null);
+  const [, setCreateMessage] = useState<string | null>(null);
+  const [, setCreateSuccess] = useState<string | null>(null);
 
   const [editValues, setEditValues] = useState<BrandFormValues | null>(
     selectedBrand ? buildEditValues(selectedBrand) : null,
   );
   const [editErrors, setEditErrors] = useState<BrandFieldErrors>({});
-  const [editMessage, setEditMessage] = useState<string | null>(null);
-  const [editSuccess, setEditSuccess] = useState<string | null>(null);
+  const [, setEditMessage] = useState<string | null>(null);
+  const [, setEditSuccess] = useState<string | null>(null);
 
   useEffect(() => {
-    setCreateValues((current) => ({
-      ...current,
-      subcategoryId: current.subcategoryId || subcategories[0]?.id || "",
-    }));
+    const timeoutId = window.setTimeout(() => {
+      setCreateValues((current) => ({
+        ...current,
+        subcategoryId: current.subcategoryId || subcategories[0]?.id || "",
+      }));
+    }, 0);
+
+    return () => window.clearTimeout(timeoutId);
   }, [subcategories]);
 
   useEffect(() => {
-    setEditValues(selectedBrand ? buildEditValues(selectedBrand) : null);
-    setEditErrors({});
-    setEditMessage(null);
-    setEditSuccess(null);
+    const timeoutId = window.setTimeout(() => {
+      setEditValues(selectedBrand ? buildEditValues(selectedBrand) : null);
+      setEditErrors({});
+      setEditMessage(null);
+      setEditSuccess(null);
+    }, 0);
+
+    return () => window.clearTimeout(timeoutId);
   }, [selectedBrand]);
 
   const updateCreateField = (
@@ -340,11 +349,20 @@ export function AdminBrandCrud({
         if (!result.ok) {
           setCreateErrors(mapFieldErrors(result.fieldErrors));
           setCreateMessage(result.error);
+          showAdminToast({
+            title: "Не вдалося створити виробника",
+            message: result.error,
+            variant: "error",
+          });
           return;
         }
 
         setCreateErrors({});
         setCreateSuccess("Виробника створено.");
+        showAdminToast({
+          title: "Виробника створено",
+          message: result.data.name,
+        });
         setCreateValues(initialCreateValues);
         router.push(`/admin/brands?selected=${result.data.id}`);
         router.refresh();
@@ -375,11 +393,20 @@ export function AdminBrandCrud({
         if (!result.ok) {
           setEditErrors(mapFieldErrors(result.fieldErrors));
           setEditMessage(result.error);
+          showAdminToast({
+            title: "Не вдалося оновити виробника",
+            message: result.error,
+            variant: "error",
+          });
           return;
         }
 
         setEditErrors({});
         setEditSuccess("Виробника оновлено.");
+        showAdminToast({
+          title: "Виробника оновлено",
+          message: result.data.name,
+        });
         router.push(`/admin/brands?selected=${result.data.id}`);
         router.refresh();
       } finally {
@@ -406,9 +433,20 @@ export function AdminBrandCrud({
 
         if (!result.ok) {
           setEditMessage(result.error);
+          showAdminToast({
+            title: "Не вдалося змінити статус",
+            message: result.error,
+            variant: "error",
+          });
           return;
         }
 
+        showAdminToast({
+          title: result.data.isActive
+            ? "Виробника активовано"
+            : "Виробника деактивовано",
+          message: selectedBrand.name,
+        });
         router.refresh();
       } finally {
         setActiveAction(null);
@@ -427,64 +465,54 @@ export function AdminBrandCrud({
 
   return (
     <div className="space-y-6">
-      <AdminSectionCard
-        title="Створення виробника"
-        description="Оберіть підкатегорію та введіть назву виробника."
-      >
-        <form className="space-y-4" onSubmit={handleCreate}>
-          <BrandFormFields
-            errors={createErrors}
-            heading="Новий виробник"
-            subcategories={subcategories}
-            values={createValues}
-            onActiveChange={(value) => {
-              setCreateValues((current) => ({
-                ...current,
-                isActive: value,
-              }));
-              setCreateErrors((current) => ({
-                ...current,
-                isActive: undefined,
-              }));
-              setCreateMessage(null);
-              setCreateSuccess(null);
-            }}
-            onInputChange={updateCreateField}
-            onSubcategoryChange={(subcategoryId) => {
-              setCreateValues((current) => ({
-                ...current,
-                subcategoryId: subcategoryId ?? "",
-              }));
-              setCreateErrors((current) => ({
-                ...current,
-                subcategoryId: undefined,
-              }));
-              setCreateMessage(null);
-              setCreateSuccess(null);
-            }}
-          />
+      {mode !== "edit" ? (
+        <AdminSectionCard
+          title="Створення виробника"
+          description="Оберіть підкатегорію та введіть назву виробника."
+        >
+          <form className="space-y-4" onSubmit={handleCreate}>
+            <BrandFormFields
+              errors={createErrors}
+              heading="Новий виробник"
+              subcategories={subcategories}
+              values={createValues}
+              onActiveChange={(value) => {
+                setCreateValues((current) => ({
+                  ...current,
+                  isActive: value,
+                }));
+                setCreateErrors((current) => ({
+                  ...current,
+                  isActive: undefined,
+                }));
+                setCreateMessage(null);
+                setCreateSuccess(null);
+              }}
+              onInputChange={updateCreateField}
+              onSubcategoryChange={(subcategoryId) => {
+                setCreateValues((current) => ({
+                  ...current,
+                  subcategoryId: subcategoryId ?? "",
+                }));
+                setCreateErrors((current) => ({
+                  ...current,
+                  subcategoryId: undefined,
+                }));
+                setCreateMessage(null);
+                setCreateSuccess(null);
+              }}
+            />
 
-          {createMessage ? (
-            <div className="border-destructive/20 bg-destructive/8 text-destructive rounded-lg border px-4 py-3 text-sm">
-              {createMessage}
+            <div className="flex justify-end">
+              <Button type="submit" disabled={isPending}>
+                {activeAction === "create" ? "Створюємо..." : "Створити"}
+              </Button>
             </div>
-          ) : null}
+          </form>
+        </AdminSectionCard>
+      ) : null}
 
-          {createSuccess ? (
-            <div className="border-primary/20 bg-primary/8 rounded-lg border px-4 py-3 text-sm">
-              {createSuccess}
-            </div>
-          ) : null}
-
-          <div className="flex justify-end">
-            <Button type="submit" disabled={isPending}>
-              {activeAction === "create" ? "Створюємо..." : "Створити"}
-            </Button>
-          </div>
-        </form>
-      </AdminSectionCard>
-
-      {selectedBrand && editValues ? (
+      {mode !== "create" && selectedBrand && editValues ? (
         <AdminSectionCard
           title="Редагування виробника"
           description="Фізичного видалення немає. Для приховування використовуйте статус активності."
@@ -531,18 +559,6 @@ export function AdminBrandCrud({
               }}
             />
 
-            {editMessage ? (
-              <div className="border-destructive/20 bg-destructive/8 text-destructive rounded-lg border px-4 py-3 text-sm">
-                {editMessage}
-              </div>
-            ) : null}
-
-            {editSuccess ? (
-              <div className="border-primary/20 bg-primary/8 rounded-lg border px-4 py-3 text-sm">
-                {editSuccess}
-              </div>
-            ) : null}
-
             <div className="flex flex-wrap justify-end gap-2">
               <Button
                 type="button"
@@ -560,19 +576,17 @@ export function AdminBrandCrud({
                 type="submit"
                 disabled={isPending || subcategoryChangeBlocked}
               >
-                {activeAction === "update"
-                  ? "Зберігаємо..."
-                  : "Зберегти зміни"}
+                {activeAction === "update" ? "Зберігаємо..." : "Зберегти зміни"}
               </Button>
             </div>
           </form>
         </AdminSectionCard>
-      ) : (
+      ) : mode !== "create" ? (
         <AdminEmptyState
           title="Оберіть виробника для редагування"
           description="Форма створення доступна вище. Після вибору виробника зі списку тут з'явиться редагування."
         />
-      )}
+      ) : null}
     </div>
   );
 }

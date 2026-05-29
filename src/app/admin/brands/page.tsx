@@ -25,8 +25,9 @@ export default async function AdminBrandsPage({
   searchParams?: SearchParams;
 }) {
   const params = searchParams ? await searchParams : {};
-  const { brands, selectedBrand, subcategories } =
-    await getAdminBrandsPageData(params.selected);
+  const { brands, selectedBrand, subcategories } = await getAdminBrandsPageData(
+    params.selected,
+  );
 
   const activeCount = brands.filter((brand) => brand.isActive).length;
   const brandsWithProducts = brands.filter(
@@ -81,10 +82,24 @@ export default async function AdminBrandsPage({
 
       <AdminActionsBar
         actions={[
-          { href: "/admin/products", label: "Відкрити товари", variant: "outline" },
-          { href: "/admin/subcategories", label: "Підкатегорії", variant: "outline" },
+          {
+            href: "/admin/products",
+            label: "Відкрити товари",
+            variant: "outline",
+          },
+          {
+            href: "/admin/subcategories",
+            label: "Підкатегорії",
+            variant: "outline",
+          },
         ]}
         note="Фото для виробника не потрібне. Description і SEO-поля додаються за потреби через кнопку + Додати."
+      />
+
+      <AdminBrandCrud
+        mode="create"
+        selectedBrand={null}
+        subcategories={subcategoryOptions}
       />
 
       <AdminSectionCard
@@ -98,7 +113,7 @@ export default async function AdminBrandsPage({
                 <div>
                   <p className="text-sm font-medium">Виробники каталогу</p>
                   <p className="text-muted-foreground text-sm leading-6">
-                    Виробник прив'язаний до підкатегорії, а не глобально до
+                    Виробник прив&apos;язаний до підкатегорії, а не глобально до
                     всього магазину.
                   </p>
                 </div>
@@ -203,6 +218,7 @@ export default async function AdminBrandsPage({
                   />
 
                   <AdminBrandCrud
+                    mode="edit"
                     selectedBrand={{
                       description: selectedBrand.description,
                       id: selectedBrand.id,
@@ -222,12 +238,7 @@ export default async function AdminBrandsPage({
                   <AdminEmptyState
                     icon={getAdminModuleIcon("brands")}
                     title="Оберіть виробника для редагування"
-                    description="Або створіть нового виробника у формі нижче."
-                  />
-
-                  <AdminBrandCrud
-                    selectedBrand={null}
-                    subcategories={subcategoryOptions}
+                    description="Форма створення нового виробника вже доступна вище."
                   />
                 </>
               )}

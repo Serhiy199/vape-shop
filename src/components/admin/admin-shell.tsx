@@ -3,6 +3,7 @@ import Link from "next/link";
 import { MenuIcon } from "lucide-react";
 
 import { AdminNavigation } from "@/components/admin/admin-navigation";
+import { AdminToastViewport } from "@/components/admin/admin-toast";
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
 import {
@@ -39,6 +40,7 @@ export function AdminShell({
 }) {
   return (
     <main className="min-h-screen">
+      <AdminToastViewport />
       <div className="flex w-full flex-col gap-6 px-4 py-4 sm:px-6 lg:flex-row lg:items-start lg:px-8">
         <aside className="hidden lg:sticky lg:top-4 lg:block lg:w-88 lg:shrink-0">
           <div className="space-y-4">
@@ -65,7 +67,7 @@ export function AdminShell({
                 <Separator />
 
                 <div className="space-y-3">
-                  <p className="text-muted-foreground text-xs uppercase tracking-[0.24em]">
+                  <p className="text-muted-foreground text-xs tracking-[0.24em] uppercase">
                     Швидкі дії
                   </p>
                   <div className="flex flex-col gap-2">
@@ -74,7 +76,7 @@ export function AdminShell({
                         key={link.href}
                         className={cn(
                           buttonVariants({ variant: "outline" }),
-                          "justify-start bg-background/70",
+                          "bg-background/70 justify-start",
                         )}
                         href={link.href}
                       >
@@ -95,7 +97,7 @@ export function AdminShell({
             <CardContent className="flex flex-col gap-4 py-5">
               <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                 <div className="space-y-1">
-                  <p className="text-muted-foreground text-xs uppercase tracking-[0.24em]">
+                  <p className="text-muted-foreground text-xs tracking-[0.24em] uppercase">
                     Основа адмінки
                   </p>
                   <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">
@@ -121,7 +123,7 @@ export function AdminShell({
                       <MenuIcon className="size-4" />
                     </SheetTrigger>
                     <SheetContent side="left" className="w-full max-w-sm">
-                      <SheetHeader className="border-b border-border/70">
+                      <SheetHeader className="border-border/70 border-b">
                         <SheetTitle>Навігація адмінки</SheetTitle>
                         <SheetDescription>
                           Виберіть розділ, з яким хочете працювати далі.
@@ -131,7 +133,7 @@ export function AdminShell({
                         <AdminNavigation compact />
                         <Separator />
                         <div className="space-y-3">
-                          <p className="text-muted-foreground text-xs uppercase tracking-[0.24em]">
+                          <p className="text-muted-foreground text-xs tracking-[0.24em] uppercase">
                             Швидкі дії
                           </p>
                           <div className="flex flex-col gap-2">
@@ -157,8 +159,8 @@ export function AdminShell({
 
               <p className="text-muted-foreground max-w-2xl text-sm leading-6">
                 Усі сторінки в зоні <code>/admin/*</code> вже працюють у
-                спільному каркасі з єдиною навігацією. Далі можна
-                послідовно додавати screen primitives, форми й окремі модулі.
+                спільному каркасі з єдиною навігацією. Далі можна послідовно
+                додавати screen primitives, форми й окремі модулі.
               </p>
             </CardContent>
           </Card>

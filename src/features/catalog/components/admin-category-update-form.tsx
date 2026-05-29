@@ -10,6 +10,7 @@ import {
   AdminFormSection,
   AdminInputField,
 } from "@/components/admin/admin-form-primitives";
+import { showAdminToast } from "@/components/admin/admin-toast";
 import {
   AdminOptionalInputField,
   AdminOptionalTextareaField,
@@ -222,21 +223,25 @@ export function AdminCategoryUpdateForm({
   const [createValues, setCreateValues] =
     useState<CategoryFormValues>(createInitialValues);
   const [createErrors, setCreateErrors] = useState<CategoryFieldErrors>({});
-  const [createMessage, setCreateMessage] = useState<string | null>(null);
-  const [createSuccess, setCreateSuccess] = useState<string | null>(null);
+  const [, setCreateMessage] = useState<string | null>(null);
+  const [, setCreateSuccess] = useState<string | null>(null);
 
   const [editValues, setEditValues] = useState<CategoryFormValues | null>(
     category ? buildEditValues(category) : null,
   );
   const [editErrors, setEditErrors] = useState<CategoryFieldErrors>({});
-  const [editMessage, setEditMessage] = useState<string | null>(null);
-  const [editSuccess, setEditSuccess] = useState<string | null>(null);
+  const [, setEditMessage] = useState<string | null>(null);
+  const [, setEditSuccess] = useState<string | null>(null);
 
   useEffect(() => {
-    setEditValues(category ? buildEditValues(category) : null);
-    setEditErrors({});
-    setEditMessage(null);
-    setEditSuccess(null);
+    const timeoutId = window.setTimeout(() => {
+      setEditValues(category ? buildEditValues(category) : null);
+      setEditErrors({});
+      setEditMessage(null);
+      setEditSuccess(null);
+    }, 0);
+
+    return () => window.clearTimeout(timeoutId);
   }, [category]);
 
   const updateCreateField = (
@@ -288,12 +293,21 @@ export function AdminCategoryUpdateForm({
         if (!result.ok) {
           setCreateErrors(mapFieldErrors(result.fieldErrors));
           setCreateMessage(result.error);
+          showAdminToast({
+            title: "Не вдалося створити категорію",
+            message: result.error,
+            variant: "error",
+          });
           return;
         }
 
         setCreateErrors({});
         setCreateValues(createInitialValues);
         setCreateSuccess("Категорію створено.");
+        showAdminToast({
+          title: "Категорію створено",
+          message: result.data.name,
+        });
         router.push(`/admin/categories?selected=${result.data.id}`);
         router.refresh();
       } finally {
@@ -323,11 +337,20 @@ export function AdminCategoryUpdateForm({
         if (!result.ok) {
           setEditErrors(mapFieldErrors(result.fieldErrors));
           setEditMessage(result.error);
+          showAdminToast({
+            title: "Не вдалося оновити категорію",
+            message: result.error,
+            variant: "error",
+          });
           return;
         }
 
         setEditErrors({});
         setEditSuccess("Категорію оновлено.");
+        showAdminToast({
+          title: "Категорію оновлено",
+          message: result.data.name,
+        });
         router.push(`/admin/categories?selected=${result.data.id}`);
         router.refresh();
       } finally {
@@ -367,16 +390,6 @@ export function AdminCategoryUpdateForm({
           onInputChange={updateCreateField}
         />
 
-        {createMessage ? (
-          <div className="border-destructive/20 bg-destructive/8 text-destructive rounded-lg border px-4 py-3 text-sm">
-            {createMessage}
-          </div>
-        ) : null}
-        {createSuccess ? (
-          <div className="border-primary/20 bg-primary/8 rounded-lg border px-4 py-3 text-sm">
-            {createSuccess}
-          </div>
-        ) : null}
         <div className="flex justify-end">
           <Button type="submit" disabled={isPending || isCreateImageUploading}>
             {activeAction === "create" ? "Створюємо..." : "Створити"}
@@ -422,16 +435,6 @@ export function AdminCategoryUpdateForm({
             onInputChange={updateEditField}
           />
 
-          {editMessage ? (
-            <div className="border-destructive/20 bg-destructive/8 text-destructive rounded-lg border px-4 py-3 text-sm">
-              {editMessage}
-            </div>
-          ) : null}
-          {editSuccess ? (
-            <div className="border-primary/20 bg-primary/8 rounded-lg border px-4 py-3 text-sm">
-              {editSuccess}
-            </div>
-          ) : null}
           <div className="flex justify-end">
             <Button type="submit" disabled={isPending || isEditImageUploading}>
               {activeAction === "update" ? "Зберігаємо..." : "Зберегти зміни"}

@@ -9,6 +9,14 @@ function optionalTrimmedString(max: number) {
     .pipe(z.string().max(max).optional());
 }
 
+function optionalTrimmedLongText() {
+  return z
+    .string()
+    .trim()
+    .transform((value) => (value.length === 0 ? undefined : value))
+    .pipe(z.string().optional());
+}
+
 function requiredName(max: number) {
   return z.string().trim().min(1).max(max);
 }
@@ -411,7 +419,7 @@ const categoryBaseSchema = z.intersection(
   slugFromNameSchema(),
   z.object({
     image: optionalImageField(),
-    description: optionalTrimmedString(500),
+    description: optionalTrimmedLongText(),
     sortOrder: sortOrderField(),
     isActive: z.coerce.boolean().default(true),
     seoTitle: optionalTrimmedString(160),
@@ -431,7 +439,7 @@ const subcategoryBaseSchema = z.intersection(
   slugFromNameSchema(),
   z.object({
     categoryId: idField(),
-    description: optionalTrimmedString(500),
+    description: optionalTrimmedLongText(),
     sortOrder: sortOrderField(),
     isActive: z.coerce.boolean().default(true),
     seoTitle: optionalTrimmedString(160),
@@ -447,15 +455,11 @@ export const updateSubcategorySchema = subcategoryBaseSchema.and(
   }),
 );
 
-const deleteSubcategorySchema = z.object({
-  id: idField(),
-});
-
 export const createBrandSchema = z.intersection(
   slugFromNameSchema(),
   z.object({
     subcategoryId: idField(),
-    description: optionalTrimmedString(500),
+    description: optionalTrimmedLongText(),
     isActive: z.coerce.boolean().default(true),
     seoTitle: optionalTrimmedString(160),
     seoDescription: optionalTrimmedString(320),

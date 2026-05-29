@@ -36,6 +36,7 @@ export type StorefrontCategory = {
   description?: string;
   href: string;
   icon: LucideIcon;
+  image?: string;
   label: string;
   links: StorefrontCategoryLink[];
   stat: string;
@@ -44,20 +45,25 @@ export type StorefrontCategory = {
 
 export const storefrontCategories: StorefrontCategory[] = [
   {
-    description: "POD-системи, стартові набори та пристрої для щоденного використання.",
+    description:
+      "POD-системи, стартові набори та пристрої для щоденного використання.",
     href: "/category/devices",
     icon: BatteryChargingIcon,
     label: "Пристрої",
     links: [
       { href: "/category/devices/pod-systems", label: "POD-системи" },
       { href: "/category/devices/starter-kits", label: "Стартові набори" },
-      { href: "/category/devices/disposable-devices", label: "Одноразові пристрої" },
+      {
+        href: "/category/devices/disposable-devices",
+        label: "Одноразові пристрої",
+      },
     ],
     stat: "Пристрої",
     tone: "amber",
   },
   {
-    description: "Сольові, органічні та базові рідини з фільтрами під міцність, смак і об’єм.",
+    description:
+      "Сольові, органічні та базові рідини з фільтрами під міцність, смак і об’єм.",
     href: "/category/liquids",
     icon: DropletsIcon,
     label: "Рідини",
@@ -70,7 +76,8 @@ export const storefrontCategories: StorefrontCategory[] = [
     tone: "green",
   },
   {
-    description: "Картриджі, випарники, акумулятори та аксесуари для сумісності з популярними моделями.",
+    description:
+      "Картриджі, випарники, акумулятори та аксесуари для сумісності з популярними моделями.",
     href: "/category/components",
     icon: WrenchIcon,
     label: "Комплектуючі",
@@ -96,7 +103,8 @@ export const storefrontInfoLinks = [
 
 export const storefrontTrustItems = [
   {
-    description: "Доставка по Україні з прозорими умовами для кожного замовлення.",
+    description:
+      "Доставка по Україні з прозорими умовами для кожного замовлення.",
     icon: TruckIcon,
     title: "Швидка доставка",
   },
@@ -124,13 +132,15 @@ export const storefrontServiceLinks = [
 
 export const storefrontHomePromos = [
   {
-    description: "Підбірки для тих, хто хоче швидко знайти популярні пристрої та стартові комплекти.",
+    description:
+      "Підбірки для тих, хто хоче швидко знайти популярні пристрої та стартові комплекти.",
     href: "/catalog?collection=starter",
     icon: PackageIcon,
     label: "Стартові набори",
   },
   {
-    description: "Добірка для товарів з прапорцями new, sale та hit з адмін-панелі.",
+    description:
+      "Добірка для товарів з прапорцями new, sale та hit з адмін-панелі.",
     href: "/catalog?collection=featured",
     icon: SparklesIcon,
     label: "Топ добірки",

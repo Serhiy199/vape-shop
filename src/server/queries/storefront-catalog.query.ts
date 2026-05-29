@@ -288,6 +288,7 @@ function mapCategoryToCard(
     description: category.description ?? undefined,
     href: `/category/${category.slug}`,
     icon: visual.icon,
+    image: category.image ?? undefined,
     label: category.name,
     links: category.subcategories.map((subcategory) => ({
       href: `/category/${category.slug}/${subcategory.slug}`,

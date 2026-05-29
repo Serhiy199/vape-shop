@@ -5,7 +5,6 @@ import type { StorefrontCategory } from "@/components/storefront/storefront-conf
 import {
   StorefrontBadge,
   StorefrontCard,
-  storefrontPatterns,
 } from "@/components/storefront/storefront-primitives";
 import { cn } from "@/lib/utils";
 
@@ -27,38 +26,46 @@ export function StorefrontCategoryCard({
     <StorefrontCard interactive className="group/card min-h-full p-4">
       <Link href={category.href} className="flex h-full flex-col gap-5">
         <div className="flex items-start justify-between gap-3">
-          <span
-            className={cn(
-              "grid size-12 place-items-center rounded-lg ring-1",
-              toneClasses[category.tone],
-            )}
-          >
-            <Icon className="size-6" />
-          </span>
+          {category.image ? (
+            <span className="bg-muted ring-border grid size-14 overflow-hidden rounded-lg ring-1">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={category.image}
+                alt={category.label}
+                className="size-full object-cover"
+              />
+            </span>
+          ) : (
+            <span
+              className={cn(
+                "grid size-12 place-items-center rounded-lg ring-1",
+                toneClasses[category.tone],
+              )}
+            >
+              <Icon className="size-6" />
+            </span>
+          )}
           <StorefrontBadge tone="muted">{category.stat}</StorefrontBadge>
         </div>
 
         <div className="space-y-2">
-          <h3 className="text-xl font-semibold tracking-tight">{category.label}</h3>
-          {category.description ? (
-            <p className={storefrontPatterns.bodyText}>
-              {category.description}
-            </p>
-          ) : null}
-        </div>
-
-        <div className="mt-auto space-y-4">
+          <h3 className="text-xl font-semibold tracking-tight">
+            {category.label}
+          </h3>
           <div className="flex flex-wrap gap-2">
             {category.links.map((link) => (
               <span
                 key={link.href}
-                className="text-muted-foreground rounded-md bg-muted px-2.5 py-1 text-xs"
+                className="text-primary bg-primary/10 rounded-md px-2.5 py-1 text-xs font-semibold"
               >
                 {link.label}
               </span>
             ))}
           </div>
-          <span className="inline-flex items-center gap-2 text-sm font-medium text-primary">
+        </div>
+
+        <div className="mt-auto space-y-4">
+          <span className="text-primary inline-flex items-center gap-2 text-sm font-medium">
             Перейти в категорію
             <ArrowRightIcon className="size-4 transition group-hover/card:translate-x-0.5" />
           </span>

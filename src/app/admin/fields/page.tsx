@@ -97,6 +97,16 @@ export default async function AdminFieldsPage({
         note={`Характеристик, уже пов'язаних із товарами: ${usedByProductsCount}. Такі записи не видаляються фізично, для них використовується active/inactive.`}
       />
 
+      <AdminFieldCrud
+        mode="create"
+        subcategories={subcategories.map((subcategory) => ({
+          id: subcategory.id,
+          name: subcategory.name,
+          categoryName: subcategory.category.name,
+        }))}
+        selectedField={null}
+      />
+
       <AdminSectionCard
         title="Список і деталі характеристик"
         description="Ліва колонка показує всі характеристики підкатегорій, права — деталі вибраної характеристики та робочий CRUD-конструктор."
@@ -232,6 +242,7 @@ export default async function AdminFieldsPage({
                 />
 
                 <AdminFieldCrud
+                  mode="edit"
                   subcategories={subcategories.map((subcategory) => ({
                     id: subcategory.id,
                     name: subcategory.name,
@@ -303,16 +314,7 @@ export default async function AdminFieldsPage({
                 <AdminEmptyState
                   icon={getAdminModuleIcon("fields")}
                   title="Немає обраної характеристики"
-                  description="Можна одразу створити нову характеристику нижче, або вибрати існуючу зі списку для редагування."
-                />
-
-                <AdminFieldCrud
-                  subcategories={subcategories.map((subcategory) => ({
-                    id: subcategory.id,
-                    name: subcategory.name,
-                    categoryName: subcategory.category.name,
-                  }))}
-                  selectedField={null}
+                  description="Форма створення нової характеристики вже доступна вище. Виберіть існуючу зі списку для редагування."
                 />
               </div>
             )

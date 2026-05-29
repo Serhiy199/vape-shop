@@ -10,6 +10,7 @@ import {
   AdminFormSection,
   AdminInputField,
 } from "@/components/admin/admin-form-primitives";
+import { showAdminToast } from "@/components/admin/admin-toast";
 import {
   AdminOptionalInputField,
   AdminOptionalTextareaField,
@@ -136,10 +137,7 @@ function SubcategoryFormFields({
   onActiveChange: (value: boolean) => void;
   onCategoryChange: (value: string | null) => void;
   onInputChange: (
-    field: keyof Omit<
-      SubcategoryFormValues,
-      "categoryId" | "isActive"
-    >,
+    field: keyof Omit<SubcategoryFormValues, "categoryId" | "isActive">,
     value: string,
   ) => void;
 }) {
@@ -288,15 +286,15 @@ export function AdminSubcategoryCrud({
   const [createValues, setCreateValues] =
     useState<SubcategoryFormValues>(initialCreateValues);
   const [createErrors, setCreateErrors] = useState<SubcategoryFieldErrors>({});
-  const [createMessage, setCreateMessage] = useState<string | null>(null);
-  const [createSuccess, setCreateSuccess] = useState<string | null>(null);
+  const [, setCreateMessage] = useState<string | null>(null);
+  const [, setCreateSuccess] = useState<string | null>(null);
 
   const [editValues, setEditValues] = useState<SubcategoryFormValues | null>(
     selectedSubcategory ? buildEditValues(selectedSubcategory) : null,
   );
   const [editErrors, setEditErrors] = useState<SubcategoryFieldErrors>({});
-  const [editMessage, setEditMessage] = useState<string | null>(null);
-  const [editSuccess, setEditSuccess] = useState<string | null>(null);
+  const [, setEditMessage] = useState<string | null>(null);
+  const [, setEditSuccess] = useState<string | null>(null);
 
   useEffect(() => {
     // Keep the default category current when the list arrives after navigation.
@@ -319,10 +317,7 @@ export function AdminSubcategoryCrud({
   }, [selectedSubcategory]);
 
   const updateCreateField = (
-    field: keyof Omit<
-      SubcategoryFormValues,
-      "categoryId" | "isActive"
-    >,
+    field: keyof Omit<SubcategoryFormValues, "categoryId" | "isActive">,
     value: string,
   ) => {
     setCreateValues((current) => ({
@@ -338,10 +333,7 @@ export function AdminSubcategoryCrud({
   };
 
   const updateEditField = (
-    field: keyof Omit<
-      SubcategoryFormValues,
-      "categoryId" | "isActive"
-    >,
+    field: keyof Omit<SubcategoryFormValues, "categoryId" | "isActive">,
     value: string,
   ) => {
     setEditValues((current) =>
@@ -378,12 +370,21 @@ export function AdminSubcategoryCrud({
         if (!result.ok) {
           setCreateErrors(mapFieldErrors(result.fieldErrors));
           setCreateMessage(result.error);
+          showAdminToast({
+            title: "Не вдалося створити підкатегорію",
+            message: result.error,
+            variant: "error",
+          });
           return;
         }
 
         setCreateErrors({});
         setCreateValues(initialCreateValues);
         setCreateSuccess("Підкатегорію створено.");
+        showAdminToast({
+          title: "Підкатегорію створено",
+          message: result.data.name,
+        });
         router.push(`/admin/subcategories?selected=${result.data.id}`);
         router.refresh();
       } finally {
@@ -413,11 +414,20 @@ export function AdminSubcategoryCrud({
         if (!result.ok) {
           setEditErrors(mapFieldErrors(result.fieldErrors));
           setEditMessage(result.error);
+          showAdminToast({
+            title: "Не вдалося оновити підкатегорію",
+            message: result.error,
+            variant: "error",
+          });
           return;
         }
 
         setEditErrors({});
         setEditSuccess("Підкатегорію оновлено.");
+        showAdminToast({
+          title: "Підкатегорію оновлено",
+          message: result.data.name,
+        });
         router.push(`/admin/subcategories?selected=${result.data.id}`);
         router.refresh();
       } finally {
@@ -465,17 +475,6 @@ export function AdminSubcategoryCrud({
           }}
           onInputChange={updateCreateField}
         />
-
-        {createMessage ? (
-          <div className="border-destructive/20 bg-destructive/8 text-destructive rounded-lg border px-4 py-3 text-sm">
-            {createMessage}
-          </div>
-        ) : null}
-        {createSuccess ? (
-          <div className="border-primary/20 bg-primary/8 rounded-lg border px-4 py-3 text-sm">
-            {createSuccess}
-          </div>
-        ) : null}
 
         <div className="flex justify-end">
           <Button type="submit" disabled={isPending}>
@@ -525,22 +524,8 @@ export function AdminSubcategoryCrud({
             onInputChange={updateEditField}
           />
 
-          {editMessage ? (
-            <div className="border-destructive/20 bg-destructive/8 text-destructive rounded-lg border px-4 py-3 text-sm">
-              {editMessage}
-            </div>
-          ) : null}
-          {editSuccess ? (
-            <div className="border-primary/20 bg-primary/8 rounded-lg border px-4 py-3 text-sm">
-              {editSuccess}
-            </div>
-          ) : null}
-
           <div className="flex justify-end">
-            <Button
-              type="submit"
-              disabled={isPending || categoryChangeBlocked}
-            >
+            <Button type="submit" disabled={isPending || categoryChangeBlocked}>
               {activeAction === "update" ? "Зберігаємо..." : "Зберегти зміни"}
             </Button>
           </div>

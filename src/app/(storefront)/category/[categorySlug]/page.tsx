@@ -8,8 +8,10 @@ import {
 import { CatalogTopTabs } from "@/components/storefront/catalog-top-tabs";
 import { StorefrontProductGrid } from "@/components/storefront/product-grid";
 import {
+  StorefrontCard,
   StorefrontPageHeader,
   StorefrontSection,
+  storefrontPatterns,
 } from "@/components/storefront/storefront-primitives";
 import { normalizeCatalogFilters } from "@/lib/storefront/catalog-filters";
 import {
@@ -93,7 +95,6 @@ export default async function CategoryPage({
         eyebrow="Категорія"
         title={category.label}
         summary={`Знайдено товарів: ${products.length}`}
-        description={category.description}
       />
 
       <StorefrontSection tone="catalog" spacing="sm" className="pt-0">
@@ -115,6 +116,20 @@ export default async function CategoryPage({
               emptyTitle="У цій категорії ще немає активних товарів"
               emptyDescription="Додайте або активуйте товари цієї категорії в адмін-панелі."
             />
+            {category.description ? (
+              <StorefrontCard className="p-5">
+                <div className="space-y-3">
+                  <h2 className="text-xl font-semibold tracking-tight">
+                    Опис категорії
+                  </h2>
+                  <div
+                    className={`${storefrontPatterns.bodyText} whitespace-pre-line`}
+                  >
+                    {category.description}
+                  </div>
+                </div>
+              </StorefrontCard>
+            ) : null}
           </div>
         </div>
       </StorefrontSection>
