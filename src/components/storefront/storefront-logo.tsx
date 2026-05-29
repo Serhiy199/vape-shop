@@ -14,16 +14,19 @@ export function StorefrontLogo({
   return (
     <Link
       href="/"
-      className={cn("group inline-flex min-w-fit items-center gap-3", className)}
+      className={cn(
+        "group inline-flex min-w-fit items-center gap-3",
+        className,
+      )}
       aria-label={`${storefrontBrand.name} - головна сторінка`}
     >
-      <span className="relative block h-12 w-44 overflow-hidden sm:w-52">
+      <span className="relative block h-16 w-24 overflow-hidden sm:h-20 sm:w-28">
         <Image
           src={storefrontBrand.logoSrc}
           alt={`${storefrontBrand.name} logo`}
           fill
           priority
-          sizes="(max-width: 640px) 176px, 208px"
+          sizes="(max-width: 640px) 96px, 112px"
           className="object-contain object-left"
         />
       </span>

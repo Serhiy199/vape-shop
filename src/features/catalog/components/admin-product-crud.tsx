@@ -244,6 +244,7 @@ type AdminProductCrudProps = {
   brands: BrandOption[];
   categories: CategoryOption[];
   fields: FieldDefinition[];
+  mode?: "all" | "create" | "edit";
   selectedProduct: SelectedProduct | null;
   subcategories: SubcategoryOption[];
 };
@@ -766,15 +767,19 @@ function StepBadge({
   isActive,
   isComplete,
   label,
+  onClick,
 }: {
   isActive: boolean;
   isComplete: boolean;
   label: string;
+  onClick: () => void;
 }) {
   return (
-    <div
+    <button
+      type="button"
+      onClick={onClick}
       className={[
-        "rounded-full border px-3 py-2 text-xs font-medium transition-colors",
+        "hover:border-primary/60 hover:text-primary rounded-full border px-3 py-2 text-left text-xs font-medium transition-colors",
         isActive
           ? "border-primary bg-primary/10 text-primary"
           : isComplete
@@ -783,7 +788,7 @@ function StepBadge({
       ].join(" ")}
     >
       {label}
-    </div>
+    </button>
   );
 }
 
@@ -809,7 +814,13 @@ function ProductThumbnail({ alt, src }: { alt: string; src: string }) {
   );
 }
 
-function WizardStepHeader({ currentStep }: { currentStep: ProductStepId }) {
+function WizardStepHeader({
+  currentStep,
+  onStepChange,
+}: {
+  currentStep: ProductStepId;
+  onStepChange: (step: ProductStepId) => void;
+}) {
   const currentIndex = PRODUCT_STEPS.findIndex(
     (step) => step.id === currentStep,
   );
@@ -822,6 +833,7 @@ function WizardStepHeader({ currentStep }: { currentStep: ProductStepId }) {
           label={step.label}
           isActive={step.id === currentStep}
           isComplete={index < currentIndex}
+          onClick={() => onStepChange(step.id)}
         />
       ))}
     </div>
@@ -1638,7 +1650,10 @@ function ProductWizard({
 
   return (
     <form className="space-y-4" onSubmit={handleSubmit}>
-      <WizardStepHeader currentStep={currentStep} />
+      <WizardStepHeader
+        currentStep={currentStep}
+        onStepChange={setCurrentStep}
+      />
 
       {currentStep === "category" ? (
         <AdminFormSection
@@ -2533,6 +2548,7 @@ export function AdminProductCrud({
   brands,
   categories,
   fields,
+  mode = "all",
   selectedProduct,
   subcategories,
 }: AdminProductCrudProps) {
@@ -2591,7 +2607,7 @@ export function AdminProductCrud({
 
   return (
     <div className="space-y-6">
-      {selectedProduct ? (
+      {mode !== "create" && selectedProduct ? (
         <AdminSectionCard
           title="Редагування товару"
           description="Multi-step форма вже працює для edit-сценарію і зберігає повний payload товару через update action."
@@ -2607,40 +2623,42 @@ export function AdminProductCrud({
             mode="edit"
             onDelete={handleDelete}
             onSuccess={(id) => {
-              router.push(`/admin/products?selected=${id}`);
+              router.push(`/admin/products/${id}`);
               router.refresh();
             }}
             productId={selectedProduct.id}
             subcategories={editSubcategories}
           />
         </AdminSectionCard>
-      ) : (
+      ) : mode !== "create" ? (
         <AdminEmptyState
           title="Оберіть товар для редагування"
           description="Після вибору товару тут з'явиться multi-step форма для його оновлення."
         />
-      )}
+      ) : null}
 
-      <AdminSectionCard
-        title="Створення нового товару"
-        description="Create-flow уже розбитий на всі 7 кроків і може створювати повноцінні товари з характеристиками, flags, images, опціями та SEO."
-      >
-        <ProductWizard
-          brands={brands}
-          categories={createCategories}
-          fields={fields}
-          initialDynamicValues={{}}
-          initialImages={[]}
-          initialOption={null}
-          initialValues={createInitialValues}
-          mode="create"
-          onSuccess={(id) => {
-            router.push(`/admin/products?selected=${id}`);
-            router.refresh();
-          }}
-          subcategories={createSubcategories}
-        />
-      </AdminSectionCard>
+      {mode !== "edit" ? (
+        <AdminSectionCard
+          title="Створення нового товару"
+          description="Create-flow уже розбитий на всі 7 кроків і може створювати повноцінні товари з характеристиками, flags, images, опціями та SEO."
+        >
+          <ProductWizard
+            brands={brands}
+            categories={createCategories}
+            fields={fields}
+            initialDynamicValues={{}}
+            initialImages={[]}
+            initialOption={null}
+            initialValues={createInitialValues}
+            mode="create"
+            onSuccess={(id) => {
+              router.push(`/admin/products/${id}`);
+              router.refresh();
+            }}
+            subcategories={createSubcategories}
+          />
+        </AdminSectionCard>
+      ) : null}
     </div>
   );
 }

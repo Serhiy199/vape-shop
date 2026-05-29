@@ -98,7 +98,10 @@ export async function getAdminProductsPageData(
   const brands = await listAdminBrands();
   const fields = await listAdminSubcategoryFields();
   const products = await listAdminProducts(filters);
-  const resolvedSelectedId = resolveSelectedId(products, selectedId);
+  const resolvedSelectedId =
+    selectedId && products.some((product) => product.id === selectedId)
+      ? selectedId
+      : undefined;
   const selectedProduct = resolvedSelectedId
     ? await getAdminProductById(resolvedSelectedId)
     : null;

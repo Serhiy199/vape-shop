@@ -278,6 +278,20 @@ function resolveCategoryVisual(slug: string, index: number) {
   return fallbackCategoryIcons[index % fallbackCategoryIcons.length];
 }
 
+function formatProductCountLabel(count: number) {
+  const normalizedCount = Math.abs(count);
+  const mod10 = normalizedCount % 10;
+  const mod100 = normalizedCount % 100;
+  const label =
+    mod10 === 1 && mod100 !== 11
+      ? "товар"
+      : mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14)
+        ? "товари"
+        : "товарів";
+
+  return `${count} ${label}`;
+}
+
 function mapCategoryToCard(
   category: StorefrontCategoryRecord,
   index: number,
@@ -294,7 +308,7 @@ function mapCategoryToCard(
       href: `/category/${category.slug}/${subcategory.slug}`,
       label: subcategory.name,
     })),
-    stat: `${category._count.products} С‚РѕРІР°СЂС–РІ`,
+    stat: formatProductCountLabel(category._count.products),
     tone: visual.tone,
   };
 }
@@ -781,8 +795,8 @@ function resolveStorefrontFieldValue(
     fieldValue.valueNumber?.toString() ??
     (typeof fieldValue.valueBoolean === "boolean"
       ? fieldValue.valueBoolean
-        ? "РўР°Рє"
-        : "РќС–"
+        ? "Так"
+        : "Ні"
       : "")
   );
 }
