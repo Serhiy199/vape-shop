@@ -15,6 +15,7 @@ import {
   AdminEmptyState,
   AdminSectionCard,
 } from "@/components/admin/admin-primitives";
+import { showAdminToast } from "@/components/admin/admin-toast";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -31,6 +32,7 @@ import {
   deleteProductAction,
   updateProductAction,
 } from "@/features/catalog/actions/admin-catalog";
+import { slugifyText } from "@/lib/text/slug";
 
 type CategoryOption = {
   id: string;
@@ -629,10 +631,6 @@ function validateBaseFields(values: ProductFormValues) {
     errors.title = "Вкажіть назву товару.";
   }
 
-  if (!values.slug.trim()) {
-    errors.slug = "Вкажіть slug товару.";
-  }
-
   const parsedPrice = Number(values.price.replace(",", "."));
   if (!Number.isFinite(parsedPrice) || parsedPrice < 0) {
     errors.price = "Вкажіть коректну ціну.";
@@ -641,18 +639,28 @@ function validateBaseFields(values: ProductFormValues) {
   return errors;
 }
 
-function validateSeoFields(values: ProductFormValues) {
+function validateSeoFields() {
   const errors: ProductFieldErrors = {};
 
-  if (!values.seoTitle.trim()) {
-    errors.seoTitle = "Вкажіть SEO title перед створенням товару.";
-  }
-
-  if (!values.seoDescription.trim()) {
-    errors.seoDescription = "Вкажіть SEO description перед створенням товару.";
-  }
-
   return errors;
+}
+
+function resolveProductSlug(values: ProductFormValues) {
+  return values.slug.trim() || slugifyText(values.title);
+}
+
+function resolveSeoTitle(values: ProductFormValues) {
+  return (
+    values.seoTitle.trim() ||
+    `${values.title.trim()}: купити в інтернет-магазині Voodoo Vape`
+  );
+}
+
+function resolveSeoDescription(values: ProductFormValues) {
+  return (
+    values.seoDescription.trim() ||
+    `${values.title.trim()}: замовити за вигідною ціною в Україні у Voodoo Vape. Швидке оформлення, зручна доставка по Україні та актуальний асортимент.`
+  );
 }
 
 function validateDynamicFields(
@@ -796,17 +804,17 @@ function ProductThumbnail({ alt, src }: { alt: string; src: string }) {
   const [hasError, setHasError] = useState(false);
 
   return (
-    <div className="border-border/70 bg-muted/30 overflow-hidden rounded-2xl border">
+    <div className="border-border/70 bg-muted/30 h-full overflow-hidden rounded-2xl border">
       {src && !hasError ? (
         // eslint-disable-next-line @next/next/no-img-element
         <img
           src={src}
           alt={alt}
-          className="h-32 w-full object-cover"
+          className="h-full min-h-32 w-full object-cover"
           onError={() => setHasError(true)}
         />
       ) : (
-        <div className="text-muted-foreground flex h-32 items-center justify-center text-sm">
+        <div className="text-muted-foreground flex h-full min-h-32 items-center justify-center text-sm">
           Preview unavailable
         </div>
       )}
@@ -870,6 +878,9 @@ function ProductWizard({
   const [isPending, startTransition] = useTransition();
   const [currentStep, setCurrentStep] = useState<ProductStepId>("category");
   const [values, setValues] = useState(initialValues);
+  const [isSlugManuallyEdited, setIsSlugManuallyEdited] = useState(
+    mode === "edit" && Boolean(initialValues.slug),
+  );
   const [dynamicValues, setDynamicValues] = useState(initialDynamicValues);
   const [images, setImages] = useState<ProductImageDraft[]>(initialImages);
   const [optionDraft, setOptionDraft] = useState<ProductOptionDraft | null>(
@@ -891,7 +902,6 @@ function ProductWizard({
     SelectedUploadPreview[]
   >([]);
   const [generalMessage, setGeneralMessage] = useState<string | null>(null);
-  const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   const currentStepIndex = PRODUCT_STEPS.findIndex(
     (step) => step.id === currentStep,
@@ -979,7 +989,6 @@ function ProductWizard({
       setOptionUploadIndex(null);
       setSelectedUploadFiles([]);
       setGeneralMessage(null);
-      setSuccessMessage(null);
     }, 0);
 
     return () => window.clearTimeout(timeoutId);
@@ -1019,22 +1028,35 @@ function ProductWizard({
 
   const clearMessages = () => {
     setGeneralMessage(null);
-    setSuccessMessage(null);
   };
 
   const updateValue = <TKey extends keyof ProductFormValues>(
     field: TKey,
     value: ProductFormValues[TKey],
   ) => {
-    setValues((current) => ({
-      ...current,
-      [field]: value,
-    }));
+    setValues((current) => {
+      const nextValues = {
+        ...current,
+        [field]: value,
+      };
+
+      if (field === "title" && !isSlugManuallyEdited) {
+        nextValues.slug = slugifyText(String(value));
+      }
+
+      return nextValues;
+    });
     setFieldErrors((current) => ({
       ...current,
       [field]: undefined,
+      ...(field === "title" ? { slug: undefined } : {}),
     }));
     clearMessages();
+  };
+
+  const updateSlug = (value: string) => {
+    setIsSlugManuallyEdited(value.trim().length > 0);
+    updateValue("slug", slugifyText(value));
   };
 
   const updateCategory = (categoryId: string | null) => {
@@ -1112,19 +1134,6 @@ function ProductWizard({
     clearMessages();
   };
 
-  const addImage = () => {
-    setImages((current) => [
-      ...current,
-      {
-        alt: "",
-        isPrimary: current.length === 0,
-        publicId: "",
-        url: "",
-      },
-    ]);
-    clearMessages();
-  };
-
   const handleFileSelection = (event: ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(event.target.files ?? []);
     setSelectedUploadFiles(files);
@@ -1144,10 +1153,10 @@ function ProductWizard({
       return;
     }
 
-    const productSlug = values.slug.trim();
+    const productSlug = resolveProductSlug(values);
 
     if (!productSlug) {
-      setGeneralMessage("Вкажіть slug товару перед upload фото.");
+      setGeneralMessage("Вкажіть назву товару перед upload фото.");
       return;
     }
 
@@ -1160,8 +1169,6 @@ function ProductWizard({
     });
 
     setGeneralMessage(null);
-    setSuccessMessage(null);
-
     startTransition(async () => {
       const response = await fetch("/api/upload/product-images", {
         body: uploadFormData,
@@ -1202,7 +1209,11 @@ function ProductWizard({
       ]);
       setSelectedUploadFiles([]);
       setSelectedUploadPreviews([]);
-      setSuccessMessage(payload.message || "Зображення завантажено.");
+      showAdminToast({
+        message: payload.message || "Зображення товару завантажено.",
+        title: "Фото додано",
+        variant: "success",
+      });
     });
   };
 
@@ -1301,11 +1312,11 @@ function ProductWizard({
   };
 
   const uploadOptionValueImage = async (index: number, file: File) => {
-    const productSlug = values.slug.trim();
+    const productSlug = resolveProductSlug(values);
 
     if (!productSlug) {
       setGeneralMessage(
-        "Вкажіть slug товару перед upload фото значення опції.",
+        "Вкажіть назву товару перед upload фото значення опції.",
       );
       return;
     }
@@ -1316,7 +1327,6 @@ function ProductWizard({
     uploadFormData.append("file", file);
 
     setGeneralMessage(null);
-    setSuccessMessage(null);
     setOptionUploadIndex(index);
 
     try {
@@ -1351,7 +1361,11 @@ function ProductWizard({
         image: payload.data.file.url,
         imagePublicId: payload.data.file.publicId,
       });
-      setSuccessMessage(payload.message || "Фото значення опції завантажено.");
+      showAdminToast({
+        message: payload.message || "Фото значення опції завантажено.",
+        title: "Фото опції додано",
+        variant: "success",
+      });
     } finally {
       setOptionUploadIndex(null);
     }
@@ -1507,7 +1521,7 @@ function ProductWizard({
     }
 
     if (step === "seo") {
-      const nextFieldErrors = validateSeoFields(values);
+      const nextFieldErrors = validateSeoFields();
       setFieldErrors((current) => ({
         ...current,
         ...nextFieldErrors,
@@ -1564,6 +1578,7 @@ function ProductWizard({
       return;
     }
 
+    const resolvedSlug = resolveProductSlug(values);
     const payload = {
       availability: values.availability,
       brandId: values.brandId === NO_BRAND_VALUE ? "" : values.brandId,
@@ -1578,9 +1593,9 @@ function ProductWizard({
       isFeaturedSale: values.isFeaturedSale,
       option: normalizeProductOption(optionDraft),
       price: values.price,
-      seoDescription: values.seoDescription,
-      seoTitle: values.seoTitle,
-      slug: values.slug,
+      seoDescription: resolveSeoDescription(values),
+      seoTitle: resolveSeoTitle(values),
+      slug: resolvedSlug,
       subcategoryId: values.subcategoryId,
       title: values.title,
       ...(mode === "edit" && productId ? { id: productId } : {}),
@@ -1640,9 +1655,11 @@ function ProductWizard({
         return;
       }
 
-      setSuccessMessage(
-        mode === "create" ? "Товар створено." : "Товар оновлено.",
-      );
+      showAdminToast({
+        message: mode === "create" ? "Товар створено." : "Товар оновлено.",
+        title: "Готово",
+        variant: "success",
+      });
       setGeneralMessage(null);
       onSuccess(result.data.id);
     });
@@ -1930,10 +1947,9 @@ function ProductWizard({
               id={`${mode}-slug`}
               label="Slug"
               value={values.slug}
-              onChange={(event) => updateValue("slug", event.target.value)}
+              onChange={(event) => updateSlug(event.target.value)}
               error={fieldErrors.slug}
-              hint="Лише нижній регістр, цифри та дефіси."
-              required
+              hint="????? ???????? ????????: slug ??????????? ??????????? ? ????? ??????."
             />
 
             <AdminInputField
@@ -2165,102 +2181,84 @@ function ProductWizard({
                   >
                     {isPending ? "Завантажуємо..." : "Завантажити в Cloudinary"}
                   </Button>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={addImage}
-                    disabled={images.length >= 11}
-                  >
-                    Додати вручну
-                  </Button>
                 </div>
               </div>
             </div>
 
             {images.length ? (
-              images.map((image, index) => (
-                <div
-                  key={image.id ?? `${mode}-image-${index}`}
-                  className="border-border/70 bg-card/90 space-y-4 rounded-2xl border p-4"
-                >
-                  <ProductThumbnail
-                    alt={
-                      image.alt ||
-                      image.publicId ||
-                      `Product image ${index + 1}`
-                    }
-                    src={image.url}
-                  />
-
-                  <div className="flex flex-wrap items-center justify-between gap-3">
-                    <div className="flex flex-wrap gap-2">
-                      {image.isPrimary ? (
-                        <Badge variant="secondary">Головне фото</Badge>
-                      ) : (
-                        <Badge variant="outline">Галерея</Badge>
-                      )}
-                      <Badge variant="outline">#{index + 1}</Badge>
+              <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+                {images.map((image, index) => (
+                  <div
+                    key={image.id ?? `${mode}-image-${index}`}
+                    className="border-border/70 bg-card/90 flex min-h-[360px] flex-col overflow-hidden rounded-2xl border"
+                  >
+                    <div className="bg-muted/30 relative aspect-[4/3] overflow-hidden">
+                      <ProductThumbnail
+                        alt={
+                          image.alt ||
+                          image.publicId ||
+                          `Product image ${index + 1}`
+                        }
+                        src={image.url}
+                      />
                     </div>
 
-                    <div className="flex flex-wrap gap-2">
-                      <Button
-                        type="button"
-                        variant="outline"
-                        onClick={() => setPrimaryImage(index)}
-                      >
-                        Зробити головним
-                      </Button>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        onClick={() => removeImage(index)}
-                      >
-                        Видалити
-                      </Button>
+                    <div className="flex flex-1 flex-col gap-4 p-4">
+                      <div className="flex flex-wrap items-center justify-between gap-3">
+                        <div className="flex flex-wrap gap-2">
+                          {image.isPrimary ? (
+                            <Badge variant="secondary">??????? ????</Badge>
+                          ) : (
+                            <Badge variant="outline">???????</Badge>
+                          )}
+                          <Badge variant="outline">#{index + 1}</Badge>
+                        </div>
+                      </div>
+
+                      {imageItemErrors[index]?.url ||
+                      imageItemErrors[index]?.publicId ? (
+                        <p className="text-destructive text-xs leading-5">
+                          {imageItemErrors[index]?.url ??
+                            imageItemErrors[index]?.publicId}
+                        </p>
+                      ) : null}
+
+                      <AdminInputField
+                        id={`${mode}-image-alt-${index}`}
+                        label="Alt"
+                        value={image.alt}
+                        onChange={(event) =>
+                          updateImage(index, { alt: event.target.value })
+                        }
+                      />
+
+                      <div className="mt-auto flex flex-wrap gap-2">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() => setPrimaryImage(index)}
+                          disabled={image.isPrimary}
+                        >
+                          ??????? ????????
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() => removeImage(index)}
+                        >
+                          ????????
+                        </Button>
+                      </div>
                     </div>
                   </div>
-
-                  <AdminFormGrid>
-                    <AdminInputField
-                      id={`${mode}-image-url-${index}`}
-                      label="URL"
-                      value={image.url}
-                      onChange={(event) =>
-                        updateImage(index, { url: event.target.value })
-                      }
-                      error={imageItemErrors[index]?.url}
-                      required
-                    />
-
-                    <AdminInputField
-                      id={`${mode}-image-public-id-${index}`}
-                      label="publicId"
-                      value={image.publicId}
-                      onChange={(event) =>
-                        updateImage(index, { publicId: event.target.value })
-                      }
-                      error={imageItemErrors[index]?.publicId}
-                      required
-                    />
-                  </AdminFormGrid>
-
-                  <AdminInputField
-                    id={`${mode}-image-alt-${index}`}
-                    label="Alt"
-                    value={image.alt}
-                    onChange={(event) =>
-                      updateImage(index, { alt: event.target.value })
-                    }
-                  />
-                </div>
-              ))
+                ))}
+              </div>
             ) : (
               <AdminEmptyState
-                title="Фото ще не додані"
-                description="Додайте щонайменше одне зображення. На цьому кроці головне фото й галерея вже збираються в правильний payload."
+                title="???? ?? ?? ??????"
+                description="??????? ?????????? ???? ??????????. ????? upload ?????? ???? ?'???????? ???, ? URL ? publicId ?????????? ??????????? ?????????? ??????."
               />
             )}
-
             <div className="border-border/70 bg-muted/30 flex flex-col gap-3 rounded-2xl border p-4 sm:flex-row sm:items-center sm:justify-between">
               <p className="text-muted-foreground text-sm leading-6">
                 Правила цього кроку: 1 головне фото, до 10 фото в галереї.
@@ -2469,7 +2467,7 @@ function ProductWizard({
               value={values.seoTitle}
               onChange={(event) => updateValue("seoTitle", event.target.value)}
               error={fieldErrors.seoTitle}
-              required
+              hint={`Якщо залишити порожнім: ${resolveSeoTitle(values)}`}
             />
 
             <AdminTextareaField
@@ -2481,7 +2479,7 @@ function ProductWizard({
               }
               error={fieldErrors.seoDescription}
               rows={4}
-              required
+              hint={`Якщо залишити порожнім: ${resolveSeoDescription(values)}`}
             />
           </div>
         </AdminFormSection>
@@ -2490,12 +2488,6 @@ function ProductWizard({
       {generalMessage ? (
         <div className="border-destructive/20 bg-destructive/8 text-destructive rounded-2xl border px-4 py-3 text-sm">
           {generalMessage}
-        </div>
-      ) : null}
-
-      {successMessage ? (
-        <div className="border-primary/20 bg-primary/8 rounded-2xl border px-4 py-3 text-sm">
-          {successMessage}
         </div>
       ) : null}
 

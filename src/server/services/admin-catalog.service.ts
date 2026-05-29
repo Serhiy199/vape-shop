@@ -1152,6 +1152,13 @@ async function normalizeProductWritePayload(
     return normalizedFieldValues;
   }
 
+  const productSeoTitle =
+    payload.seoTitle ??
+    `${payload.title}: купити в інтернет-магазині Voodoo Vape`;
+  const productSeoDescription =
+    payload.seoDescription ??
+    `${payload.title}: замовити за вигідною ціною в Україні у Voodoo Vape. Швидке оформлення, зручна доставка по Україні та актуальний асортимент.`;
+
   return ok({
     availability: payload.availability,
     brandId: payload.brandId,
@@ -1167,8 +1174,8 @@ async function normalizeProductWritePayload(
     isFeaturedSale: payload.isFeaturedSale,
     option: payload.option,
     price: payload.price,
-    seoDescription: payload.seoDescription,
-    seoTitle: payload.seoTitle,
+    seoDescription: productSeoDescription,
+    seoTitle: productSeoTitle,
     slug: payload.slug,
     subcategoryId: payload.subcategoryId,
     title: payload.title,

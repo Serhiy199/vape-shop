@@ -45,7 +45,7 @@ export function AdminToastViewport() {
           id,
           message: detail.message,
           title:
-            detail.title ?? (detail.variant === "error" ? "Помилка" : "Готово"),
+            detail.title ?? (detail.variant === "error" ? "???????" : "??????"),
           variant: detail.variant ?? "success",
         },
       ]);
