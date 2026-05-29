@@ -128,6 +128,10 @@ type SelectedProduct = {
       image: string;
       imagePublicId: string | null;
       label: string;
+      slug: string | null;
+      titleOverride: string | null;
+      seoTitle: string | null;
+      seoDescription: string | null;
       sortOrder: number;
     }>;
   } | null;
@@ -191,6 +195,10 @@ type ProductOptionValueDraft = {
   image: string;
   imagePublicId: string;
   label: string;
+  slug: string;
+  titleOverride: string;
+  seoTitle: string;
+  seoDescription: string;
   sortOrder: string;
 };
 
@@ -456,6 +464,10 @@ function buildProductOptionDraft(
       image: value.image,
       imagePublicId: value.imagePublicId ?? "",
       label: value.label,
+      slug: value.slug ?? "",
+      titleOverride: value.titleOverride ?? "",
+      seoTitle: value.seoTitle ?? "",
+      seoDescription: value.seoDescription ?? "",
       sortOrder: value.sortOrder.toString() || (index + 1).toString(),
     })),
   };
@@ -504,6 +516,10 @@ function normalizeProductOption(option: ProductOptionDraft | null) {
       image: value.image,
       imagePublicId: value.imagePublicId || undefined,
       label: value.label,
+      slug: value.slug || undefined,
+      titleOverride: value.titleOverride || undefined,
+      seoTitle: value.seoTitle || undefined,
+      seoDescription: value.seoDescription || undefined,
       sortOrder: Number(value.sortOrder || index),
     })),
   };
@@ -834,7 +850,7 @@ function WizardStepHeader({
   );
 
   return (
-    <div className="flex flex-wrap gap-2">
+    <div className="bg-background/95 border-border/70 supports-[backdrop-filter]:bg-background/85 sticky top-0 z-20 -mx-1 flex flex-wrap gap-2 border-b px-1 py-3 backdrop-blur">
       {PRODUCT_STEPS.map((step, index) => (
         <StepBadge
           key={step.id}
@@ -1225,6 +1241,10 @@ function ProductWizard({
           image: "",
           imagePublicId: "",
           label: "",
+          slug: "",
+          titleOverride: "",
+          seoTitle: "",
+          seoDescription: "",
           sortOrder: "0",
         },
       ],
@@ -1286,6 +1306,10 @@ function ProductWizard({
                 image: "",
                 imagePublicId: "",
                 label: "",
+                slug: "",
+                titleOverride: "",
+                seoTitle: "",
+                seoDescription: "",
                 sortOrder: current.values.length.toString(),
               },
             ],
@@ -2344,12 +2368,68 @@ function ProductWizard({
                       onChange={(event) =>
                         updateOptionValue(index, {
                           label: event.target.value,
+                          slug:
+                            optionValue.slug.trim().length > 0
+                              ? optionValue.slug
+                              : slugifyText(
+                                  `${values.slug || values.title}-${event.target.value}`,
+                                ),
                         })
                       }
                       error={optionErrors.values?.[index]?.label}
                       required
                     />
 
+                    <AdminInputField
+                      id={`${mode}-option-value-slug-${index}`}
+                      label="Slug сторінки варіанту"
+                      value={optionValue.slug}
+                      onChange={(event) =>
+                        updateOptionValue(index, {
+                          slug: slugifyText(event.target.value),
+                        })
+                      }
+                      hint={`Наприклад: ${values.slug || "product"}-${slugifyText(optionValue.label) || "blue"}`}
+                    />
+
+                    <AdminInputField
+                      id={`${mode}-option-value-title-${index}`}
+                      label="Назва сторінки варіанту"
+                      value={optionValue.titleOverride}
+                      onChange={(event) =>
+                        updateOptionValue(index, {
+                          titleOverride: event.target.value,
+                        })
+                      }
+                      hint="Якщо порожньо, H1 генерується з назви товару та значення опції."
+                    />
+                  </AdminFormGrid>
+
+                  <AdminFormGrid>
+                    <AdminInputField
+                      id={`${mode}-option-value-seo-title-${index}`}
+                      label="SEO title варіанту"
+                      value={optionValue.seoTitle}
+                      onChange={(event) =>
+                        updateOptionValue(index, {
+                          seoTitle: event.target.value,
+                        })
+                      }
+                    />
+
+                    <AdminInputField
+                      id={`${mode}-option-value-seo-description-${index}`}
+                      label="SEO description варіанту"
+                      value={optionValue.seoDescription}
+                      onChange={(event) =>
+                        updateOptionValue(index, {
+                          seoDescription: event.target.value,
+                        })
+                      }
+                    />
+                  </AdminFormGrid>
+
+                  <AdminFormGrid>
                     <AdminInputField
                       id={`${mode}-option-value-sort-${index}`}
                       type="number"
@@ -2600,10 +2680,7 @@ export function AdminProductCrud({
   return (
     <div className="space-y-6">
       {mode !== "create" && selectedProduct ? (
-        <AdminSectionCard
-          title="Редагування товару"
-          description="Multi-step форма вже працює для edit-сценарію і зберігає повний payload товару через update action."
-        >
+        <AdminSectionCard title={`Редагування: ${selectedProduct.title}`}>
           <ProductWizard
             brands={brands}
             categories={editCategories}

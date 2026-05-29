@@ -56,6 +56,7 @@ const storefrontCategorySelect = {
       id: true,
       name: true,
       slug: true,
+      isActive: true,
       description: true,
       seoTitle: true,
       seoDescription: true,
@@ -98,6 +99,7 @@ const storefrontBrandSelect = {
       id: true,
       name: true,
       slug: true,
+      isActive: true,
       category: {
         select: {
           id: true,
@@ -124,6 +126,7 @@ const storefrontProductListSelect = {
   slug: true,
   price: true,
   availability: true,
+  isActive: true,
   isFeaturedNew: true,
   isFeaturedSale: true,
   isFeaturedHit: true,
@@ -133,6 +136,7 @@ const storefrontProductListSelect = {
       id: true,
       name: true,
       slug: true,
+      isActive: true,
     },
   },
   subcategory: {
@@ -140,6 +144,7 @@ const storefrontProductListSelect = {
       id: true,
       name: true,
       slug: true,
+      isActive: true,
     },
   },
   brand: {
@@ -147,6 +152,7 @@ const storefrontProductListSelect = {
       id: true,
       name: true,
       slug: true,
+      isActive: true,
     },
   },
   images: {
@@ -199,6 +205,10 @@ const storefrontProductDetailSelect = {
         select: {
           id: true,
           label: true,
+          slug: true,
+          titleOverride: true,
+          seoTitle: true,
+          seoDescription: true,
           image: true,
           imagePublicId: true,
           sortOrder: true,
@@ -802,7 +812,8 @@ function resolveStorefrontFieldValue(
 }
 
 export async function getActiveStorefrontProductBySlug(slug: string) {
-  const product = await prisma.product.findFirst({
+  let selectedOptionValueId: string | null = null;
+  let product = await prisma.product.findFirst({
     where: {
       ...storefrontVisibleProductWhere,
       slug,
@@ -811,13 +822,63 @@ export async function getActiveStorefrontProductBySlug(slug: string) {
   });
 
   if (!product) {
-    return null;
+    const optionValue = await prisma.productOptionValue.findUnique({
+      where: {
+        slug,
+      },
+      select: {
+        id: true,
+        productOption: {
+          select: {
+            product: {
+              select: storefrontProductDetailSelect,
+            },
+          },
+        },
+      },
+    });
+
+    const variantProduct = optionValue?.productOption.product;
+
+    if (
+      !variantProduct ||
+      !variantProduct.isActive ||
+      !variantProduct.category.isActive ||
+      !variantProduct.subcategory.isActive ||
+      (variantProduct.brand && !variantProduct.brand.isActive)
+    ) {
+      return null;
+    }
+
+    selectedOptionValueId = optionValue.id;
+    product = variantProduct;
   }
+
+  const selectedOptionValue =
+    product.option?.values.find((value) => value.id === selectedOptionValueId) ??
+    null;
+  const pageTitle =
+    selectedOptionValue?.titleOverride ??
+    (selectedOptionValue
+      ? `${product.title} ${selectedOptionValue.label}`
+      : product.title);
+  const metaTitle =
+    selectedOptionValue?.seoTitle ??
+    product.seoTitle ??
+    `${pageTitle}: купити в інтернет-магазині Voodoo Vape`;
+  const metaDescription =
+    selectedOptionValue?.seoDescription ??
+    product.seoDescription ??
+    `${pageTitle}: замовити за вигідною ціною в Україні у Voodoo Vape. Швидке оформлення, зручна доставка по Україні та актуальний асортимент.`;
 
   return {
     ...product,
     card: mapProductToCard(product),
+    metaDescription,
+    metaTitle,
+    pageTitle,
     price: Number(product.price),
+    selectedOptionValue,
     fieldValues: product.fieldValues.map((fieldValue) => ({
       id: fieldValue.id,
       key: fieldValue.field.key,

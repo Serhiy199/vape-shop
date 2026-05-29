@@ -1015,6 +1015,10 @@ type ProductImageWriteInput = {
 
 type ProductOptionValueWriteInput = {
   label: string;
+  slug?: string;
+  titleOverride?: string;
+  seoTitle?: string;
+  seoDescription?: string;
   image: string;
   imagePublicId?: string;
   sortOrder: number;
@@ -1174,6 +1178,10 @@ const adminProductDetailSelect = {
         select: {
           id: true,
           label: true,
+          slug: true,
+          titleOverride: true,
+          seoTitle: true,
+          seoDescription: true,
           image: true,
           imagePublicId: true,
           sortOrder: true,
@@ -1314,6 +1322,23 @@ export async function getProductBySlug(slug: string) {
   });
 }
 
+export async function getProductOptionValueBySlug(slug: string) {
+  return prisma.productOptionValue.findUnique({
+    where: {
+      slug,
+    },
+    select: {
+      id: true,
+      slug: true,
+      productOption: {
+        select: {
+          productId: true,
+        },
+      },
+    },
+  });
+}
+
 export async function createProduct(input: ProductWriteInput) {
   return prisma.$transaction(async (tx) => {
     const createdProduct = await tx.product.create({
@@ -1340,6 +1365,10 @@ export async function createProduct(input: ProductWriteInput) {
                 values: {
                   create: input.option.values.map((value) => ({
                     label: value.label,
+                    slug: value.slug,
+                    titleOverride: value.titleOverride,
+                    seoTitle: value.seoTitle,
+                    seoDescription: value.seoDescription,
                     image: value.image,
                     imagePublicId: value.imagePublicId,
                     sortOrder: value.sortOrder,
@@ -1460,6 +1489,10 @@ export async function updateProduct(input: ProductWriteInput & { id: string }) {
           values: {
             create: input.option.values.map((value) => ({
               label: value.label,
+              slug: value.slug,
+              titleOverride: value.titleOverride,
+              seoTitle: value.seoTitle,
+              seoDescription: value.seoDescription,
               image: value.image,
               imagePublicId: value.imagePublicId,
               sortOrder: value.sortOrder,

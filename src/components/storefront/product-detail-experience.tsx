@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 
 import {
   StorefrontProductGallery,
@@ -34,18 +35,25 @@ export function StorefrontProductDetailExperience({
   images,
   option,
   product,
+  selectedOptionValue: initialSelectedOptionValue = null,
   title,
 }: {
   highlights: ProductPurchaseHighlight[];
   images: StorefrontProductGalleryImage[];
   option?: StorefrontProductOption | null;
   product: StorefrontProductCardItem;
+  selectedOptionValue?: StorefrontProductOptionValue | null;
   title: string;
 }) {
+  const router = useRouter();
   const [activeImage, setActiveImage] =
-    useState<StorefrontProductGalleryImage | null>(null);
+    useState<StorefrontProductGalleryImage | null>(
+      initialSelectedOptionValue
+        ? optionValueToGalleryImage(initialSelectedOptionValue)
+        : null,
+    );
   const [selectedOptionValue, setSelectedOptionValue] =
-    useState<StorefrontProductOptionValue | null>(null);
+    useState<StorefrontProductOptionValue | null>(initialSelectedOptionValue);
 
   const galleryImages = useMemo(() => {
     const optionImages =
@@ -59,6 +67,10 @@ export function StorefrontProductDetailExperience({
   function handleSelectOptionValue(value: StorefrontProductOptionValue) {
     setSelectedOptionValue(value);
     setActiveImage(optionValueToGalleryImage(value));
+
+    if (value.slug) {
+      router.push(`/product/${value.slug}`);
+    }
   }
 
   return (

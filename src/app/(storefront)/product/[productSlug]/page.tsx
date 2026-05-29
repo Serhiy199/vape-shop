@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import type { Metadata } from "next";
 
 import { StorefrontProductDetailExperience } from "@/components/storefront/product-detail-experience";
 import { StorefrontProductGrid } from "@/components/storefront/product-grid";
@@ -21,6 +22,22 @@ type ProductPageProps = {
     productSlug: string;
   }>;
 };
+
+export async function generateMetadata({
+  params,
+}: ProductPageProps): Promise<Metadata> {
+  const { productSlug } = await params;
+  const product = await getActiveStorefrontProductBySlug(productSlug);
+
+  if (!product) {
+    return {};
+  }
+
+  return {
+    title: product.metaTitle,
+    description: product.metaDescription,
+  };
+}
 
 export default async function ProductPage({ params }: ProductPageProps) {
   const { productSlug } = await params;
@@ -59,10 +76,10 @@ export default async function ProductPage({ params }: ProductPageProps) {
             href: `/category/${product.category.slug}/${product.subcategory.slug}`,
             label: product.subcategory.name,
           },
-          { label: product.title },
+          { label: product.pageTitle },
         ]}
         eyebrow={product.brand?.name ?? product.category.name}
-        title={product.title}
+        title={product.pageTitle}
       />
 
       <StorefrontSection>
@@ -71,7 +88,8 @@ export default async function ProductPage({ params }: ProductPageProps) {
           images={product.images}
           option={product.option}
           product={product.card}
-          title={product.title}
+          selectedOptionValue={product.selectedOptionValue}
+          title={product.pageTitle}
         />
       </StorefrontSection>
 
@@ -108,23 +126,28 @@ export default async function ProductPage({ params }: ProductPageProps) {
       </StorefrontSection>
 
       <StorefrontSection>
-        <StorefrontSectionHeader
-          eyebrow="Характеристики"
-          title="Параметри товару"
-          description="Dynamic fields з адмін-панелі відображаються як характеристики storefront-товару."
-        />
         {product.fieldValues.length > 0 ? (
-          <StorefrontCard className="p-5">
-            <dl className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          <StorefrontCard className="overflow-hidden p-0">
+            <div className="border-border/70 border-b px-5 py-4">
+              <h2 className="text-xl font-semibold tracking-tight">
+                Характеристики
+              </h2>
+            </div>
+            <dl className="px-5 py-4">
               {product.fieldValues.map((fieldValue) => (
                 <div
                   key={fieldValue.id}
-                  className="border-border/70 bg-background rounded-lg border p-4"
+                  className="flex items-baseline gap-3 py-2 text-sm sm:text-base"
                 >
-                  <dt className="text-muted-foreground text-sm">
+                  <dt className="text-muted-foreground shrink-0">
                     {fieldValue.label}
                   </dt>
-                  <dd className="mt-1 font-medium">{fieldValue.value}</dd>
+                  <dd className="flex min-w-0 flex-1 items-baseline gap-3 text-right">
+                    <span className="border-border/80 h-px flex-1 border-b border-dashed" />
+                    <span className="max-w-[48%] leading-6 font-medium">
+                      {fieldValue.value}
+                    </span>
+                  </dd>
                 </div>
               ))}
             </dl>

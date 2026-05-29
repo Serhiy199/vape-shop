@@ -20,6 +20,10 @@ export type StorefrontProductOptionValue = {
   image: string;
   imagePublicId?: string | null;
   label: string;
+  slug?: string | null;
+  titleOverride?: string | null;
+  seoTitle?: string | null;
+  seoDescription?: string | null;
   sortOrder: number;
 };
 

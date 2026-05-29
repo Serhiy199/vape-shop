@@ -1,9 +1,5 @@
 import { notFound } from "next/navigation";
 
-import {
-  AdminActionsBar,
-  AdminPageHeader,
-} from "@/components/admin/admin-primitives";
 import { AdminProductCrud } from "@/features/catalog/components/admin-product-crud";
 import { getAdminProductsPageData } from "@/server/queries/admin-catalog.query";
 
@@ -69,33 +65,7 @@ export default async function AdminProductEditPage({
   }));
 
   return (
-    <div className="space-y-6">
-      <AdminPageHeader
-        eyebrow="Товари"
-        title={`Редагування: ${selectedProduct.title}`}
-        description="Форма редагування винесена на окрему сторінку. Кроки зверху працюють як швидка навігація по розділах товару."
-        badges={[
-          selectedProduct.isActive ? "Активний" : "Неактивний",
-          selectedProduct.availability,
-        ]}
-      />
-
-      <AdminActionsBar
-        actions={[
-          {
-            href: "/admin/products",
-            label: "Повернутися до списку",
-            variant: "outline",
-          },
-          {
-            href: `/product/${selectedProduct.slug}`,
-            label: "Відкрити на сайті",
-            variant: "outline",
-          },
-        ]}
-        note="Клік по будь-якому кроку у формі одразу відкриває потрібний розділ."
-      />
-
+    <div>
       <AdminProductCrud
         brands={mappedBrands}
         categories={mappedCategories}
@@ -159,6 +129,10 @@ export default async function AdminProductEditPage({
                   image: value.image,
                   imagePublicId: value.imagePublicId,
                   label: value.label,
+                  slug: value.slug,
+                  titleOverride: value.titleOverride,
+                  seoTitle: value.seoTitle,
+                  seoDescription: value.seoDescription,
                   sortOrder: value.sortOrder,
                 })),
               }

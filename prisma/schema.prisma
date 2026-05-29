@@ -270,6 +270,10 @@ model ProductOptionValue {
   id              String        @id @default(cuid())
   productOptionId String
   label           String
+  slug            String?       @unique
+  titleOverride   String?
+  seoTitle        String?
+  seoDescription  String?
   image           String
   imagePublicId   String?
   sortOrder       Int           @default(0)

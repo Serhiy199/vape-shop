@@ -284,6 +284,10 @@ const productImageSchema = z.object({
 const productOptionValueSchema = z.object({
   id: optionalIdField(),
   label: requiredName(120),
+  slug: z.string().trim().max(160).optional(),
+  titleOverride: optionalTrimmedString(160),
+  seoTitle: optionalTrimmedString(160),
+  seoDescription: optionalTrimmedString(320),
   image: z.string().trim().url().max(2048),
   imagePublicId: optionalTrimmedString(255),
   sortOrder: sortOrderField(),

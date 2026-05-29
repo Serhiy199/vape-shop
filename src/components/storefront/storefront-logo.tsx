@@ -20,13 +20,13 @@ export function StorefrontLogo({
       )}
       aria-label={`${storefrontBrand.name} - головна сторінка`}
     >
-      <span className="relative block h-16 w-24 overflow-hidden sm:h-20 sm:w-28">
+      <span className="relative block h-20 w-28 overflow-hidden sm:h-24 sm:w-36">
         <Image
           src={storefrontBrand.logoSrc}
           alt={`${storefrontBrand.name} logo`}
           fill
           priority
-          sizes="(max-width: 640px) 96px, 112px"
+          sizes="(max-width: 640px) 112px, 144px"
           className="object-contain object-left"
         />
       </span>

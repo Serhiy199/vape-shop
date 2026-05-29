@@ -42,6 +42,7 @@ import {
   getBrandByScopedName,
   getBrandByScopedSlug,
   getProductById,
+  getProductOptionValueBySlug,
   getProductBySlug,
   getAdminSubcategoryFieldById,
   getCategoryById,
@@ -66,6 +67,7 @@ import {
 } from "@/server/repositories/catalog.repository";
 
 import { z } from "zod";
+import { slugifyText } from "@/lib/text/slug";
 
 type MutationSuccess<TData> = {
   data: TData;
@@ -972,6 +974,7 @@ export async function validateProductFieldValuesCompatibility(
     };
   }
 
+
   return ok({
     fieldValues: normalizedValues,
   });
@@ -1118,6 +1121,125 @@ async function validateProductSlugUniqueness(
     };
   }
 
+  const duplicatedOptionSlug = await getProductOptionValueBySlug(payload.slug);
+
+  if (
+    duplicatedOptionSlug &&
+    duplicatedOptionSlug.productOption.productId !== currentId
+  ) {
+    return {
+      ok: false as const,
+      error: "Slug товару вже використовується варіантом іншого товару.",
+      fieldErrors: {
+        slug: ["Slug товару вже використовується варіантом іншого товару."],
+      },
+    };
+  }
+
+  return null;
+}
+
+function normalizeProductOptionPayload(
+  payload: CreateProductInput | UpdateProductInput,
+): ProductOptionInput | undefined {
+  if (!payload.option) {
+    return undefined;
+  }
+
+  return {
+    ...payload.option,
+    values: payload.option.values.map((value, index) => {
+      const optionSlug =
+        value.slug?.trim() ||
+        slugifyText(`${payload.slug}-${value.label}`) ||
+        `${payload.slug}-option-${index + 1}`;
+      const optionTitle = value.titleOverride?.trim() || undefined;
+
+      return {
+        ...value,
+        slug: optionSlug,
+        titleOverride: optionTitle,
+        seoTitle: value.seoTitle?.trim() || undefined,
+        seoDescription: value.seoDescription?.trim() || undefined,
+      };
+    }),
+  };
+}
+
+async function validateProductOptionSlugUniqueness(
+  option: ProductOptionInput | undefined,
+  productSlug: string,
+  currentProductId?: string,
+) {
+  if (!option) {
+    return null;
+  }
+
+  const seenSlugs = new Set<string>();
+
+  for (const [index, value] of option.values.entries()) {
+    const optionSlug = value.slug?.trim();
+
+    if (!optionSlug) {
+      continue;
+    }
+
+    if (optionSlug === productSlug) {
+      return {
+        ok: false as const,
+        error: "Slug варіанту не може збігатися зі slug основного товару.",
+        fieldErrors: {
+          option: [
+            `Значення опції #${index + 1}: slug не може збігатися зі slug основного товару.`,
+          ],
+        },
+      };
+    }
+
+    if (seenSlugs.has(optionSlug)) {
+      return {
+        ok: false as const,
+        error: "Варіанти товару мають дублікати slug.",
+        fieldErrors: {
+          option: [`Значення опції #${index + 1}: slug дублюється.`],
+        },
+      };
+    }
+
+    seenSlugs.add(optionSlug);
+
+    const productWithSameSlug = await getProductBySlug(optionSlug);
+
+    if (productWithSameSlug && productWithSameSlug.id !== currentProductId) {
+      return {
+        ok: false as const,
+        error: "Slug варіанту вже використовується іншим товаром.",
+        fieldErrors: {
+          option: [
+            `Значення опції #${index + 1}: slug вже використовується іншим товаром.`,
+          ],
+        },
+      };
+    }
+
+    const optionWithSameSlug = await getProductOptionValueBySlug(optionSlug);
+
+    if (
+      optionWithSameSlug &&
+      optionWithSameSlug.productOption.productId !== currentProductId
+    ) {
+      return {
+        ok: false as const,
+        error: "Slug варіанту вже використовується іншим варіантом.",
+        fieldErrors: {
+          option: [
+            `Значення опції #${index + 1}: slug вже використовується іншим варіантом.`,
+          ],
+        },
+      };
+    }
+  }
+
   return null;
 }
 
@@ -1159,6 +1281,17 @@ async function normalizeProductWritePayload(
     payload.seoDescription ??
     `${payload.title}: замовити за вигідною ціною в Україні у Voodoo Vape. Швидке оформлення, зручна доставка по Україні та актуальний асортимент.`;
 
+  const normalizedOption = normalizeProductOptionPayload(payload);
+  const optionSlugError = await validateProductOptionSlugUniqueness(
+    normalizedOption,
+    payload.slug,
+    "id" in payload ? payload.id : undefined,
+  );
+
+  if (optionSlugError) {
+    return optionSlugError;
+  }
+
   return ok({
     availability: payload.availability,
     brandId: payload.brandId,
@@ -1172,7 +1305,7 @@ async function normalizeProductWritePayload(
     isFeaturedHit: payload.isFeaturedHit,
     isFeaturedNew: payload.isFeaturedNew,
     isFeaturedSale: payload.isFeaturedSale,
-    option: payload.option,
+    option: normalizedOption,
     price: payload.price,
     seoDescription: productSeoDescription,
     seoTitle: productSeoTitle,
