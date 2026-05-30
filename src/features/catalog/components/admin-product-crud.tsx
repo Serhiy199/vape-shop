@@ -28,6 +28,17 @@ import {
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import {
   createProductAction,
   deleteProductAction,
   updateProductAction,
@@ -787,35 +798,6 @@ function validateImages(images: ProductImageDraft[]) {
   };
 }
 
-function StepBadge({
-  isActive,
-  isComplete,
-  label,
-  onClick,
-}: {
-  isActive: boolean;
-  isComplete: boolean;
-  label: string;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={[
-        "hover:border-primary/60 hover:text-primary rounded-full border px-3 py-2 text-left text-xs font-medium transition-colors",
-        isActive
-          ? "border-primary bg-primary/10 text-primary"
-          : isComplete
-            ? "border-border bg-card text-foreground"
-            : "border-border/70 bg-muted/30 text-muted-foreground",
-      ].join(" ")}
-    >
-      {label}
-    </button>
-  );
-}
-
 function ProductThumbnail({ alt, src }: { alt: string; src: string }) {
   const [hasError, setHasError] = useState(false);
 
@@ -834,32 +816,6 @@ function ProductThumbnail({ alt, src }: { alt: string; src: string }) {
           Preview unavailable
         </div>
       )}
-    </div>
-  );
-}
-
-function WizardStepHeader({
-  currentStep,
-  onStepChange,
-}: {
-  currentStep: ProductStepId;
-  onStepChange: (step: ProductStepId) => void;
-}) {
-  const currentIndex = PRODUCT_STEPS.findIndex(
-    (step) => step.id === currentStep,
-  );
-
-  return (
-    <div className="bg-background/95 border-border/70 supports-[backdrop-filter]:bg-background/85 sticky top-0 z-20 -mx-1 flex flex-wrap gap-2 border-b px-1 py-3 backdrop-blur">
-      {PRODUCT_STEPS.map((step, index) => (
-        <StepBadge
-          key={step.id}
-          label={step.label}
-          isActive={step.id === currentStep}
-          isComplete={index < currentIndex}
-          onClick={() => onStepChange(step.id)}
-        />
-      ))}
     </div>
   );
 }
@@ -892,7 +848,6 @@ function ProductWizard({
   subcategories: SubcategoryOption[];
 }) {
   const [isPending, startTransition] = useTransition();
-  const [currentStep, setCurrentStep] = useState<ProductStepId>("category");
   const [values, setValues] = useState(initialValues);
   const [isSlugManuallyEdited, setIsSlugManuallyEdited] = useState(
     mode === "edit" && Boolean(initialValues.slug),
@@ -918,10 +873,6 @@ function ProductWizard({
     SelectedUploadPreview[]
   >([]);
   const [generalMessage, setGeneralMessage] = useState<string | null>(null);
-
-  const currentStepIndex = PRODUCT_STEPS.findIndex(
-    (step) => step.id === currentStep,
-  );
 
   const selectedCategory = categories.find(
     (category) => category.id === values.categoryId,
@@ -997,7 +948,6 @@ function ProductWizard({
       setDynamicValues(initialDynamicValues);
       setImages(initialImages);
       setOptionDraft(initialOption);
-      setCurrentStep("category");
       setFieldErrors({});
       setDynamicErrors({});
       setImageItemErrors({});
@@ -1564,41 +1514,11 @@ function ProductWizard({
     return isValid;
   };
 
-  const goNext = () => {
-    if (!validateStep(currentStep)) {
-      return;
-    }
-
-    const nextStep = PRODUCT_STEPS[currentStepIndex + 1];
-    if (nextStep) {
-      setCurrentStep(nextStep.id);
-    }
-  };
-
-  const goBack = () => {
-    const previousStep = PRODUCT_STEPS[currentStepIndex - 1];
-    if (previousStep) {
-      setCurrentStep(previousStep.id);
-      setGeneralMessage(null);
-    }
-  };
-
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
-    if (currentStep !== "seo") {
-      goNext();
-      return;
-    }
-
-    const stepsValid = PRODUCT_STEPS.every((step) => validateStep(step.id));
-    if (!stepsValid) {
-      const firstBrokenStep = PRODUCT_STEPS.find(
-        (step) => !validateStep(step.id),
-      );
-      if (firstBrokenStep) {
-        setCurrentStep(firstBrokenStep.id);
-      }
+    const stepResults = PRODUCT_STEPS.map((step) => validateStep(step.id));
+    if (stepResults.some((isValid) => !isValid)) {
       return;
     }
 
@@ -1676,12 +1596,20 @@ function ProductWizard({
           setGeneralMessage(getServerValidationMessage(result));
         }
 
+        showAdminToast({
+          title:
+            mode === "edit"
+              ? "Не вдалося зберегти товар"
+              : "Не вдалося створити товар",
+          message: getServerValidationMessage(result),
+          variant: "error",
+        });
         return;
       }
 
       showAdminToast({
-        message: mode === "create" ? "Товар створено." : "Товар оновлено.",
-        title: "Готово",
+        title: mode === "create" ? "Товар створено" : "Товар успішно оновлено",
+        message: result.data.title,
         variant: "success",
       });
       setGeneralMessage(null);
@@ -1691,242 +1619,211 @@ function ProductWizard({
 
   return (
     <form className="space-y-4" onSubmit={handleSubmit}>
-      <WizardStepHeader
-        currentStep={currentStep}
-        onStepChange={setCurrentStep}
-      />
-
-      {currentStep === "category" ? (
-        <AdminFormSection
-          title="Крок 1. Category"
-          description="Спершу визначаємо верхньорівневу category. Вона керує доступними subcategory та характеристиками."
-        >
-          <AdminField label="Категорія" error={fieldErrors.categoryId} required>
-            <Select
-              items={categoryItems}
-              value={values.categoryId}
-              onValueChange={updateCategory}
-            >
-              <SelectTrigger className="w-full">
-                <SelectValue placeholder="Оберіть категорію" />
-              </SelectTrigger>
-              <SelectContent>
-                {categories.map((category) => (
-                  <SelectItem key={category.id} value={category.id}>
-                    {category.name}
-                    {formatCatalogOptionStatus(category.isActive)}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            {relationHasInactiveCatalog ? (
-              <p className="text-muted-foreground mt-2 text-sm leading-6">
-                Поточна категорія або підкатегорія деактивована. Зв&apos;язок
-                збережено для цього товару, але нові прив&apos;язки можна робити
-                тільки до активних гілок каталогу.
-              </p>
-            ) : null}
-          </AdminField>
-        </AdminFormSection>
-      ) : null}
-
-      {currentStep === "subcategory" ? (
-        <AdminFormSection
-          title="Крок 2. Subcategory"
-          description="Після вибору subcategory форма перебудує характеристики саме під цю гілку каталогу."
-        >
-          <AdminField
-            label="Підкатегорія"
-            error={fieldErrors.subcategoryId}
-            required
+      <AdminFormSection
+        title="Category"
+        description="Спершу визначаємо верхньорівневу category. Вона керує доступними subcategory та характеристиками."
+      >
+        <AdminField label="Категорія" error={fieldErrors.categoryId} required>
+          <Select
+            items={categoryItems}
+            value={values.categoryId}
+            onValueChange={updateCategory}
           >
-            <Select
-              items={subcategoryItems}
-              value={values.subcategoryId}
-              onValueChange={updateSubcategory}
-            >
-              <SelectTrigger className="w-full">
-                <SelectValue placeholder="Оберіть підкатегорію" />
-              </SelectTrigger>
-              <SelectContent>
-                {availableSubcategories.map((subcategory) => (
-                  <SelectItem key={subcategory.id} value={subcategory.id}>
-                    {subcategory.name}
-                    {formatCatalogOptionStatus(
-                      subcategory.isActive && subcategory.category.isActive,
-                    )}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </AdminField>
-        </AdminFormSection>
-      ) : null}
+            <SelectTrigger className="w-full">
+              <SelectValue placeholder="Оберіть категорію" />
+            </SelectTrigger>
+            <SelectContent>
+              {categories.map((category) => (
+                <SelectItem key={category.id} value={category.id}>
+                  {category.name}
+                  {formatCatalogOptionStatus(category.isActive)}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          {relationHasInactiveCatalog ? (
+            <p className="text-muted-foreground mt-2 text-sm leading-6">
+              Поточна категорія або підкатегорія деактивована. Зв&apos;язок
+              збережено для цього товару, але нові прив&apos;язки можна робити
+              тільки до активних гілок каталогу.
+            </p>
+          ) : null}
+        </AdminField>
+      </AdminFormSection>
 
-      {currentStep === "dynamic" ? (
-        <AdminFormSection
-          title="Крок 3. Характеристики"
-          description="Тут працює жива форма характеристик на основі конструктора характеристик підкатегорій."
+      <AdminFormSection
+        title="Subcategory"
+        description="Після вибору subcategory форма перебудує характеристики саме під цю гілку каталогу."
+      >
+        <AdminField
+          label="Підкатегорія"
+          error={fieldErrors.subcategoryId}
+          required
         >
-          {currentFieldDefinitions.length ? (
-            <div className="space-y-4">
-              {currentFieldDefinitions.map((field) => {
-                const value =
-                  dynamicValues[field.id] ?? getEmptyDynamicValue(field.id);
-                const error = dynamicErrors[field.id];
+          <Select
+            items={subcategoryItems}
+            value={values.subcategoryId}
+            onValueChange={updateSubcategory}
+          >
+            <SelectTrigger className="w-full">
+              <SelectValue placeholder="Оберіть підкатегорію" />
+            </SelectTrigger>
+            <SelectContent>
+              {availableSubcategories.map((subcategory) => (
+                <SelectItem key={subcategory.id} value={subcategory.id}>
+                  {subcategory.name}
+                  {formatCatalogOptionStatus(
+                    subcategory.isActive && subcategory.category.isActive,
+                  )}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </AdminField>
+      </AdminFormSection>
 
-                if (field.type === "SELECT") {
-                  return (
-                    <AdminField
-                      key={field.id}
-                      label={field.label}
-                      error={error}
-                      hint={field.helpText ?? undefined}
-                      required={field.isRequired}
-                    >
-                      <Select
-                        items={field.options.map((option) => ({
-                          value: option.id,
-                          label: option.label,
-                        }))}
-                        value={value.optionId}
-                        onValueChange={(optionId) => {
-                          if (!optionId) {
-                            return;
-                          }
+      <AdminFormSection
+        title="Характеристики"
+        description="Тут працює жива форма характеристик на основі конструктора характеристик підкатегорій."
+      >
+        {currentFieldDefinitions.length ? (
+          <div className="space-y-4">
+            {currentFieldDefinitions.map((field) => {
+              const value =
+                dynamicValues[field.id] ?? getEmptyDynamicValue(field.id);
+              const error = dynamicErrors[field.id];
 
-                          updateDynamicValue(field.id, { optionId });
-                        }}
-                      >
-                        <SelectTrigger className="w-full">
-                          <SelectValue placeholder="Оберіть значення" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {field.options.map((option) => (
-                            <SelectItem key={option.id} value={option.id}>
-                              {option.label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </AdminField>
-                  );
-                }
-
-                if (field.type === "MULTI_SELECT") {
-                  return (
-                    <AdminField
-                      key={field.id}
-                      label={field.label}
-                      error={error}
-                      hint={field.helpText ?? undefined}
-                      required={field.isRequired}
-                    >
-                      <div className="grid gap-2 sm:grid-cols-2">
-                        {field.options.map((option) => {
-                          const isSelected = value.optionIds.includes(
-                            option.id,
-                          );
-
-                          return (
-                            <Button
-                              key={option.id}
-                              type="button"
-                              variant={isSelected ? "default" : "outline"}
-                              className="justify-start"
-                              onClick={() => {
-                                updateDynamicValue(field.id, {
-                                  optionIds: isSelected
-                                    ? value.optionIds.filter(
-                                        (optionId) => optionId !== option.id,
-                                      )
-                                    : [...value.optionIds, option.id],
-                                });
-                              }}
-                            >
-                              {option.label}
-                            </Button>
-                          );
-                        })}
-                      </div>
-                    </AdminField>
-                  );
-                }
-
-                if (field.type === "NUMBER") {
-                  return (
-                    <AdminInputField
-                      key={field.id}
-                      id={`dynamic-${field.id}`}
-                      label={field.label}
-                      type="number"
-                      step="0.01"
-                      value={value.valueNumber}
-                      onChange={(event) =>
-                        updateDynamicValue(field.id, {
-                          valueNumber: event.target.value,
-                        })
-                      }
-                      error={error}
-                      hint={field.helpText ?? undefined}
-                      required={field.isRequired}
-                    />
-                  );
-                }
-
-                if (field.type === "BOOLEAN") {
-                  return (
-                    <AdminField
-                      key={field.id}
-                      label={field.label}
-                      error={error}
-                      hint={field.helpText ?? undefined}
-                      required={field.isRequired}
-                    >
-                      <Select
-                        items={BOOLEAN_OPTIONS}
-                        value={value.valueBoolean}
-                        onValueChange={(nextValue) =>
-                          updateDynamicValue(field.id, {
-                            valueBoolean:
-                              nextValue as ProductDynamicValue["valueBoolean"],
-                          })
+              if (field.type === "SELECT") {
+                return (
+                  <AdminField
+                    key={field.id}
+                    label={field.label}
+                    error={error}
+                    hint={field.helpText ?? undefined}
+                    required={field.isRequired}
+                  >
+                    <Select
+                      items={field.options.map((option) => ({
+                        value: option.id,
+                        label: option.label,
+                      }))}
+                      value={value.optionId}
+                      onValueChange={(optionId) => {
+                        if (!optionId) {
+                          return;
                         }
-                      >
-                        <SelectTrigger className="w-full">
-                          <SelectValue placeholder="Оберіть true або false" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="true">Так</SelectItem>
-                          <SelectItem value="false">Ні</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </AdminField>
-                  );
-                }
 
-                if (field.type === "TEXTAREA") {
-                  return (
-                    <AdminTextareaField
-                      key={field.id}
-                      id={`dynamic-${field.id}`}
-                      label={field.label}
-                      value={value.valueText}
-                      onChange={(event) =>
-                        updateDynamicValue(field.id, {
-                          valueText: event.target.value,
-                        })
-                      }
-                      error={error}
-                      hint={field.helpText ?? undefined}
-                      required={field.isRequired}
-                      rows={4}
-                    />
-                  );
-                }
+                        updateDynamicValue(field.id, { optionId });
+                      }}
+                    >
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Оберіть значення" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {field.options.map((option) => (
+                          <SelectItem key={option.id} value={option.id}>
+                            {option.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </AdminField>
+                );
+              }
 
+              if (field.type === "MULTI_SELECT") {
+                return (
+                  <AdminField
+                    key={field.id}
+                    label={field.label}
+                    error={error}
+                    hint={field.helpText ?? undefined}
+                    required={field.isRequired}
+                  >
+                    <div className="grid gap-2 sm:grid-cols-2">
+                      {field.options.map((option) => {
+                        const isSelected = value.optionIds.includes(option.id);
+
+                        return (
+                          <Button
+                            key={option.id}
+                            type="button"
+                            variant={isSelected ? "default" : "outline"}
+                            className="justify-start"
+                            onClick={() => {
+                              updateDynamicValue(field.id, {
+                                optionIds: isSelected
+                                  ? value.optionIds.filter(
+                                      (optionId) => optionId !== option.id,
+                                    )
+                                  : [...value.optionIds, option.id],
+                              });
+                            }}
+                          >
+                            {option.label}
+                          </Button>
+                        );
+                      })}
+                    </div>
+                  </AdminField>
+                );
+              }
+
+              if (field.type === "NUMBER") {
                 return (
                   <AdminInputField
+                    key={field.id}
+                    id={`dynamic-${field.id}`}
+                    label={field.label}
+                    type="number"
+                    step="0.01"
+                    value={value.valueNumber}
+                    onChange={(event) =>
+                      updateDynamicValue(field.id, {
+                        valueNumber: event.target.value,
+                      })
+                    }
+                    error={error}
+                    hint={field.helpText ?? undefined}
+                    required={field.isRequired}
+                  />
+                );
+              }
+
+              if (field.type === "BOOLEAN") {
+                return (
+                  <AdminField
+                    key={field.id}
+                    label={field.label}
+                    error={error}
+                    hint={field.helpText ?? undefined}
+                    required={field.isRequired}
+                  >
+                    <Select
+                      items={BOOLEAN_OPTIONS}
+                      value={value.valueBoolean}
+                      onValueChange={(nextValue) =>
+                        updateDynamicValue(field.id, {
+                          valueBoolean:
+                            nextValue as ProductDynamicValue["valueBoolean"],
+                        })
+                      }
+                    >
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Оберіть true або false" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="true">Так</SelectItem>
+                        <SelectItem value="false">Ні</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </AdminField>
+                );
+              }
+
+              if (field.type === "TEXTAREA") {
+                return (
+                  <AdminTextareaField
                     key={field.id}
                     id={`dynamic-${field.id}`}
                     label={field.label}
@@ -1939,631 +1836,626 @@ function ProductWizard({
                     error={error}
                     hint={field.helpText ?? undefined}
                     required={field.isRequired}
+                    rows={4}
                   />
                 );
-              })}
-            </div>
-          ) : (
-            <AdminEmptyState
-              title="Для цієї підкатегорії немає характеристик"
-              description="Це допустимий стан. Можна перейти далі й зберегти товар без додаткових характеристик."
-            />
-          )}
-        </AdminFormSection>
-      ) : null}
-
-      {currentStep === "base" ? (
-        <AdminFormSection
-          title="Крок 4. Base product data"
-          description="Тут збираємо базову картку товару: назву, slug, ціну, availability, виробника і flags."
-        >
-          <AdminFormGrid>
-            <AdminInputField
-              id={`${mode}-title`}
-              label="Назва товару"
-              value={values.title}
-              onChange={(event) => updateValue("title", event.target.value)}
-              error={fieldErrors.title}
-              required
-            />
-
-            <AdminInputField
-              id={`${mode}-slug`}
-              label="Slug"
-              value={values.slug}
-              onChange={(event) => updateSlug(event.target.value)}
-              error={fieldErrors.slug}
-              hint="????? ???????? ????????: slug ??????????? ??????????? ? ????? ??????."
-            />
-
-            <AdminInputField
-              id={`${mode}-price`}
-              type="number"
-              min={0}
-              step="0.01"
-              label="Ціна"
-              value={values.price}
-              onChange={(event) => updateValue("price", event.target.value)}
-              error={fieldErrors.price}
-              required
-            />
-
-            <AdminField
-              label="Наявність"
-              error={fieldErrors.availability}
-              required
-            >
-              <Select
-                items={AVAILABILITY_OPTIONS}
-                value={values.availability}
-                onValueChange={(value) =>
-                  updateValue(
-                    "availability",
-                    value as ProductFormValues["availability"],
-                  )
-                }
-              >
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Оберіть статус" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="IN_STOCK">В наявності</SelectItem>
-                  <SelectItem value="OUT_OF_STOCK">
-                    Немає в наявності
-                  </SelectItem>
-                </SelectContent>
-              </Select>
-            </AdminField>
-
-            <AdminField label="Виробник" error={fieldErrors.brandId}>
-              <Select
-                items={brandItems}
-                value={values.brandId}
-                onValueChange={(value) => {
-                  if (!value) {
-                    return;
-                  }
-
-                  updateValue("brandId", value);
-                }}
-              >
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Без виробника" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value={NO_BRAND_VALUE}>Без виробника</SelectItem>
-                  {availableBrands.map((brand) => (
-                    <SelectItem key={brand.id} value={brand.id}>
-                      {brand.name}
-                      {formatCatalogOptionStatus(brand.isActive)}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </AdminField>
-          </AdminFormGrid>
-
-          <div className="mt-4 space-y-4">
-            <AdminTextareaField
-              id={`${mode}-description`}
-              label="Опис"
-              value={values.description}
-              onChange={(event) =>
-                updateValue("description", event.target.value)
               }
-              error={fieldErrors.description}
-              rows={5}
-            />
 
-            <div className="grid gap-3 md:grid-cols-2">
-              <div className="border-border/70 bg-card/90 flex items-start justify-between gap-4 rounded-2xl border px-4 py-3">
-                <div className="space-y-1">
-                  <p className="text-sm font-medium">Показувати на сайті</p>
-                  <p className="text-muted-foreground text-sm leading-6">
-                    Soft visibility товару.
-                  </p>
-                </div>
-                <Switch
-                  checked={values.isActive}
-                  onCheckedChange={(checked) =>
-                    updateValue("isActive", checked)
+              return (
+                <AdminInputField
+                  key={field.id}
+                  id={`dynamic-${field.id}`}
+                  label={field.label}
+                  value={value.valueText}
+                  onChange={(event) =>
+                    updateDynamicValue(field.id, {
+                      valueText: event.target.value,
+                    })
                   }
-                  aria-label="Показувати на сайті"
+                  error={error}
+                  hint={field.helpText ?? undefined}
+                  required={field.isRequired}
                 />
+              );
+            })}
+          </div>
+        ) : (
+          <AdminEmptyState
+            title="Для цієї підкатегорії немає характеристик"
+            description="Це допустимий стан. Можна перейти далі й зберегти товар без додаткових характеристик."
+          />
+        )}
+      </AdminFormSection>
+
+      <AdminFormSection
+        title="Base Data"
+        description="Тут збираємо базову картку товару: назву, slug, ціну, availability, виробника і flags."
+      >
+        <AdminFormGrid>
+          <AdminInputField
+            id={`${mode}-title`}
+            label="Назва товару"
+            value={values.title}
+            onChange={(event) => updateValue("title", event.target.value)}
+            error={fieldErrors.title}
+            required
+          />
+
+          <AdminInputField
+            id={`${mode}-slug`}
+            label="Slug"
+            value={values.slug}
+            onChange={(event) => updateSlug(event.target.value)}
+            error={fieldErrors.slug}
+            hint="????? ???????? ????????: slug ??????????? ??????????? ? ????? ??????."
+          />
+
+          <AdminInputField
+            id={`${mode}-price`}
+            type="number"
+            min={0}
+            step="0.01"
+            label="Ціна"
+            value={values.price}
+            onChange={(event) => updateValue("price", event.target.value)}
+            error={fieldErrors.price}
+            required
+          />
+
+          <AdminField
+            label="Наявність"
+            error={fieldErrors.availability}
+            required
+          >
+            <Select
+              items={AVAILABILITY_OPTIONS}
+              value={values.availability}
+              onValueChange={(value) =>
+                updateValue(
+                  "availability",
+                  value as ProductFormValues["availability"],
+                )
+              }
+            >
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Оберіть статус" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="IN_STOCK">В наявності</SelectItem>
+                <SelectItem value="OUT_OF_STOCK">Немає в наявності</SelectItem>
+              </SelectContent>
+            </Select>
+          </AdminField>
+
+          <AdminField label="Виробник" error={fieldErrors.brandId}>
+            <Select
+              items={brandItems}
+              value={values.brandId}
+              onValueChange={(value) => {
+                if (!value) {
+                  return;
+                }
+
+                updateValue("brandId", value);
+              }}
+            >
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Без виробника" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={NO_BRAND_VALUE}>Без виробника</SelectItem>
+                {availableBrands.map((brand) => (
+                  <SelectItem key={brand.id} value={brand.id}>
+                    {brand.name}
+                    {formatCatalogOptionStatus(brand.isActive)}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </AdminField>
+        </AdminFormGrid>
+
+        <div className="mt-4 space-y-4">
+          <AdminTextareaField
+            id={`${mode}-description`}
+            label="Опис"
+            value={values.description}
+            onChange={(event) => updateValue("description", event.target.value)}
+            error={fieldErrors.description}
+            rows={5}
+          />
+
+          <div className="grid gap-3 md:grid-cols-2">
+            <div className="border-border/70 bg-card/90 flex items-start justify-between gap-4 rounded-2xl border px-4 py-3">
+              <div className="space-y-1">
+                <p className="text-sm font-medium">Показувати на сайті</p>
+                <p className="text-muted-foreground text-sm leading-6">
+                  Soft visibility товару.
+                </p>
               </div>
+              <Switch
+                checked={values.isActive}
+                onCheckedChange={(checked) => updateValue("isActive", checked)}
+                aria-label="Показувати на сайті"
+              />
+            </div>
 
-              <div className="border-border/70 bg-card/90 flex items-start justify-between gap-4 rounded-2xl border px-4 py-3">
-                <div className="space-y-1">
-                  <p className="text-sm font-medium">New</p>
-                  <p className="text-muted-foreground text-sm leading-6">
-                    Маркер новинки.
-                  </p>
-                </div>
-                <Switch
-                  checked={values.isFeaturedNew}
-                  onCheckedChange={(checked) =>
-                    updateValue("isFeaturedNew", checked)
-                  }
-                  aria-label="New"
-                />
+            <div className="border-border/70 bg-card/90 flex items-start justify-between gap-4 rounded-2xl border px-4 py-3">
+              <div className="space-y-1">
+                <p className="text-sm font-medium">New</p>
+                <p className="text-muted-foreground text-sm leading-6">
+                  Маркер новинки.
+                </p>
               </div>
+              <Switch
+                checked={values.isFeaturedNew}
+                onCheckedChange={(checked) =>
+                  updateValue("isFeaturedNew", checked)
+                }
+                aria-label="New"
+              />
+            </div>
 
-              <div className="border-border/70 bg-card/90 flex items-start justify-between gap-4 rounded-2xl border px-4 py-3">
-                <div className="space-y-1">
-                  <p className="text-sm font-medium">Sale</p>
-                  <p className="text-muted-foreground text-sm leading-6">
-                    Промо-мітка для товару.
-                  </p>
-                </div>
-                <Switch
-                  checked={values.isFeaturedSale}
-                  onCheckedChange={(checked) =>
-                    updateValue("isFeaturedSale", checked)
-                  }
-                  aria-label="Sale"
-                />
+            <div className="border-border/70 bg-card/90 flex items-start justify-between gap-4 rounded-2xl border px-4 py-3">
+              <div className="space-y-1">
+                <p className="text-sm font-medium">Sale</p>
+                <p className="text-muted-foreground text-sm leading-6">
+                  Промо-мітка для товару.
+                </p>
               </div>
+              <Switch
+                checked={values.isFeaturedSale}
+                onCheckedChange={(checked) =>
+                  updateValue("isFeaturedSale", checked)
+                }
+                aria-label="Sale"
+              />
+            </div>
 
-              <div className="border-border/70 bg-card/90 flex items-start justify-between gap-4 rounded-2xl border px-4 py-3">
-                <div className="space-y-1">
-                  <p className="text-sm font-medium">Hit</p>
-                  <p className="text-muted-foreground text-sm leading-6">
-                    Хіт продажу.
-                  </p>
-                </div>
-                <Switch
-                  checked={values.isFeaturedHit}
-                  onCheckedChange={(checked) =>
-                    updateValue("isFeaturedHit", checked)
-                  }
-                  aria-label="Hit"
-                />
+            <div className="border-border/70 bg-card/90 flex items-start justify-between gap-4 rounded-2xl border px-4 py-3">
+              <div className="space-y-1">
+                <p className="text-sm font-medium">Hit</p>
+                <p className="text-muted-foreground text-sm leading-6">
+                  Хіт продажу.
+                </p>
               </div>
+              <Switch
+                checked={values.isFeaturedHit}
+                onCheckedChange={(checked) =>
+                  updateValue("isFeaturedHit", checked)
+                }
+                aria-label="Hit"
+              />
+            </div>
 
-              <div className="border-border/70 bg-card/90 flex items-start justify-between gap-4 rounded-2xl border px-4 py-3">
-                <div className="space-y-1">
-                  <p className="text-sm font-medium">Знижка</p>
-                  <p className="text-muted-foreground text-sm leading-6">
-                    Badge для товарів зі знижкою.
-                  </p>
-                </div>
-                <Switch
-                  checked={values.isFeaturedDiscount}
-                  onCheckedChange={(checked) =>
-                    updateValue("isFeaturedDiscount", checked)
-                  }
-                  aria-label="Знижка"
+            <div className="border-border/70 bg-card/90 flex items-start justify-between gap-4 rounded-2xl border px-4 py-3">
+              <div className="space-y-1">
+                <p className="text-sm font-medium">Знижка</p>
+                <p className="text-muted-foreground text-sm leading-6">
+                  Badge для товарів зі знижкою.
+                </p>
+              </div>
+              <Switch
+                checked={values.isFeaturedDiscount}
+                onCheckedChange={(checked) =>
+                  updateValue("isFeaturedDiscount", checked)
+                }
+                aria-label="Знижка"
+              />
+            </div>
+          </div>
+        </div>
+      </AdminFormSection>
+
+      <AdminFormSection
+        title="Images"
+        description="Cloudinary upload уже підключений. Після аплоаду форма автоматично підставляє url/publicId у payload товару."
+      >
+        <div className="space-y-4">
+          <div className="border-border/70 bg-card/90 rounded-2xl border p-4">
+            <div className="space-y-3">
+              <p className="text-sm font-medium">Cloudinary upload</p>
+              <p className="text-muted-foreground text-sm leading-6">
+                Доступні формати: JPG, PNG, WebP. Ліміт: 5 MB на файл.
+              </p>
+              <AdminField
+                label="Файли зображень"
+                hint="Можна вибрати одразу кілька файлів."
+              >
+                <Input
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  multiple
+                  onChange={handleFileSelection}
                 />
+              </AdminField>
+
+              {selectedUploadFiles.length ? (
+                <div className="border-border/70 bg-muted/30 rounded-2xl border p-3">
+                  <p className="text-sm font-medium">
+                    До upload вибрано {selectedUploadFiles.length} файл(и)
+                  </p>
+                  <div className="mt-3 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                    {selectedUploadPreviews.map((preview) => (
+                      <div
+                        key={preview.url}
+                        className="border-border/70 bg-card/80 space-y-2 rounded-2xl border p-3"
+                      >
+                        <ProductThumbnail
+                          alt={preview.name}
+                          src={preview.url}
+                        />
+                        <p className="truncate text-xs">{preview.name}</p>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {selectedUploadFiles.map((file) => (
+                      <Badge
+                        key={`${file.name}-${file.lastModified}`}
+                        variant="outline"
+                      >
+                        {file.name}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
+
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={uploadSelectedFiles}
+                  disabled={isPending || selectedUploadFiles.length === 0}
+                >
+                  {isPending ? "Завантажуємо..." : "Завантажити в Cloudinary"}
+                </Button>
               </div>
             </div>
           </div>
-        </AdminFormSection>
-      ) : null}
 
-      {currentStep === "images" ? (
-        <AdminFormSection
-          title="Крок 5. Images"
-          description="Cloudinary upload уже підключений. Після аплоаду форма автоматично підставляє url/publicId у payload товару."
-        >
+          {images.length ? (
+            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+              {images.map((image, index) => (
+                <div
+                  key={image.id ?? `${mode}-image-${index}`}
+                  className="border-border/70 bg-card/90 flex min-h-[360px] flex-col overflow-hidden rounded-2xl border"
+                >
+                  <div className="bg-muted/30 relative aspect-[4/3] overflow-hidden">
+                    <ProductThumbnail
+                      alt={
+                        image.alt ||
+                        image.publicId ||
+                        `Product image ${index + 1}`
+                      }
+                      src={image.url}
+                    />
+                  </div>
+
+                  <div className="flex flex-1 flex-col gap-4 p-4">
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                      <div className="flex flex-wrap gap-2">
+                        {image.isPrimary ? (
+                          <Badge variant="secondary">??????? ????</Badge>
+                        ) : (
+                          <Badge variant="outline">???????</Badge>
+                        )}
+                        <Badge variant="outline">#{index + 1}</Badge>
+                      </div>
+                    </div>
+
+                    {imageItemErrors[index]?.url ||
+                    imageItemErrors[index]?.publicId ? (
+                      <p className="text-destructive text-xs leading-5">
+                        {imageItemErrors[index]?.url ??
+                          imageItemErrors[index]?.publicId}
+                      </p>
+                    ) : null}
+
+                    <AdminInputField
+                      id={`${mode}-image-alt-${index}`}
+                      label="Alt"
+                      value={image.alt}
+                      onChange={(event) =>
+                        updateImage(index, { alt: event.target.value })
+                      }
+                    />
+
+                    <div className="mt-auto flex flex-wrap gap-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => setPrimaryImage(index)}
+                        disabled={image.isPrimary}
+                      >
+                        ??????? ????????
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => removeImage(index)}
+                      >
+                        ????????
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <AdminEmptyState
+              title="???? ?? ?? ??????"
+              description="??????? ?????????? ???? ??????????. ????? upload ?????? ???? ?'???????? ???, ? URL ? publicId ?????????? ??????????? ?????????? ??????."
+            />
+          )}
+          <div className="border-border/70 bg-muted/30 flex flex-col gap-3 rounded-2xl border p-4 sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-muted-foreground text-sm leading-6">
+              Правила цього кроку: 1 головне фото, до 10 фото в галереї.
+            </p>
+            <Badge variant="outline">{images.length}/11 фото</Badge>
+          </div>
+        </div>
+      </AdminFormSection>
+
+      <AdminFormSection
+        title="Опції товару"
+        description="Товар може мати 0 або 1 групу опцій. Якщо опцій немає, цей блок не потрапить у payload."
+      >
+        {optionDraft ? (
           <div className="space-y-4">
-            <div className="border-border/70 bg-card/90 rounded-2xl border p-4">
-              <div className="space-y-3">
-                <p className="text-sm font-medium">Cloudinary upload</p>
-                <p className="text-muted-foreground text-sm leading-6">
-                  Доступні формати: JPG, PNG, WebP. Ліміт: 5 MB на файл.
-                </p>
+            <div className="border-border/70 bg-card/90 space-y-4 rounded-2xl border p-4">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                <div className="space-y-1">
+                  <p className="text-sm font-medium">Група опцій</p>
+                  <p className="text-muted-foreground text-sm leading-6">
+                    Наприклад: Смак, Колір або Опір. Друга група опцій не
+                    створюється.
+                  </p>
+                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={disableProductOption}
+                >
+                  Вимкнути опції
+                </Button>
+              </div>
+
+              <AdminInputField
+                id={`${mode}-option-name`}
+                label="Назва опції"
+                value={optionDraft.name}
+                onChange={(event) => updateOption({ name: event.target.value })}
+                error={optionErrors.name}
+                required
+              />
+            </div>
+
+            {optionDraft.values.map((optionValue, index) => (
+              <div
+                key={optionValue.id ?? `${mode}-option-value-${index}`}
+                className="border-border/70 bg-card/90 space-y-4 rounded-2xl border p-4"
+              >
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                  <div className="space-y-1">
+                    <p className="text-sm font-medium">Значення #{index + 1}</p>
+                    <p className="text-muted-foreground text-sm leading-6">
+                      Кожне значення повинно мати назву і рівно одне фото.
+                    </p>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => removeOptionValue(index)}
+                  >
+                    Видалити значення
+                  </Button>
+                </div>
+
+                {optionValue.image ? (
+                  <ProductThumbnail
+                    alt={optionValue.label || `Option ${index + 1}`}
+                    src={optionValue.image}
+                  />
+                ) : null}
+
+                <AdminFormGrid>
+                  <AdminInputField
+                    id={`${mode}-option-value-label-${index}`}
+                    label="Назва значення"
+                    value={optionValue.label}
+                    onChange={(event) =>
+                      updateOptionValue(index, {
+                        label: event.target.value,
+                        slug:
+                          optionValue.slug.trim().length > 0
+                            ? optionValue.slug
+                            : slugifyText(
+                                `${values.slug || values.title}-${event.target.value}`,
+                              ),
+                      })
+                    }
+                    error={optionErrors.values?.[index]?.label}
+                    required
+                  />
+
+                  <AdminInputField
+                    id={`${mode}-option-value-slug-${index}`}
+                    label="Slug сторінки варіанту"
+                    value={optionValue.slug}
+                    onChange={(event) =>
+                      updateOptionValue(index, {
+                        slug: slugifyText(event.target.value),
+                      })
+                    }
+                    hint={`Наприклад: ${values.slug || "product"}-${slugifyText(optionValue.label) || "blue"}`}
+                  />
+
+                  <AdminInputField
+                    id={`${mode}-option-value-title-${index}`}
+                    label="Назва сторінки варіанту"
+                    value={optionValue.titleOverride}
+                    onChange={(event) =>
+                      updateOptionValue(index, {
+                        titleOverride: event.target.value,
+                      })
+                    }
+                    hint="Якщо порожньо, H1 генерується з назви товару та значення опції."
+                  />
+                </AdminFormGrid>
+
+                <AdminFormGrid>
+                  <AdminInputField
+                    id={`${mode}-option-value-seo-title-${index}`}
+                    label="SEO title варіанту"
+                    value={optionValue.seoTitle}
+                    onChange={(event) =>
+                      updateOptionValue(index, {
+                        seoTitle: event.target.value,
+                      })
+                    }
+                  />
+
+                  <AdminInputField
+                    id={`${mode}-option-value-seo-description-${index}`}
+                    label="SEO description варіанту"
+                    value={optionValue.seoDescription}
+                    onChange={(event) =>
+                      updateOptionValue(index, {
+                        seoDescription: event.target.value,
+                      })
+                    }
+                  />
+                </AdminFormGrid>
+
+                <AdminFormGrid>
+                  <AdminInputField
+                    id={`${mode}-option-value-sort-${index}`}
+                    type="number"
+                    min={0}
+                    step={1}
+                    label="Порядок"
+                    value={optionValue.sortOrder}
+                    onChange={(event) =>
+                      updateOptionValue(index, {
+                        sortOrder: event.target.value,
+                      })
+                    }
+                  />
+                </AdminFormGrid>
+
                 <AdminField
-                  label="Файли зображень"
-                  hint="Можна вибрати одразу кілька файлів."
+                  label="Фото значення"
+                  error={optionErrors.values?.[index]?.image}
+                  hint="Фото зберігається в Cloudinary у product-options/."
+                  required
                 >
                   <Input
                     type="file"
                     accept="image/jpeg,image/png,image/webp"
-                    multiple
-                    onChange={handleFileSelection}
+                    onChange={(event) => {
+                      const file = event.target.files?.[0];
+
+                      if (file) {
+                        void uploadOptionValueImage(index, file);
+                      }
+                    }}
                   />
                 </AdminField>
 
-                {selectedUploadFiles.length ? (
-                  <div className="border-border/70 bg-muted/30 rounded-2xl border p-3">
-                    <p className="text-sm font-medium">
-                      До upload вибрано {selectedUploadFiles.length} файл(и)
-                    </p>
-                    <div className="mt-3 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-                      {selectedUploadPreviews.map((preview) => (
-                        <div
-                          key={preview.url}
-                          className="border-border/70 bg-card/80 space-y-2 rounded-2xl border p-3"
-                        >
-                          <ProductThumbnail
-                            alt={preview.name}
-                            src={preview.url}
-                          />
-                          <p className="truncate text-xs">{preview.name}</p>
-                        </div>
-                      ))}
-                    </div>
-                    <div className="mt-2 flex flex-wrap gap-2">
-                      {selectedUploadFiles.map((file) => (
-                        <Badge
-                          key={`${file.name}-${file.lastModified}`}
-                          variant="outline"
-                        >
-                          {file.name}
-                        </Badge>
-                      ))}
-                    </div>
-                  </div>
+                <AdminFormGrid>
+                  <AdminInputField
+                    id={`${mode}-option-value-image-${index}`}
+                    label="Image URL"
+                    value={optionValue.image}
+                    onChange={(event) =>
+                      updateOptionValue(index, {
+                        image: event.target.value,
+                      })
+                    }
+                    error={optionErrors.values?.[index]?.image}
+                    required
+                  />
+
+                  <AdminInputField
+                    id={`${mode}-option-value-public-id-${index}`}
+                    label="imagePublicId"
+                    value={optionValue.imagePublicId}
+                    onChange={(event) =>
+                      updateOptionValue(index, {
+                        imagePublicId: event.target.value,
+                      })
+                    }
+                  />
+                </AdminFormGrid>
+
+                {optionUploadIndex === index ? (
+                  <Badge variant="outline">Завантажуємо фото...</Badge>
                 ) : null}
-
-                <div className="flex flex-wrap gap-2">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={uploadSelectedFiles}
-                    disabled={isPending || selectedUploadFiles.length === 0}
-                  >
-                    {isPending ? "Завантажуємо..." : "Завантажити в Cloudinary"}
-                  </Button>
-                </div>
               </div>
-            </div>
+            ))}
 
-            {images.length ? (
-              <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-                {images.map((image, index) => (
-                  <div
-                    key={image.id ?? `${mode}-image-${index}`}
-                    className="border-border/70 bg-card/90 flex min-h-[360px] flex-col overflow-hidden rounded-2xl border"
-                  >
-                    <div className="bg-muted/30 relative aspect-[4/3] overflow-hidden">
-                      <ProductThumbnail
-                        alt={
-                          image.alt ||
-                          image.publicId ||
-                          `Product image ${index + 1}`
-                        }
-                        src={image.url}
-                      />
-                    </div>
-
-                    <div className="flex flex-1 flex-col gap-4 p-4">
-                      <div className="flex flex-wrap items-center justify-between gap-3">
-                        <div className="flex flex-wrap gap-2">
-                          {image.isPrimary ? (
-                            <Badge variant="secondary">??????? ????</Badge>
-                          ) : (
-                            <Badge variant="outline">???????</Badge>
-                          )}
-                          <Badge variant="outline">#{index + 1}</Badge>
-                        </div>
-                      </div>
-
-                      {imageItemErrors[index]?.url ||
-                      imageItemErrors[index]?.publicId ? (
-                        <p className="text-destructive text-xs leading-5">
-                          {imageItemErrors[index]?.url ??
-                            imageItemErrors[index]?.publicId}
-                        </p>
-                      ) : null}
-
-                      <AdminInputField
-                        id={`${mode}-image-alt-${index}`}
-                        label="Alt"
-                        value={image.alt}
-                        onChange={(event) =>
-                          updateImage(index, { alt: event.target.value })
-                        }
-                      />
-
-                      <div className="mt-auto flex flex-wrap gap-2">
-                        <Button
-                          type="button"
-                          variant="outline"
-                          onClick={() => setPrimaryImage(index)}
-                          disabled={image.isPrimary}
-                        >
-                          ??????? ????????
-                        </Button>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          onClick={() => removeImage(index)}
-                        >
-                          ????????
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-                ))}
+            {optionErrors.general ? (
+              <div className="border-destructive/20 bg-destructive/8 text-destructive rounded-2xl border px-4 py-3 text-sm">
+                {optionErrors.general}
               </div>
-            ) : (
-              <AdminEmptyState
-                title="???? ?? ?? ??????"
-                description="??????? ?????????? ???? ??????????. ????? upload ?????? ???? ?'???????? ???, ? URL ? publicId ?????????? ??????????? ?????????? ??????."
-              />
-            )}
+            ) : null}
+
             <div className="border-border/70 bg-muted/30 flex flex-col gap-3 rounded-2xl border p-4 sm:flex-row sm:items-center sm:justify-between">
               <p className="text-muted-foreground text-sm leading-6">
-                Правила цього кроку: 1 головне фото, до 10 фото в галереї.
+                Порядок на фронтенді відповідає порядку значень у цьому списку.
               </p>
-              <Badge variant="outline">{images.length}/11 фото</Badge>
-            </div>
-          </div>
-        </AdminFormSection>
-      ) : null}
-
-      {currentStep === "options" ? (
-        <AdminFormSection
-          title="Крок 6. Опції товару"
-          description="Товар може мати 0 або 1 групу опцій. Якщо опцій немає, цей блок не потрапить у payload."
-        >
-          {optionDraft ? (
-            <div className="space-y-4">
-              <div className="border-border/70 bg-card/90 space-y-4 rounded-2xl border p-4">
-                <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                  <div className="space-y-1">
-                    <p className="text-sm font-medium">Група опцій</p>
-                    <p className="text-muted-foreground text-sm leading-6">
-                      Наприклад: Смак, Колір або Опір. Друга група опцій не
-                      створюється.
-                    </p>
-                  </div>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={disableProductOption}
-                  >
-                    Вимкнути опції
-                  </Button>
-                </div>
-
-                <AdminInputField
-                  id={`${mode}-option-name`}
-                  label="Назва опції"
-                  value={optionDraft.name}
-                  onChange={(event) =>
-                    updateOption({ name: event.target.value })
-                  }
-                  error={optionErrors.name}
-                  required
-                />
-              </div>
-
-              {optionDraft.values.map((optionValue, index) => (
-                <div
-                  key={optionValue.id ?? `${mode}-option-value-${index}`}
-                  className="border-border/70 bg-card/90 space-y-4 rounded-2xl border p-4"
-                >
-                  <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                    <div className="space-y-1">
-                      <p className="text-sm font-medium">
-                        Значення #{index + 1}
-                      </p>
-                      <p className="text-muted-foreground text-sm leading-6">
-                        Кожне значення повинно мати назву і рівно одне фото.
-                      </p>
-                    </div>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() => removeOptionValue(index)}
-                    >
-                      Видалити значення
-                    </Button>
-                  </div>
-
-                  {optionValue.image ? (
-                    <ProductThumbnail
-                      alt={optionValue.label || `Option ${index + 1}`}
-                      src={optionValue.image}
-                    />
-                  ) : null}
-
-                  <AdminFormGrid>
-                    <AdminInputField
-                      id={`${mode}-option-value-label-${index}`}
-                      label="Назва значення"
-                      value={optionValue.label}
-                      onChange={(event) =>
-                        updateOptionValue(index, {
-                          label: event.target.value,
-                          slug:
-                            optionValue.slug.trim().length > 0
-                              ? optionValue.slug
-                              : slugifyText(
-                                  `${values.slug || values.title}-${event.target.value}`,
-                                ),
-                        })
-                      }
-                      error={optionErrors.values?.[index]?.label}
-                      required
-                    />
-
-                    <AdminInputField
-                      id={`${mode}-option-value-slug-${index}`}
-                      label="Slug сторінки варіанту"
-                      value={optionValue.slug}
-                      onChange={(event) =>
-                        updateOptionValue(index, {
-                          slug: slugifyText(event.target.value),
-                        })
-                      }
-                      hint={`Наприклад: ${values.slug || "product"}-${slugifyText(optionValue.label) || "blue"}`}
-                    />
-
-                    <AdminInputField
-                      id={`${mode}-option-value-title-${index}`}
-                      label="Назва сторінки варіанту"
-                      value={optionValue.titleOverride}
-                      onChange={(event) =>
-                        updateOptionValue(index, {
-                          titleOverride: event.target.value,
-                        })
-                      }
-                      hint="Якщо порожньо, H1 генерується з назви товару та значення опції."
-                    />
-                  </AdminFormGrid>
-
-                  <AdminFormGrid>
-                    <AdminInputField
-                      id={`${mode}-option-value-seo-title-${index}`}
-                      label="SEO title варіанту"
-                      value={optionValue.seoTitle}
-                      onChange={(event) =>
-                        updateOptionValue(index, {
-                          seoTitle: event.target.value,
-                        })
-                      }
-                    />
-
-                    <AdminInputField
-                      id={`${mode}-option-value-seo-description-${index}`}
-                      label="SEO description варіанту"
-                      value={optionValue.seoDescription}
-                      onChange={(event) =>
-                        updateOptionValue(index, {
-                          seoDescription: event.target.value,
-                        })
-                      }
-                    />
-                  </AdminFormGrid>
-
-                  <AdminFormGrid>
-                    <AdminInputField
-                      id={`${mode}-option-value-sort-${index}`}
-                      type="number"
-                      min={0}
-                      step={1}
-                      label="Порядок"
-                      value={optionValue.sortOrder}
-                      onChange={(event) =>
-                        updateOptionValue(index, {
-                          sortOrder: event.target.value,
-                        })
-                      }
-                    />
-                  </AdminFormGrid>
-
-                  <AdminField
-                    label="Фото значення"
-                    error={optionErrors.values?.[index]?.image}
-                    hint="Фото зберігається в Cloudinary у product-options/."
-                    required
-                  >
-                    <Input
-                      type="file"
-                      accept="image/jpeg,image/png,image/webp"
-                      onChange={(event) => {
-                        const file = event.target.files?.[0];
-
-                        if (file) {
-                          void uploadOptionValueImage(index, file);
-                        }
-                      }}
-                    />
-                  </AdminField>
-
-                  <AdminFormGrid>
-                    <AdminInputField
-                      id={`${mode}-option-value-image-${index}`}
-                      label="Image URL"
-                      value={optionValue.image}
-                      onChange={(event) =>
-                        updateOptionValue(index, {
-                          image: event.target.value,
-                        })
-                      }
-                      error={optionErrors.values?.[index]?.image}
-                      required
-                    />
-
-                    <AdminInputField
-                      id={`${mode}-option-value-public-id-${index}`}
-                      label="imagePublicId"
-                      value={optionValue.imagePublicId}
-                      onChange={(event) =>
-                        updateOptionValue(index, {
-                          imagePublicId: event.target.value,
-                        })
-                      }
-                    />
-                  </AdminFormGrid>
-
-                  {optionUploadIndex === index ? (
-                    <Badge variant="outline">Завантажуємо фото...</Badge>
-                  ) : null}
-                </div>
-              ))}
-
-              {optionErrors.general ? (
-                <div className="border-destructive/20 bg-destructive/8 text-destructive rounded-2xl border px-4 py-3 text-sm">
-                  {optionErrors.general}
-                </div>
-              ) : null}
-
-              <div className="border-border/70 bg-muted/30 flex flex-col gap-3 rounded-2xl border p-4 sm:flex-row sm:items-center sm:justify-between">
-                <p className="text-muted-foreground text-sm leading-6">
-                  Порядок на фронтенді відповідає порядку значень у цьому
-                  списку.
-                </p>
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={addOptionValue}
-                >
-                  Додати значення
-                </Button>
-              </div>
-            </div>
-          ) : (
-            <div className="border-border/70 bg-muted/30 space-y-4 rounded-2xl border border-dashed p-6">
-              <div className="space-y-2">
-                <h3 className="text-lg font-semibold tracking-tight">
-                  Опції товару не ввімкнені
-                </h3>
-                <p className="text-muted-foreground max-w-2xl text-sm leading-6">
-                  Це звичайний товар без варіантів. Увімкніть блок тільки якщо
-                  потрібно обрати смак, колір, опір або інший один тип опції.
-                </p>
-              </div>
-              <Button type="button" onClick={enableProductOption}>
-                Додати опції товару
+              <Button type="button" variant="outline" onClick={addOptionValue}>
+                Додати значення
               </Button>
             </div>
-          )}
-        </AdminFormSection>
-      ) : null}
-
-      {currentStep === "seo" ? (
-        <AdminFormSection
-          title="Крок 7. SEO"
-          description="Фінальний крок перед submit. Тут завершуємо SEO-поля і відправляємо повний payload товару."
-        >
-          <div className="space-y-4">
-            <AdminInputField
-              id={`${mode}-seo-title`}
-              label="SEO title"
-              value={values.seoTitle}
-              onChange={(event) => updateValue("seoTitle", event.target.value)}
-              error={fieldErrors.seoTitle}
-              hint={`Якщо залишити порожнім: ${resolveSeoTitle(values)}`}
-            />
-
-            <AdminTextareaField
-              id={`${mode}-seo-description`}
-              label="SEO description"
-              value={values.seoDescription}
-              onChange={(event) =>
-                updateValue("seoDescription", event.target.value)
-              }
-              error={fieldErrors.seoDescription}
-              rows={4}
-              hint={`Якщо залишити порожнім: ${resolveSeoDescription(values)}`}
-            />
           </div>
-        </AdminFormSection>
-      ) : null}
+        ) : (
+          <div className="border-border/70 bg-muted/30 space-y-4 rounded-2xl border border-dashed p-6">
+            <div className="space-y-2">
+              <h3 className="text-lg font-semibold tracking-tight">
+                Опції товару не ввімкнені
+              </h3>
+              <p className="text-muted-foreground max-w-2xl text-sm leading-6">
+                Це звичайний товар без варіантів. Увімкніть блок тільки якщо
+                потрібно обрати смак, колір, опір або інший один тип опції.
+              </p>
+            </div>
+            <Button type="button" onClick={enableProductOption}>
+              Додати опції товару
+            </Button>
+          </div>
+        )}
+      </AdminFormSection>
+
+      <AdminFormSection
+        title="SEO"
+        description="Фінальний блок перед збереженням. Тут завершуємо SEO-поля і відправляємо повний payload товару."
+      >
+        <div className="space-y-4">
+          <AdminInputField
+            id={`${mode}-seo-title`}
+            label="SEO title"
+            value={values.seoTitle}
+            onChange={(event) => updateValue("seoTitle", event.target.value)}
+            error={fieldErrors.seoTitle}
+            hint={`Якщо залишити порожнім: ${resolveSeoTitle(values)}`}
+          />
+
+          <AdminTextareaField
+            id={`${mode}-seo-description`}
+            label="SEO description"
+            value={values.seoDescription}
+            onChange={(event) =>
+              updateValue("seoDescription", event.target.value)
+            }
+            error={fieldErrors.seoDescription}
+            rows={4}
+            hint={`Якщо залишити порожнім: ${resolveSeoDescription(values)}`}
+          />
+        </div>
+      </AdminFormSection>
 
       {generalMessage ? (
         <div className="border-destructive/20 bg-destructive/8 text-destructive rounded-2xl border px-4 py-3 text-sm">
@@ -2573,43 +2465,55 @@ function ProductWizard({
 
       <div className="border-border/70 bg-muted/30 flex flex-col gap-3 rounded-2xl border p-4 sm:flex-row sm:items-center sm:justify-between">
         <p className="text-muted-foreground text-sm leading-6">
-          Крок {currentStepIndex + 1} з {PRODUCT_STEPS.length}. Форма вже
-          валідовує category, subcategory, обов'язкові характеристики, base data
-          та image rules до submit.
+          Усі секції відкриті. Збереження перевірить category, subcategory,
+          характеристики, base data, images, опції та SEO.
         </p>
         <div className="flex flex-wrap gap-2">
           {onDelete ? (
-            <Button
-              type="button"
-              variant="destructive"
-              onClick={onDelete}
-              disabled={isPending}
-            >
-              Деактивувати товар
-            </Button>
+            <AlertDialog>
+              <AlertDialogTrigger
+                render={
+                  <Button
+                    type="button"
+                    variant="destructive"
+                    disabled={isPending}
+                  />
+                }
+              >
+                Деактивувати товар
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Деактивувати товар?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Товар стане неактивним і не показуватиметься на storefront.
+                    Дію можна змінити пізніше через редагування товару.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Скасувати</AlertDialogCancel>
+                  <AlertDialogAction
+                    type="button"
+                    variant="destructive"
+                    onClick={onDelete}
+                    disabled={isPending}
+                  >
+                    Деактивувати товар
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
           ) : null}
 
-          {currentStepIndex > 0 ? (
-            <Button type="button" variant="outline" onClick={goBack}>
-              Назад
-            </Button>
-          ) : null}
-
-          {currentStepIndex < PRODUCT_STEPS.length - 1 ? (
-            <Button type="button" onClick={goNext}>
-              Далі
-            </Button>
-          ) : (
-            <Button type="submit" disabled={isPending}>
-              {isPending
-                ? mode === "create"
-                  ? "Створюємо..."
-                  : "Зберігаємо..."
-                : mode === "create"
-                  ? "Створити товар"
-                  : "Зберегти зміни"}
-            </Button>
-          )}
+          <Button type="submit" disabled={isPending}>
+            {isPending
+              ? mode === "create"
+                ? "Створюємо..."
+                : "Зберігаємо..."
+              : mode === "create"
+                ? "Створити товар"
+                : "Зберегти зміни"}
+          </Button>
         </div>
       </div>
     </form>
@@ -2659,21 +2563,25 @@ export function AdminProductCrud({
       return;
     }
 
-    const confirmed = window.confirm(
-      `Деактивувати товар "${selectedProduct.title}"?`,
-    );
-
-    if (!confirmed) {
-      return;
-    }
-
     void deleteProductAction({
       id: selectedProduct.id,
     }).then((result) => {
       if (result.ok) {
+        showAdminToast({
+          title: "Товар деактивовано",
+          message: selectedProduct.title,
+          variant: "success",
+        });
         router.push("/admin/products");
         router.refresh();
+        return;
       }
+
+      showAdminToast({
+        title: "Не вдалося зберегти товар",
+        message: result.error,
+        variant: "error",
+      });
     });
   };
 

@@ -49,6 +49,7 @@ export type AdminBannerItem = {
 type AdminBannerCrudProps = {
   mode?: "all" | "create" | "edit";
   selectedBanner: AdminBannerItem | null;
+  onUpdated?: () => void;
 };
 
 type UploadResponse =
@@ -376,6 +377,7 @@ function BannerFormFields({
 
 export function AdminBannerCrud({
   mode = "all",
+  onUpdated,
   selectedBanner,
 }: AdminBannerCrudProps) {
   const router = useRouter();
@@ -457,7 +459,6 @@ export function AdminBannerCrud({
           title: "Банер створено",
           message: result.data.title,
         });
-        router.push(`/admin/banners?selected=${result.data.id}`);
         router.refresh();
       } finally {
         setActiveAction(null);
@@ -492,10 +493,10 @@ export function AdminBannerCrud({
 
         setEditErrors({});
         showAdminToast({
-          title: "Банер оновлено",
+          title: "Банер успішно оновлено",
           message: result.data.title,
         });
-        router.push(`/admin/banners?selected=${result.data.id}`);
+        onUpdated?.();
         router.refresh();
       } finally {
         setActiveAction(null);
@@ -662,9 +663,7 @@ export function AdminBannerCrud({
                     : "Зробити активним"}
               </Button>
               <Button type="submit" disabled={isPending}>
-                {activeAction === "update"
-                  ? "Зберігаємо..."
-                  : "Зберегти зміни"}
+                {activeAction === "update" ? "Зберігаємо..." : "Зберегти зміни"}
               </Button>
             </div>
           </form>

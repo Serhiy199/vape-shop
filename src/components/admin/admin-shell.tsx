@@ -93,77 +93,52 @@ export function AdminShell({
         </aside>
 
         <div className="flex-1 space-y-6">
-          <Card className="border-border/70 bg-card/90 shadow-sm">
-            <CardContent className="flex flex-col gap-4 py-5">
-              <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-                <div className="space-y-1">
-                  <p className="text-muted-foreground text-xs tracking-[0.24em] uppercase">
-                    Основа адмінки
-                  </p>
-                  <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">
-                    Адмін-панель магазину
-                  </h1>
+          <div className="flex justify-end lg:hidden">
+            <Sheet>
+              <SheetTrigger
+                render={
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    aria-label="Відкрити навігацію адмінки"
+                  />
+                }
+              >
+                <MenuIcon className="size-4" />
+              </SheetTrigger>
+              <SheetContent side="left" className="w-full max-w-sm">
+                <SheetHeader className="border-border/70 border-b">
+                  <SheetTitle>Навігація адмінки</SheetTitle>
+                  <SheetDescription>
+                    Виберіть розділ, з яким хочете працювати далі.
+                  </SheetDescription>
+                </SheetHeader>
+                <div className="space-y-5 p-4">
+                  <AdminNavigation compact />
+                  <Separator />
+                  <div className="space-y-3">
+                    <p className="text-muted-foreground text-xs tracking-[0.24em] uppercase">
+                      Швидкі дії
+                    </p>
+                    <div className="flex flex-col gap-2">
+                      {quickLinks.map((link) => (
+                        <Link
+                          key={link.href}
+                          className={cn(
+                            buttonVariants({ variant: "outline" }),
+                            "justify-start",
+                          )}
+                          href={link.href}
+                        >
+                          {link.label}
+                        </Link>
+                      ))}
+                    </div>
+                  </div>
                 </div>
-
-                <div className="flex items-start justify-between gap-3 lg:hidden">
-                  <p className="text-muted-foreground max-w-xl text-sm leading-6">
-                    У мобільній версії навігація доступна з меню, а робоча
-                    область лишається чистою та зручною для контенту.
-                  </p>
-                  <Sheet>
-                    <SheetTrigger
-                      render={
-                        <Button
-                          variant="outline"
-                          size="icon"
-                          aria-label="Відкрити навігацію адмінки"
-                        />
-                      }
-                    >
-                      <MenuIcon className="size-4" />
-                    </SheetTrigger>
-                    <SheetContent side="left" className="w-full max-w-sm">
-                      <SheetHeader className="border-border/70 border-b">
-                        <SheetTitle>Навігація адмінки</SheetTitle>
-                        <SheetDescription>
-                          Виберіть розділ, з яким хочете працювати далі.
-                        </SheetDescription>
-                      </SheetHeader>
-                      <div className="space-y-5 p-4">
-                        <AdminNavigation compact />
-                        <Separator />
-                        <div className="space-y-3">
-                          <p className="text-muted-foreground text-xs tracking-[0.24em] uppercase">
-                            Швидкі дії
-                          </p>
-                          <div className="flex flex-col gap-2">
-                            {quickLinks.map((link) => (
-                              <Link
-                                key={link.href}
-                                className={cn(
-                                  buttonVariants({ variant: "outline" }),
-                                  "justify-start",
-                                )}
-                                href={link.href}
-                              >
-                                {link.label}
-                              </Link>
-                            ))}
-                          </div>
-                        </div>
-                      </div>
-                    </SheetContent>
-                  </Sheet>
-                </div>
-              </div>
-
-              <p className="text-muted-foreground max-w-2xl text-sm leading-6">
-                Усі сторінки в зоні <code>/admin/*</code> вже працюють у
-                спільному каркасі з єдиною навігацією. Далі можна послідовно
-                додавати screen primitives, форми й окремі модулі.
-              </p>
-            </CardContent>
-          </Card>
+              </SheetContent>
+            </Sheet>
+          </div>
 
           <div className="lg:hidden">
             <SessionCard session={session} variant="admin" />
