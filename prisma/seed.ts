@@ -37,6 +37,63 @@ type FieldSeed = {
   type: SubcategoryFieldType;
 };
 
+const promoBanners = [
+  {
+    title: "Telegram",
+    imageUrl:
+      "https://placehold.co/520x920/0ea5e9/ffffff.png?text=Telegram",
+    targetUrl: "https://t.me/voodoovape",
+    sortOrder: 1,
+  },
+  {
+    title: "Enso Black",
+    imageUrl:
+      "https://placehold.co/520x920/111827/ffffff.png?text=Enso+Black",
+    targetUrl: "/catalog?search=Enso%20Black",
+    sortOrder: 2,
+  },
+  {
+    title: "Великий розпродаж",
+    imageUrl:
+      "https://placehold.co/520x920/fb4d36/ffffff.png?text=Big+Sale",
+    targetUrl: "/catalog?badge=sale",
+    sortOrder: 3,
+  },
+  {
+    title: "Blizz",
+    imageUrl:
+      "https://placehold.co/520x920/a855f7/ffffff.png?text=Blizz",
+    targetUrl: "/catalog?search=Blizz",
+    sortOrder: 4,
+  },
+  {
+    title: "Chaser Beat",
+    imageUrl:
+      "https://placehold.co/520x920/7f1d1d/ffffff.png?text=Chaser+Beat",
+    targetUrl: "/catalog?search=Chaser%20Beat",
+    sortOrder: 5,
+  },
+  {
+    title: "Lucky Chrome",
+    imageUrl:
+      "https://placehold.co/520x920/111111/ffffff.png?text=Lucky+Chrome",
+    targetUrl: "/catalog?search=Lucky%20Chrome",
+    sortOrder: 6,
+  },
+  {
+    title: "Vaporesso",
+    imageUrl:
+      "https://placehold.co/520x920/84cc16/111827.png?text=Vaporesso",
+    targetUrl: "/catalog?search=Vaporesso",
+    sortOrder: 7,
+  },
+] satisfies Array<{
+  imageUrl: string;
+  sortOrder: number;
+  targetUrl: string;
+  title: string;
+}>;
+
 const fixedCategories: SeedCategory[] = [
   {
     name: "Пристрої",
@@ -421,11 +478,47 @@ async function seedSubcategoryFields() {
   }
 }
 
+async function seedBanners() {
+  for (const banner of promoBanners) {
+    const existingBanner = await prisma.banner.findFirst({
+      where: {
+        title: banner.title,
+      },
+      select: {
+        id: true,
+      },
+    });
+
+    if (existingBanner) {
+      await prisma.banner.update({
+        where: {
+          id: existingBanner.id,
+        },
+        data: {
+          imageUrl: banner.imageUrl,
+          isActive: true,
+          sortOrder: banner.sortOrder,
+          targetUrl: banner.targetUrl,
+        },
+      });
+      continue;
+    }
+
+    await prisma.banner.create({
+      data: {
+        ...banner,
+        isActive: true,
+      },
+    });
+  }
+}
+
 async function main() {
   const admin = await seedAdminUser();
   await seedCategories();
   await seedSubcategories();
   await seedSubcategoryFields();
+  await seedBanners();
 
   console.log("Seed completed successfully.");
   console.log(`Admin user: ${admin.email}`);
@@ -434,6 +527,7 @@ async function main() {
     "Seeded subcategories: pod-systems, starter-kits, disposable-devices, salt-liquids, freebase-liquids, flavors, cartridges, evaporators, batteries, chargers.",
   );
   console.log("Seeded starter fields for cartridges and evaporators.");
+  console.log("Seeded homepage promo banners.");
 }
 
 main()

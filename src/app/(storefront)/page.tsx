@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ArrowRightIcon, BadgeCheckIcon, ShoppingBagIcon } from "lucide-react";
 
+import { HomeBannersSlider } from "@/components/storefront/home-banners-slider";
 import { StorefrontCategoryCard } from "@/components/storefront/category-card";
 import { StorefrontProductGrid } from "@/components/storefront/product-grid";
 import { StorefrontSearchForm } from "@/components/storefront/storefront-search-form";
@@ -49,8 +50,21 @@ const merchandisingBlocks = [
 ];
 
 export default async function StorefrontHomePage() {
-  const { brands, categories, featuredProducts, newProducts, saleProducts } =
+  const {
+    banners,
+    brands,
+    categories,
+    featuredProducts,
+    newProducts,
+    saleProducts,
+  } =
     await getStorefrontHomePageData();
+  const homeBanners = banners.map((banner) => ({
+    id: banner.id,
+    title: banner.title,
+    imageUrl: banner.imageUrl,
+    targetUrl: banner.targetUrl,
+  }));
 
   return (
     <>
@@ -138,6 +152,12 @@ export default async function StorefrontHomePage() {
           </StorefrontCard>
         </div>
       </StorefrontSection>
+
+      {homeBanners.length > 0 ? (
+        <StorefrontSection spacing="sm" className="overflow-hidden pt-0">
+          <HomeBannersSlider banners={homeBanners} />
+        </StorefrontSection>
+      ) : null}
 
       <StorefrontSection tone="muted">
         <StorefrontSectionHeader

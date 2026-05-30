@@ -7,6 +7,7 @@ import type {
 import type { StorefrontCategory } from "@/components/storefront/storefront-config";
 import { storefrontCategories } from "@/components/storefront/storefront-config";
 import { prisma } from "@/lib/prisma/client";
+import { listActiveStorefrontBanners } from "@/server/repositories/banner.repository";
 import type {
   CatalogAvailabilityFilter,
   CatalogBadgeFilter,
@@ -889,8 +890,16 @@ export async function getActiveStorefrontProductBySlug(slug: string) {
 }
 
 export async function getStorefrontHomePageData() {
-  const [categories, featuredProducts, newProducts, saleProducts, brands] =
+  const [
+    banners,
+    categories,
+    featuredProducts,
+    newProducts,
+    saleProducts,
+    brands,
+  ] =
     await Promise.all([
+      listActiveStorefrontBanners(),
       listActiveStorefrontCategories(),
       getStorefrontFeaturedProducts(10),
       getStorefrontNewProducts(8),
@@ -899,6 +908,7 @@ export async function getStorefrontHomePageData() {
     ]);
 
   return {
+    banners,
     brands,
     categories,
     featuredProducts,

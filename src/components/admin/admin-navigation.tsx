@@ -99,6 +99,12 @@ const adminNavGroups: AdminNavGroup[] = [
         label: "Промокоди",
         enabled: true,
       },
+      {
+        href: "/admin/banners",
+        icon: MegaphoneIcon,
+        label: "Банери",
+        enabled: true,
+      },
     ],
   },
   {
