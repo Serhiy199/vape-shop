@@ -343,6 +343,12 @@ a {
     max-width: 100%;
   }
 
+  .rich-text-editor-content img {
+    cursor: pointer;
+    max-height: 28rem;
+    object-fit: contain;
+  }
+
   .rich-text-content hr,
   .rich-text-editor-content hr {
     border: 0;

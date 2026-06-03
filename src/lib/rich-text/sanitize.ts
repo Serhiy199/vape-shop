@@ -20,6 +20,7 @@ export function sanitizeRichTextHtml(html: string | null | undefined) {
       "style",
       "target",
       "title",
+      "width",
     ],
     ALLOWED_TAGS: [
       "a",

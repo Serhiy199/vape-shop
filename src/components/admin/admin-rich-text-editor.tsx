@@ -18,6 +18,7 @@ import {
   AlignRightIcon,
   BoldIcon,
   Code2Icon,
+  ImageOffIcon,
   ImageIcon,
   ItalicIcon,
   Link2Icon,
@@ -87,6 +88,29 @@ function isEmptyEditorHtml(value: string) {
   return !value || value === "<p></p>" || value === "<p><br></p>";
 }
 
+const RichTextImage = Image.extend({
+  addAttributes() {
+    return {
+      ...this.parent?.(),
+      width: {
+        default: null,
+        parseHTML: (element) =>
+          element.getAttribute("width") || element.style.width || null,
+        renderHTML: (attributes) => {
+          if (!attributes.width) {
+            return {};
+          }
+
+          return {
+            style: `width: ${attributes.width}; height: auto;`,
+            width: attributes.width,
+          };
+        },
+      },
+    };
+  },
+});
+
 function ToolbarButton({
   active,
   children,
@@ -154,7 +178,7 @@ export function AdminRichTextEditor({
         openOnClick: false,
         protocols: ["http", "https", "mailto", "tel"],
       }),
-      Image.configure({
+      RichTextImage.configure({
         allowBase64: false,
       }),
       TextAlign.configure({
@@ -233,7 +257,12 @@ export function AdminRichTextEditor({
         );
       }
 
-      editor.chain().focus().setImage({ src: payload.data.file.url }).run();
+      editor
+        .chain()
+        .focus()
+        .setImage({ src: payload.data.file.url })
+        .updateAttributes("image", { width: "50%" })
+        .run();
       toast.success("Фото додано в опис");
     } catch (uploadError) {
       toast.error(
@@ -264,6 +293,18 @@ export function AdminRichTextEditor({
     }
 
     editor.chain().focus().extendMarkRange("link").setLink({ href: url }).run();
+  };
+
+  const setImageWidth = (width: string) => {
+    editor?.chain().focus().updateAttributes("image", { width }).run();
+  };
+
+  const deleteSelectedImage = () => {
+    if (!editor?.isActive("image")) {
+      return;
+    }
+
+    editor.chain().focus().deleteSelection().run();
   };
 
   const toggleHtmlMode = () => {
@@ -421,6 +462,26 @@ export function AdminRichTextEditor({
           >
             <ImageIcon className="size-4" />
           </ToolbarButton>
+          <ToolbarButton
+            label="Delete selected image"
+            disabled={!editor || disabled || !editor.isActive("image")}
+            onClick={deleteSelectedImage}
+          >
+            <ImageOffIcon className="size-4" />
+          </ToolbarButton>
+          {["25%", "50%", "75%", "100%"].map((width) => (
+            <Button
+              key={width}
+              type="button"
+              variant="outline"
+              size="sm"
+              className="h-8 rounded-md px-2 text-xs"
+              disabled={!editor || disabled || !editor.isActive("image")}
+              onClick={() => setImageWidth(width)}
+            >
+              Img {width}
+            </Button>
+          ))}
           <ToolbarButton
             label="Insert table"
             disabled={!editor || disabled}
