@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 
 import { StorefrontProductDetailExperience } from "@/components/storefront/product-detail-experience";
 import { StorefrontProductGrid } from "@/components/storefront/product-grid";
+import { SafeRichTextContent } from "@/components/storefront/safe-rich-text-content";
 import {
   StorefrontCard,
   StorefrontPageHeader,
@@ -98,10 +99,14 @@ export default async function ProductPage({ params }: ProductPageProps) {
           <StorefrontCard className="p-5">
             <div className="space-y-4">
               <h2 className={storefrontPatterns.sectionTitle}>Опис товару</h2>
-              <p className={storefrontPatterns.bodyText}>
-                {product.description ??
-                  "Опис товару ще не доданий. Його можна заповнити в адмін-панелі разом із SEO-даними та зображеннями."}
-              </p>
+              {product.description ? (
+                <SafeRichTextContent html={product.description} />
+              ) : (
+                <p className={storefrontPatterns.bodyText}>
+                  Опис товару ще не доданий. Його можна заповнити в
+                  адмін-панелі разом із SEO-даними та зображеннями.
+                </p>
+              )}
             </div>
           </StorefrontCard>
 

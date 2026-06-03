@@ -13,6 +13,7 @@ import {
 import { showAdminToast } from "@/components/admin/admin-toast";
 import {
   AdminOptionalInputField,
+  AdminOptionalRichTextField,
   AdminOptionalTextareaField,
 } from "@/components/admin/admin-optional-fields";
 import { AdminEmptyState } from "@/components/admin/admin-primitives";
@@ -216,14 +217,13 @@ function SubcategoryFormFields({
       </AdminFormGrid>
 
       <div className="mt-4 space-y-4">
-        <AdminOptionalTextareaField
+        <AdminOptionalRichTextField
           id={`${heading}-description`}
-          name="description"
           label="Опис"
           value={values.description}
-          onChange={(event) => onInputChange("description", event.target.value)}
+          onChange={(html) => onInputChange("description", html)}
           error={errors.description}
-          rows={3}
+          placeholder="Додайте опис підкатегорії з форматуванням, списками, посиланнями або фото."
         />
 
         <AdminOptionalTextareaField

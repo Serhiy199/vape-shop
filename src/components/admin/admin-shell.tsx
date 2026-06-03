@@ -1,6 +1,7 @@
 import type { Session } from "next-auth";
 import Link from "next/link";
 import { MenuIcon } from "lucide-react";
+import { ToastContainer } from "react-toastify";
 
 import { AdminNavigation } from "@/components/admin/admin-navigation";
 import { AdminToastViewport } from "@/components/admin/admin-toast";
@@ -41,6 +42,13 @@ export function AdminShell({
   return (
     <main className="min-h-screen">
       <AdminToastViewport />
+      <ToastContainer
+        position="top-right"
+        autoClose={4200}
+        closeOnClick
+        pauseOnHover
+        theme="light"
+      />
       <div className="flex w-full flex-col gap-6 px-4 py-4 sm:px-6 lg:flex-row lg:items-start lg:px-8">
         <aside className="hidden lg:sticky lg:top-4 lg:block lg:w-88 lg:shrink-0">
           <div className="space-y-4">

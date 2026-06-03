@@ -505,7 +505,7 @@ const productBaseSchema = z.object({
   brandId: optionalIdField(),
   title: requiredName(160),
   slug: slugField(),
-  description: optionalTrimmedString(5000),
+  description: optionalTrimmedLongText(),
   price: priceField(),
   availability: availabilityField().default(ProductAvailability.IN_STOCK),
   isActive: z.coerce.boolean().default(true),

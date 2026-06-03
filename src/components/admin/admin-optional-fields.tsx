@@ -1,12 +1,13 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 import {
   AdminInputField,
   AdminTextareaField,
 } from "@/components/admin/admin-form-primitives";
+import { AdminRichTextEditor } from "@/components/admin/admin-rich-text-editor";
 import { Button } from "@/components/ui/button";
 
 function hasValue(value?: string | number | readonly string[]) {
@@ -27,14 +28,9 @@ function AdminOptionalFieldShell({
   const [isExpanded, setIsExpanded] = useState(
     hasValue(value) || Boolean(error),
   );
+  const shouldShowField = isExpanded || hasValue(value) || Boolean(error);
 
-  useEffect(() => {
-    if (hasValue(value) || error) {
-      setIsExpanded(true);
-    }
-  }, [error, value]);
-
-  if (isExpanded) {
+  if (shouldShowField) {
     return children;
   }
 
@@ -75,6 +71,24 @@ export function AdminOptionalTextareaField({
   return (
     <AdminOptionalFieldShell label={label} error={error} value={value}>
       <AdminTextareaField label={label} error={error} value={value} {...props} />
+    </AdminOptionalFieldShell>
+  );
+}
+
+export function AdminOptionalRichTextField({
+  label,
+  error,
+  value,
+  ...props
+}: React.ComponentProps<typeof AdminRichTextEditor>) {
+  return (
+    <AdminOptionalFieldShell label={label} error={error} value={value}>
+      <AdminRichTextEditor
+        label={label}
+        error={error}
+        value={value}
+        {...props}
+      />
     </AdminOptionalFieldShell>
   );
 }

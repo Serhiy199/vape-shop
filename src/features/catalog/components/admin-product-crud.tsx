@@ -15,6 +15,7 @@ import {
   AdminEmptyState,
   AdminSectionCard,
 } from "@/components/admin/admin-primitives";
+import { AdminRichTextEditor } from "@/components/admin/admin-rich-text-editor";
 import { showAdminToast } from "@/components/admin/admin-toast";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -1956,13 +1957,14 @@ function ProductWizard({
         </AdminFormGrid>
 
         <div className="mt-4 space-y-4">
-          <AdminTextareaField
+          <AdminRichTextEditor
             id={`${mode}-description`}
             label="Опис"
             value={values.description}
-            onChange={(event) => updateValue("description", event.target.value)}
+            onChange={(html) => updateValue("description", html)}
             error={fieldErrors.description}
-            rows={5}
+            minHeight={320}
+            placeholder="Додайте повний опис товару з форматуванням, таблицями, списками, посиланнями або фото."
           />
 
           <div className="grid gap-3 md:grid-cols-2">

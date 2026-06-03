@@ -7,7 +7,9 @@ import {
 } from "@/components/storefront/catalog-controls";
 import { CatalogTopTabs } from "@/components/storefront/catalog-top-tabs";
 import { StorefrontProductGrid } from "@/components/storefront/product-grid";
+import { SafeRichTextContent } from "@/components/storefront/safe-rich-text-content";
 import {
+  StorefrontCard,
   StorefrontPageHeader,
   StorefrontSection,
 } from "@/components/storefront/storefront-primitives";
@@ -97,7 +99,6 @@ export default async function SubcategoryPage({
         eyebrow="Підкатегорія"
         title={subcategory.name}
         summary={`Знайдено товарів: ${products.length}`}
-        description={subcategory.description ?? undefined}
       />
 
       <StorefrontSection tone="catalog" spacing="sm" className="pt-0">
@@ -119,6 +120,16 @@ export default async function SubcategoryPage({
               emptyTitle="У цій підкатегорії ще немає активних товарів"
               emptyDescription="Додайте або активуйте товари цієї підкатегорії в адмін-панелі."
             />
+            {subcategory.description ? (
+              <StorefrontCard className="p-5">
+                <div className="space-y-3">
+                  <h2 className="text-xl font-semibold tracking-tight">
+                    Опис підкатегорії
+                  </h2>
+                  <SafeRichTextContent html={subcategory.description} />
+                </div>
+              </StorefrontCard>
+            ) : null}
           </div>
         </div>
       </StorefrontSection>

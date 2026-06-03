@@ -7,11 +7,11 @@ import {
 } from "@/components/storefront/catalog-controls";
 import { CatalogTopTabs } from "@/components/storefront/catalog-top-tabs";
 import { StorefrontProductGrid } from "@/components/storefront/product-grid";
+import { SafeRichTextContent } from "@/components/storefront/safe-rich-text-content";
 import {
   StorefrontCard,
   StorefrontPageHeader,
   StorefrontSection,
-  storefrontPatterns,
 } from "@/components/storefront/storefront-primitives";
 import { normalizeCatalogFilters } from "@/lib/storefront/catalog-filters";
 import {
@@ -122,11 +122,7 @@ export default async function CategoryPage({
                   <h2 className="text-xl font-semibold tracking-tight">
                     Опис категорії
                   </h2>
-                  <div
-                    className={`${storefrontPatterns.bodyText} whitespace-pre-line`}
-                  >
-                    {category.description}
-                  </div>
+                  <SafeRichTextContent html={category.description} />
                 </div>
               </StorefrontCard>
             ) : null}

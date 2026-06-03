@@ -265,4 +265,117 @@ a {
       96px 96px,
       100% 100%;
   }
+
+  .rich-text-content,
+  .rich-text-editor-content {
+    color: var(--color-foreground);
+    line-height: 1.75;
+  }
+
+  .rich-text-content > * + *,
+  .rich-text-editor-content > * + * {
+    margin-top: 0.9rem;
+  }
+
+  .rich-text-content h2,
+  .rich-text-editor-content h2 {
+    font-size: 1.5rem;
+    font-weight: 650;
+    line-height: 1.25;
+  }
+
+  .rich-text-content h3,
+  .rich-text-editor-content h3 {
+    font-size: 1.25rem;
+    font-weight: 650;
+    line-height: 1.3;
+  }
+
+  .rich-text-content h4,
+  .rich-text-editor-content h4 {
+    font-size: 1.08rem;
+    font-weight: 650;
+    line-height: 1.35;
+  }
+
+  .rich-text-content p,
+  .rich-text-editor-content p {
+    margin: 0;
+  }
+
+  .rich-text-content ul,
+  .rich-text-editor-content ul {
+    list-style: disc;
+    padding-left: 1.35rem;
+  }
+
+  .rich-text-content ol,
+  .rich-text-editor-content ol {
+    list-style: decimal;
+    padding-left: 1.35rem;
+  }
+
+  .rich-text-content li + li,
+  .rich-text-editor-content li + li {
+    margin-top: 0.35rem;
+  }
+
+  .rich-text-content a,
+  .rich-text-editor-content a {
+    color: var(--color-primary);
+    font-weight: 600;
+    text-decoration: underline;
+    text-underline-offset: 0.18em;
+  }
+
+  .rich-text-content blockquote,
+  .rich-text-editor-content blockquote {
+    border-left: 3px solid var(--color-primary);
+    color: var(--color-muted-foreground);
+    padding-left: 1rem;
+  }
+
+  .rich-text-content img,
+  .rich-text-editor-content img {
+    border-radius: 0.75rem;
+    display: block;
+    height: auto;
+    max-width: 100%;
+  }
+
+  .rich-text-content hr,
+  .rich-text-editor-content hr {
+    border: 0;
+    border-top: 1px solid var(--color-border);
+    margin-block: 1.4rem;
+  }
+
+  .rich-text-content table,
+  .rich-text-editor-content table {
+    border-collapse: collapse;
+    display: block;
+    max-width: 100%;
+    overflow-x: auto;
+    width: max-content;
+  }
+
+  .rich-text-content th,
+  .rich-text-content td,
+  .rich-text-editor-content th,
+  .rich-text-editor-content td {
+    border: 1px solid var(--color-border);
+    min-width: 7rem;
+    padding: 0.55rem 0.7rem;
+    vertical-align: top;
+  }
+
+  .rich-text-content th,
+  .rich-text-editor-content th {
+    background: var(--color-muted);
+    font-weight: 650;
+  }
+
+  .rich-text-editor-content .ProseMirror-selectednode {
+    outline: 2px solid var(--color-primary);
+  }
 }

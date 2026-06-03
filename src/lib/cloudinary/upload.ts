@@ -32,6 +32,10 @@ type BannerImageUploadInput = {
   file: File;
 };
 
+type RichTextImageUploadInput = {
+  file: File;
+};
+
 function getCloudinaryConfig(): CloudinaryConfig {
   const cloudName = process.env.CLOUDINARY_CLOUD_NAME?.trim();
   const apiKey = process.env.CLOUDINARY_API_KEY?.trim();
@@ -152,6 +156,17 @@ export function getBannerImageUploadConstraints() {
     ...getCloudinaryUploadConstraints(),
     maxFilesPerRequest: 1,
   };
+}
+
+export function getRichTextImageUploadConstraints() {
+  return {
+    ...getCloudinaryUploadConstraints(),
+    maxFilesPerRequest: 1,
+  };
+}
+
+function getCloudinarySiteRoot(uploadRoot: string) {
+  return uploadRoot.replace(/\/products\/?$/i, "");
 }
 
 export async function uploadProductImageToCloudinary({
@@ -387,6 +402,64 @@ export async function uploadBannerImageToCloudinary({
 
     throw new Error(
       payload?.error?.message || "Cloudinary banner upload failed.",
+    );
+  }
+
+  const payload = (await response.json()) as {
+    public_id: string;
+    secure_url: string;
+  };
+
+  return {
+    publicId: payload.public_id,
+    url: payload.secure_url,
+  };
+}
+
+export async function uploadRichTextImageToCloudinary({
+  file,
+}: RichTextImageUploadInput) {
+  const config = getCloudinaryConfig();
+  const timestamp = Math.floor(Date.now() / 1000);
+  const folder = joinCloudinaryPath(
+    getCloudinarySiteRoot(config.uploadRoot),
+    "rich-text",
+  );
+  const safeName = normalizePathSegment(file.name.replace(/\.[^.]+$/, ""));
+  const publicId = `${safeName || "image"}-${timestamp}`;
+
+  const signature = createUploadSignature({
+    apiSecret: config.apiSecret,
+    folder,
+    publicId,
+    timestamp,
+  });
+
+  const formData = new FormData();
+  formData.append("file", file);
+  formData.append("api_key", config.apiKey);
+  formData.append("timestamp", timestamp.toString());
+  formData.append("signature", signature);
+  formData.append("folder", folder);
+  formData.append("public_id", publicId);
+
+  const response = await fetch(
+    `https://api.cloudinary.com/v1_1/${config.cloudName}/image/upload`,
+    {
+      body: formData,
+      method: "POST",
+    },
+  );
+
+  if (!response.ok) {
+    const payload = (await response.json().catch(() => null)) as {
+      error?: {
+        message?: string;
+      };
+    } | null;
+
+    throw new Error(
+      payload?.error?.message || "Cloudinary rich text image upload failed.",
     );
   }
 
