@@ -409,7 +409,19 @@ function formatFieldValidationMessage(field: string, message: string) {
   }
 
   if (field === "option") {
-    return "Опції товару: перевірте назву опції, назви значень і фото для кожного значення.";
+    if (message.startsWith("Значення опції #")) {
+      return `Опції товару: ${message}`;
+    }
+
+    if (
+      message === "Required" ||
+      message === "Invalid input" ||
+      normalizedMessage === "заповніть або перевірте це поле."
+    ) {
+      return "Опції товару: перевірте назву опції, назви значень і фото для кожного значення.";
+    }
+
+    return `Опції товару: ${normalizedMessage}`;
   }
 
   return `${label}: ${normalizedMessage}`;

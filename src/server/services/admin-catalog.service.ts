@@ -183,17 +183,27 @@ function formatProductValidationIssue(issue: z.ZodIssue) {
   }
 
   if (field === "option") {
+    const optionValueIndex = nestedPath.find(
+      (pathPart) => typeof pathPart === "number",
+    );
+    const optionValuePrefix =
+      typeof optionValueIndex === "number"
+        ? `Значення опції #${optionValueIndex + 1}: `
+        : "";
+
     if (nestedPathText.includes("image")) {
-      return "Опції товару: кожне значення опції повинно мати фото.";
+      return `Опції товару: ${optionValuePrefix}завантажте фото.`;
     }
 
     if (nestedPathText.includes("label")) {
-      return "Опції товару: кожне значення опції повинно мати назву.";
+      return `Опції товару: ${optionValuePrefix}вкажіть назву значення.`;
     }
 
     if (nestedPathText.includes("name")) {
       return "Опції товару: вкажіть назву групи опцій.";
     }
+
+    return `Опції товару: ${optionValuePrefix}${normalizeZodMessage(issue.message)}`;
   }
 
   if (field === "form") {
