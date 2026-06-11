@@ -3,6 +3,7 @@
 import type { ChangeEvent, FormEvent } from "react";
 import { useEffect, useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { toast } from "react-toastify";
 
 import {
   AdminField,
@@ -16,7 +17,6 @@ import {
   AdminSectionCard,
 } from "@/components/admin/admin-primitives";
 import { AdminRichTextEditor } from "@/components/admin/admin-rich-text-editor";
-import { showAdminToast } from "@/components/admin/admin-toast";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -545,11 +545,13 @@ function validateProductOption(option: ProductOptionDraft | null) {
   }
 
   if (!option.name.trim()) {
-    errors.name = "Вкажіть назву опції, наприклад Смак, Колір або Опір.";
+    errors.name =
+      "Вкажіть назву опції, наприклад Смак, Колір або Опір.";
   }
 
   if (option.values.length === 0) {
-    errors.general = "Додайте хоча б одне значення опції або вимкніть блок.";
+    errors.general =
+      "Додайте хоча б одне значення опції або вимкніть блок.";
     return errors;
   }
 
@@ -577,7 +579,6 @@ function validateProductOption(option: ProductOptionDraft | null) {
 
   return errors;
 }
-
 function normalizeFieldValues(
   fieldDefinitions: FieldDefinition[],
   dynamicValues: Record<string, ProductDynamicValue>,
@@ -690,7 +691,6 @@ function resolveSeoDescription(values: ProductFormValues) {
     `${values.title.trim()}: замовити за вигідною ціною в Україні у Voodoo Vape. Швидке оформлення, зручна доставка по Україні та актуальний асортимент.`
   );
 }
-
 function validateDynamicFields(
   fieldDefinitions: FieldDefinition[],
   dynamicValues: Record<string, ProductDynamicValue>,
@@ -732,7 +732,7 @@ function validateDynamicFields(
 
     if (field.type === "BOOLEAN") {
       if (field.isRequired && !value.valueBoolean) {
-        errors[field.id] = "Оберіть true або false.";
+        errors[field.id] = "Оберіть Так або Ні.";
       }
       return;
     }
@@ -744,7 +744,6 @@ function validateDynamicFields(
 
   return errors;
 }
-
 function validateImages(images: ProductImageDraft[]) {
   const itemErrors: Record<number, { publicId?: string; url?: string }> = {};
   let generalError: string | null = null;
@@ -773,19 +772,19 @@ function validateImages(images: ProductImageDraft[]) {
     const nextErrors: { publicId?: string; url?: string } = {};
 
     if (!image.url.trim()) {
-      nextErrors.url = "Вкажіть URL зображення.";
+      nextErrors.url = "Перезавантажте це фото.";
     }
 
     if (!image.publicId.trim()) {
-      nextErrors.publicId = "Вкажіть publicId.";
-    } else {
-      const normalizedPublicId = image.publicId.trim().toLowerCase();
+      nextErrors.publicId = "Перезавантажте це фото.";
+    }
 
-      if (seenPublicIds.has(normalizedPublicId)) {
-        nextErrors.publicId = "Цей publicId вже використано.";
-      }
+    if (image.publicId && seenPublicIds.has(image.publicId)) {
+      nextErrors.publicId = "Це фото вже додано.";
+    }
 
-      seenPublicIds.add(normalizedPublicId);
+    if (image.publicId) {
+      seenPublicIds.add(image.publicId);
     }
 
     if (nextErrors.url || nextErrors.publicId) {
@@ -798,7 +797,6 @@ function validateImages(images: ProductImageDraft[]) {
     itemErrors,
   };
 }
-
 function ProductThumbnail({ alt, src }: { alt: string; src: string }) {
   const [hasError, setHasError] = useState(false);
 
@@ -873,7 +871,7 @@ function ProductWizard({
   const [selectedUploadPreviews, setSelectedUploadPreviews] = useState<
     SelectedUploadPreview[]
   >([]);
-  const [generalMessage, setGeneralMessage] = useState<string | null>(null);
+  const [, setGeneralMessage] = useState<string | null>(null);
 
   const selectedCategory = categories.find(
     (category) => category.id === values.categoryId,
@@ -1109,21 +1107,19 @@ function ProductWizard({
 
   const uploadSelectedFiles = async () => {
     if (selectedUploadFiles.length === 0) {
-      setGeneralMessage("Оберіть один або кілька файлів для upload.");
+      toast.error("Оберіть один або кілька файлів для завантаження.");
       return;
     }
 
     if (images.length + selectedUploadFiles.length > 11) {
-      setGeneralMessage(
-        "Разом із вже доданими зображеннями товар може містити максимум 11 фото.",
-      );
+      toast.error("Товар може містити максимум 11 фото разом із головним.");
       return;
     }
 
     const productSlug = resolveProductSlug(values);
 
     if (!productSlug) {
-      setGeneralMessage("Вкажіть назву товару перед upload фото.");
+      toast.error("Вкажіть назву товару перед завантаженням фото.");
       return;
     }
 
@@ -1135,7 +1131,6 @@ function ProductWizard({
       uploadFormData.append("files", file);
     });
 
-    setGeneralMessage(null);
     startTransition(async () => {
       const response = await fetch("/api/upload/product-images", {
         body: uploadFormData,
@@ -1157,7 +1152,7 @@ function ProductWizard({
       } | null;
 
       if (!response.ok || !payload?.success) {
-        setGeneralMessage(
+        toast.error(
           payload?.error?.message || "Не вдалося завантажити зображення.",
         );
         return;
@@ -1176,14 +1171,9 @@ function ProductWizard({
       ]);
       setSelectedUploadFiles([]);
       setSelectedUploadPreviews([]);
-      showAdminToast({
-        message: payload.message || "Зображення товару завантажено.",
-        title: "Фото додано",
-        variant: "success",
-      });
+      toast.success(payload.message || "Фото товару завантажено.");
     });
   };
-
   const enableProductOption = () => {
     setOptionDraft({
       name: "",
@@ -1290,9 +1280,7 @@ function ProductWizard({
     const productSlug = resolveProductSlug(values);
 
     if (!productSlug) {
-      setGeneralMessage(
-        "Вкажіть назву товару перед upload фото значення опції.",
-      );
+      toast.error("Вкажіть назву товару перед завантаженням фото опції.");
       return;
     }
 
@@ -1301,7 +1289,6 @@ function ProductWizard({
     uploadFormData.append("valueNumber", (index + 1).toString());
     uploadFormData.append("file", file);
 
-    setGeneralMessage(null);
     setOptionUploadIndex(index);
 
     try {
@@ -1325,7 +1312,7 @@ function ProductWizard({
       } | null;
 
       if (!response.ok || !payload?.success || !payload.data?.file) {
-        setGeneralMessage(
+        toast.error(
           payload?.error?.message ||
             "Не вдалося завантажити фото значення опції.",
         );
@@ -1336,16 +1323,11 @@ function ProductWizard({
         image: payload.data.file.url,
         imagePublicId: payload.data.file.publicId,
       });
-      showAdminToast({
-        message: payload.message || "Фото значення опції завантажено.",
-        title: "Фото опції додано",
-        variant: "success",
-      });
+      toast.success(payload.message || "Фото опції завантажено.");
     } finally {
       setOptionUploadIndex(null);
     }
   };
-
   const updateImage = (index: number, patch: Partial<ProductImageDraft>) => {
     setImages((current) =>
       current.map((image, imageIndex) =>
@@ -1409,7 +1391,6 @@ function ProductWizard({
           ...current,
           categoryId: "Оберіть категорію товару.",
         }));
-        setGeneralMessage("Щоб продовжити, потрібно вибрати категорію.");
         isValid = false;
       }
     }
@@ -1420,7 +1401,6 @@ function ProductWizard({
           ...current,
           subcategoryId: "Оберіть підкатегорію товару.",
         }));
-        setGeneralMessage("Щоб продовжити, потрібно вибрати підкатегорію.");
         isValid = false;
       }
     }
@@ -1433,9 +1413,6 @@ function ProductWizard({
       setDynamicErrors(nextDynamicErrors);
 
       if (Object.keys(nextDynamicErrors).length > 0) {
-        setGeneralMessage(
-          "Заповніть обов'язкові характеристики перед переходом далі.",
-        );
         isValid = false;
       }
     }
@@ -1448,7 +1425,6 @@ function ProductWizard({
       }));
 
       if (Object.keys(nextFieldErrors).length > 0) {
-        setGeneralMessage("Перевірте базові дані товару.");
         isValid = false;
       }
     }
@@ -1458,25 +1434,9 @@ function ProductWizard({
       setImageItemErrors(validation.itemErrors);
 
       if (
-        selectedUploadFiles.length > 0 &&
-        images.length === 0 &&
-        (validation.generalError ||
-          Object.keys(validation.itemErrors).length > 0)
-      ) {
-        setGeneralMessage(
-          "Файли вже вибрані, але ще не завантажені. Натисніть «Завантажити в Cloudinary», дочекайтесь появи картки фото, потім переходьте далі.",
-        );
-        isValid = false;
-        return isValid;
-      }
-
-      if (
         validation.generalError ||
         Object.keys(validation.itemErrors).length > 0
       ) {
-        setGeneralMessage(
-          validation.generalError ?? "Перевірте дані зображень товару.",
-        );
         isValid = false;
       }
     }
@@ -1490,7 +1450,6 @@ function ProductWizard({
         nextOptionErrors.name ||
         nextOptionErrors.values
       ) {
-        setGeneralMessage("Перевірте блок опцій товару.");
         isValid = false;
       }
     }
@@ -1503,23 +1462,18 @@ function ProductWizard({
       }));
 
       if (Object.keys(nextFieldErrors).length > 0) {
-        setGeneralMessage("Заповніть SEO-поля перед створенням товару.");
         isValid = false;
       }
     }
 
-    if (isValid) {
-      setGeneralMessage(null);
-    }
-
     return isValid;
   };
-
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
     const stepResults = PRODUCT_STEPS.map((step) => validateStep(step.id));
     if (stepResults.some((isValid) => !isValid)) {
+      toast.error("Перевірте обов'язкові поля товару.");
       return;
     }
 
@@ -1591,29 +1545,13 @@ function ProductWizard({
         }
 
         const imageErrors = result.fieldErrors?.images ?? [];
-        if (imageErrors.length > 0) {
-          setGeneralMessage(imageErrors[0]);
-        } else {
-          setGeneralMessage(getServerValidationMessage(result));
-        }
-
-        showAdminToast({
-          title:
-            mode === "edit"
-              ? "Не вдалося зберегти товар"
-              : "Не вдалося створити товар",
-          message: getServerValidationMessage(result),
-          variant: "error",
-        });
+        toast.error(imageErrors[0] ?? getServerValidationMessage(result));
         return;
       }
 
-      showAdminToast({
-        title: mode === "create" ? "Товар створено" : "Товар успішно оновлено",
-        message: result.data.title,
-        variant: "success",
-      });
-      setGeneralMessage(null);
+      toast.success(
+        mode === "create" ? "Товар створено." : "Товар оновлено.",
+      );
       onSuccess(result.data.id);
     });
   };
@@ -1622,7 +1560,7 @@ function ProductWizard({
     <form className="space-y-4" onSubmit={handleSubmit}>
       <AdminFormSection
         title="Category"
-        description="Спершу визначаємо верхньорівневу category. Вона керує доступними subcategory та характеристиками."
+        description="Спершу визначаємо верхньорівневу категорію. Вона керує доступними підкатегоріями та характеристиками."
       >
         <AdminField label="Категорія" error={fieldErrors.categoryId} required>
           <Select
@@ -1644,9 +1582,7 @@ function ProductWizard({
           </Select>
           {relationHasInactiveCatalog ? (
             <p className="text-muted-foreground mt-2 text-sm leading-6">
-              Поточна категорія або підкатегорія деактивована. Зв&apos;язок
-              збережено для цього товару, але нові прив&apos;язки можна робити
-              тільки до активних гілок каталогу.
+              Поточна категорія або підкатегорія деактивована. Зв'язок збережено для цього товару, але нові прив'язки можна робити тільки до активних гілок каталогу.
             </p>
           ) : null}
         </AdminField>
@@ -1654,7 +1590,7 @@ function ProductWizard({
 
       <AdminFormSection
         title="Subcategory"
-        description="Після вибору subcategory форма перебудує характеристики саме під цю гілку каталогу."
+        description="Після вибору підкатегорії форма перебудує характеристики саме під цю гілку каталогу."
       >
         <AdminField
           label="Підкатегорія"
@@ -1811,7 +1747,7 @@ function ProductWizard({
                       }
                     >
                       <SelectTrigger className="w-full">
-                        <SelectValue placeholder="Оберіть true або false" />
+                        <SelectValue placeholder="Оберіть Так або Ні" />
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="true">Так</SelectItem>
@@ -1870,7 +1806,7 @@ function ProductWizard({
 
       <AdminFormSection
         title="Base Data"
-        description="Тут збираємо базову картку товару: назву, slug, ціну, availability, виробника і flags."
+        description="Тут збираємо базову картку товару: назву, slug, ціну, наявність, виробника і прапорці."
       >
         <AdminFormGrid>
           <AdminInputField
@@ -1888,7 +1824,7 @@ function ProductWizard({
             value={values.slug}
             onChange={(event) => updateSlug(event.target.value)}
             error={fieldErrors.slug}
-            hint="????? ???????? ????????: slug ??????????? ??????????? ? ????? ??????."
+            hint="Можна залишити порожнім: slug згенерується автоматично з назви товару."
           />
 
           <AdminInputField
@@ -1967,7 +1903,7 @@ function ProductWizard({
             placeholder="Додайте повний опис товару з форматуванням, таблицями, списками, посиланнями або фото."
           />
 
-          <div className="grid gap-3 md:grid-cols-2">
+          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
             <div className="border-border/70 bg-card/90 flex items-start justify-between gap-4 rounded-2xl border px-4 py-3">
               <div className="space-y-1">
                 <p className="text-sm font-medium">Показувати на сайті</p>
@@ -1984,7 +1920,7 @@ function ProductWizard({
 
             <div className="border-border/70 bg-card/90 flex items-start justify-between gap-4 rounded-2xl border px-4 py-3">
               <div className="space-y-1">
-                <p className="text-sm font-medium">New</p>
+                <p className="text-sm font-medium">Новинка</p>
                 <p className="text-muted-foreground text-sm leading-6">
                   Маркер новинки.
                 </p>
@@ -1994,13 +1930,13 @@ function ProductWizard({
                 onCheckedChange={(checked) =>
                   updateValue("isFeaturedNew", checked)
                 }
-                aria-label="New"
+                aria-label="Новинка"
               />
             </div>
 
             <div className="border-border/70 bg-card/90 flex items-start justify-between gap-4 rounded-2xl border px-4 py-3">
               <div className="space-y-1">
-                <p className="text-sm font-medium">Sale</p>
+                <p className="text-sm font-medium">Акція</p>
                 <p className="text-muted-foreground text-sm leading-6">
                   Промо-мітка для товару.
                 </p>
@@ -2010,15 +1946,15 @@ function ProductWizard({
                 onCheckedChange={(checked) =>
                   updateValue("isFeaturedSale", checked)
                 }
-                aria-label="Sale"
+                aria-label="Акція"
               />
             </div>
 
             <div className="border-border/70 bg-card/90 flex items-start justify-between gap-4 rounded-2xl border px-4 py-3">
               <div className="space-y-1">
-                <p className="text-sm font-medium">Hit</p>
+                <p className="text-sm font-medium">Хіт продажів</p>
                 <p className="text-muted-foreground text-sm leading-6">
-                  Хіт продажу.
+                  Маркер популярного товару.
                 </p>
               </div>
               <Switch
@@ -2026,7 +1962,7 @@ function ProductWizard({
                 onCheckedChange={(checked) =>
                   updateValue("isFeaturedHit", checked)
                 }
-                aria-label="Hit"
+                aria-label="Хіт продажів"
               />
             </div>
 
@@ -2048,10 +1984,9 @@ function ProductWizard({
           </div>
         </div>
       </AdminFormSection>
-
       <AdminFormSection
         title="Images"
-        description="Cloudinary upload уже підключений. Після аплоаду форма автоматично підставляє url/publicId у payload товару."
+        description="Завантажте головне фото і галерею товару. Технічні Cloudinary URL та publicId зберігаються автоматично."
       >
         <div className="space-y-4">
           <div className="border-border/70 bg-card/90 rounded-2xl border p-4">
@@ -2077,28 +2012,20 @@ function ProductWizard({
                   <p className="text-sm font-medium">
                     До upload вибрано {selectedUploadFiles.length} файл(и)
                   </p>
-                  <div className="mt-3 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                  <div className="mt-3 grid gap-3 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-6">
                     {selectedUploadPreviews.map((preview) => (
                       <div
                         key={preview.url}
-                        className="border-border/70 bg-card/80 space-y-2 rounded-2xl border p-3"
+                        className="border-border/70 bg-card/80 space-y-2 rounded-xl border p-2"
                       >
-                        <ProductThumbnail
-                          alt={preview.name}
-                          src={preview.url}
-                        />
+                        <div className="aspect-square overflow-hidden rounded-lg">
+                          <ProductThumbnail
+                            alt={preview.name}
+                            src={preview.url}
+                          />
+                        </div>
                         <p className="truncate text-xs">{preview.name}</p>
                       </div>
-                    ))}
-                  </div>
-                  <div className="mt-2 flex flex-wrap gap-2">
-                    {selectedUploadFiles.map((file) => (
-                      <Badge
-                        key={`${file.name}-${file.lastModified}`}
-                        variant="outline"
-                      >
-                        {file.name}
-                      </Badge>
                     ))}
                   </div>
                 </div>
@@ -2118,82 +2045,65 @@ function ProductWizard({
           </div>
 
           {images.length ? (
-            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+            <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-6">
               {images.map((image, index) => (
                 <div
                   key={image.id ?? `${mode}-image-${index}`}
-                  className="border-border/70 bg-card/90 flex min-h-[360px] flex-col overflow-hidden rounded-2xl border"
+                  className="border-border/70 bg-card/90 space-y-3 rounded-xl border p-3"
                 >
-                  <div className="bg-muted/30 relative aspect-[4/3] overflow-hidden">
+                  <div className="aspect-square overflow-hidden rounded-lg bg-muted/30">
                     <ProductThumbnail
-                      alt={
-                        image.alt ||
-                        image.publicId ||
-                        `Product image ${index + 1}`
-                      }
+                      alt={image.alt || `Product image ${index + 1}`}
                       src={image.url}
                     />
                   </div>
 
-                  <div className="flex flex-1 flex-col gap-4 p-4">
-                    <div className="flex flex-wrap items-center justify-between gap-3">
-                      <div className="flex flex-wrap gap-2">
-                        {image.isPrimary ? (
-                          <Badge variant="secondary">??????? ????</Badge>
-                        ) : (
-                          <Badge variant="outline">???????</Badge>
-                        )}
-                        <Badge variant="outline">#{index + 1}</Badge>
-                      </div>
-                    </div>
+                  {imageItemErrors[index]?.url ||
+                  imageItemErrors[index]?.publicId ? (
+                    <p className="text-destructive text-xs leading-5">
+                      {imageItemErrors[index]?.url ??
+                        imageItemErrors[index]?.publicId}
+                    </p>
+                  ) : null}
 
-                    {imageItemErrors[index]?.url ||
-                    imageItemErrors[index]?.publicId ? (
-                      <p className="text-destructive text-xs leading-5">
-                        {imageItemErrors[index]?.url ??
-                          imageItemErrors[index]?.publicId}
-                      </p>
-                    ) : null}
+                  <AdminInputField
+                    id={`${mode}-image-alt-${index}`}
+                    label="Alt"
+                    value={image.alt}
+                    onChange={(event) =>
+                      updateImage(index, { alt: event.target.value })
+                    }
+                  />
 
-                    <AdminInputField
-                      id={`${mode}-image-alt-${index}`}
-                      label="Alt"
-                      value={image.alt}
-                      onChange={(event) =>
-                        updateImage(index, { alt: event.target.value })
-                      }
-                    />
-
-                    <div className="mt-auto flex flex-wrap gap-2">
-                      <Button
-                        type="button"
-                        variant="outline"
-                        onClick={() => setPrimaryImage(index)}
-                        disabled={image.isPrimary}
-                      >
-                        ??????? ????????
-                      </Button>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        onClick={() => removeImage(index)}
-                      >
-                        ????????
-                      </Button>
-                    </div>
+                  <div className="flex flex-col gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => setPrimaryImage(index)}
+                      disabled={image.isPrimary}
+                    >
+                      {image.isPrimary ? "Головне" : "Зробити головним"}
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => removeImage(index)}
+                    >
+                      Видалити
+                    </Button>
                   </div>
                 </div>
               ))}
             </div>
           ) : (
             <AdminEmptyState
-              title="???? ?? ?? ??????"
-              description="??????? ?????????? ???? ??????????. ????? upload ?????? ???? ?'???????? ???, ? URL ? publicId ?????????? ??????????? ?????????? ??????."
+              title="Фото ще не додані"
+              description="Завантажте хоча б одне фото товару. Перше фото автоматично стане головним."
             />
           )}
           <div className="border-border/70 bg-muted/30 flex flex-col gap-3 rounded-2xl border p-4 sm:flex-row sm:items-center sm:justify-between">
             <p className="text-muted-foreground text-sm leading-6">
-              Правила цього кроку: 1 головне фото, до 10 фото в галереї.
+              Правило цього кроку: 1 головне фото, до 10 фото в галереї.
             </p>
             <Badge variant="outline">{images.length}/11 фото</Badge>
           </div>
@@ -2211,8 +2121,7 @@ function ProductWizard({
                 <div className="space-y-1">
                   <p className="text-sm font-medium">Група опцій</p>
                   <p className="text-muted-foreground text-sm leading-6">
-                    Наприклад: Смак, Колір або Опір. Друга група опцій не
-                    створюється.
+                    Наприклад: Смак, Колір або Опір. Друга група опцій не створюється.
                   </p>
                 </div>
                 <Button
@@ -2234,35 +2143,41 @@ function ProductWizard({
               />
             </div>
 
-            {optionDraft.values.map((optionValue, index) => (
-              <div
-                key={optionValue.id ?? `${mode}-option-value-${index}`}
-                className="border-border/70 bg-card/90 space-y-4 rounded-2xl border p-4"
-              >
-                <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                  <div className="space-y-1">
-                    <p className="text-sm font-medium">Значення #{index + 1}</p>
-                    <p className="text-muted-foreground text-sm leading-6">
-                      Кожне значення повинно мати назву і рівно одне фото.
-                    </p>
+            <div className="grid gap-4 lg:grid-cols-2 2xl:grid-cols-4">
+              {optionDraft.values.map((optionValue, index) => (
+                <div
+                  key={optionValue.id ?? `${mode}-option-value-${index}`}
+                  className="border-border/70 bg-card/90 space-y-3 rounded-xl border p-3"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="space-y-1">
+                      <p className="text-sm font-medium">Значення #{index + 1}</p>
+                      <p className="text-muted-foreground text-xs leading-5">
+                        Назва і фото обов'язкові.
+                      </p>
+                    </div>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => removeOptionValue(index)}
+                    >
+                      Видалити
+                    </Button>
                   </div>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => removeOptionValue(index)}
-                  >
-                    Видалити значення
-                  </Button>
-                </div>
 
-                {optionValue.image ? (
-                  <ProductThumbnail
-                    alt={optionValue.label || `Option ${index + 1}`}
-                    src={optionValue.image}
-                  />
-                ) : null}
+                  <div className="aspect-square overflow-hidden rounded-lg bg-muted/30">
+                    {optionValue.image ? (
+                      <ProductThumbnail
+                        alt={optionValue.label || `Option ${index + 1}`}
+                        src={optionValue.image}
+                      />
+                    ) : (
+                      <div className="text-muted-foreground flex h-full min-h-32 items-center justify-center rounded-lg border border-dashed text-sm">
+                        Фото ще не додано
+                      </div>
+                    )}
+                  </div>
 
-                <AdminFormGrid>
                   <AdminInputField
                     id={`${mode}-option-value-label-${index}`}
                     label="Назва значення"
@@ -2284,7 +2199,7 @@ function ProductWizard({
 
                   <AdminInputField
                     id={`${mode}-option-value-slug-${index}`}
-                    label="Slug сторінки варіанту"
+                    label="Slug сторінки варіанта"
                     value={optionValue.slug}
                     onChange={(event) =>
                       updateOptionValue(index, {
@@ -2296,21 +2211,19 @@ function ProductWizard({
 
                   <AdminInputField
                     id={`${mode}-option-value-title-${index}`}
-                    label="Назва сторінки варіанту"
+                    label="Назва сторінки варіанта"
                     value={optionValue.titleOverride}
                     onChange={(event) =>
                       updateOptionValue(index, {
                         titleOverride: event.target.value,
                       })
                     }
-                    hint="Якщо порожньо, H1 генерується з назви товару та значення опції."
+                    hint="Якщо порожньо, H1 згенерується з назви товару та значення опції."
                   />
-                </AdminFormGrid>
 
-                <AdminFormGrid>
                   <AdminInputField
                     id={`${mode}-option-value-seo-title-${index}`}
-                    label="SEO title варіанту"
+                    label="SEO title варіанта"
                     value={optionValue.seoTitle}
                     onChange={(event) =>
                       updateOptionValue(index, {
@@ -2321,7 +2234,7 @@ function ProductWizard({
 
                   <AdminInputField
                     id={`${mode}-option-value-seo-description-${index}`}
-                    label="SEO description варіанту"
+                    label="SEO description варіанта"
                     value={optionValue.seoDescription}
                     onChange={(event) =>
                       updateOptionValue(index, {
@@ -2329,9 +2242,7 @@ function ProductWizard({
                       })
                     }
                   />
-                </AdminFormGrid>
 
-                <AdminFormGrid>
                   <AdminInputField
                     id={`${mode}-option-value-sort-${index}`}
                     type="number"
@@ -2345,58 +2256,32 @@ function ProductWizard({
                       })
                     }
                   />
-                </AdminFormGrid>
 
-                <AdminField
-                  label="Фото значення"
-                  error={optionErrors.values?.[index]?.image}
-                  hint="Фото зберігається в Cloudinary у product-options/."
-                  required
-                >
-                  <Input
-                    type="file"
-                    accept="image/jpeg,image/png,image/webp"
-                    onChange={(event) => {
-                      const file = event.target.files?.[0];
-
-                      if (file) {
-                        void uploadOptionValueImage(index, file);
-                      }
-                    }}
-                  />
-                </AdminField>
-
-                <AdminFormGrid>
-                  <AdminInputField
-                    id={`${mode}-option-value-image-${index}`}
-                    label="Image URL"
-                    value={optionValue.image}
-                    onChange={(event) =>
-                      updateOptionValue(index, {
-                        image: event.target.value,
-                      })
-                    }
+                  <AdminField
+                    label="Фото значення"
                     error={optionErrors.values?.[index]?.image}
+                    hint="Фото зберігається в Cloudinary у product-options/."
                     required
-                  />
+                  >
+                    <Input
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp"
+                      onChange={(event) => {
+                        const file = event.target.files?.[0];
 
-                  <AdminInputField
-                    id={`${mode}-option-value-public-id-${index}`}
-                    label="imagePublicId"
-                    value={optionValue.imagePublicId}
-                    onChange={(event) =>
-                      updateOptionValue(index, {
-                        imagePublicId: event.target.value,
-                      })
-                    }
-                  />
-                </AdminFormGrid>
+                        if (file) {
+                          void uploadOptionValueImage(index, file);
+                        }
+                      }}
+                    />
+                  </AdminField>
 
-                {optionUploadIndex === index ? (
-                  <Badge variant="outline">Завантажуємо фото...</Badge>
-                ) : null}
-              </div>
-            ))}
+                  {optionUploadIndex === index ? (
+                    <Badge variant="outline">Завантажуємо фото...</Badge>
+                  ) : null}
+                </div>
+              ))}
+            </div>
 
             {optionErrors.general ? (
               <div className="border-destructive/20 bg-destructive/8 text-destructive rounded-2xl border px-4 py-3 text-sm">
@@ -2420,8 +2305,7 @@ function ProductWizard({
                 Опції товару не ввімкнені
               </h3>
               <p className="text-muted-foreground max-w-2xl text-sm leading-6">
-                Це звичайний товар без варіантів. Увімкніть блок тільки якщо
-                потрібно обрати смак, колір, опір або інший один тип опції.
+                Це звичайний товар без варіантів. Увімкніть блок тільки якщо потрібно обрати смак, колір, опір або інший один тип опції.
               </p>
             </div>
             <Button type="button" onClick={enableProductOption}>
@@ -2459,16 +2343,9 @@ function ProductWizard({
         </div>
       </AdminFormSection>
 
-      {generalMessage ? (
-        <div className="border-destructive/20 bg-destructive/8 text-destructive rounded-2xl border px-4 py-3 text-sm">
-          {generalMessage}
-        </div>
-      ) : null}
-
       <div className="border-border/70 bg-muted/30 flex flex-col gap-3 rounded-2xl border p-4 sm:flex-row sm:items-center sm:justify-between">
         <p className="text-muted-foreground text-sm leading-6">
-          Усі секції відкриті. Збереження перевірить category, subcategory,
-          характеристики, base data, images, опції та SEO.
+          Усі секції відкриті. Збереження перевірить category, subcategory, характеристики, base data, images, опції та SEO.
         </p>
         <div className="flex flex-wrap gap-2">
           {onDelete ? (
@@ -2488,8 +2365,7 @@ function ProductWizard({
                 <AlertDialogHeader>
                   <AlertDialogTitle>Деактивувати товар?</AlertDialogTitle>
                   <AlertDialogDescription>
-                    Товар стане неактивним і не показуватиметься на storefront.
-                    Дію можна змінити пізніше через редагування товару.
+                    Товар стане неактивним і не показуватиметься на storefront. Дію можна змінити пізніше через редагування товару.
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
@@ -2517,8 +2393,7 @@ function ProductWizard({
                 : "Зберегти зміни"}
           </Button>
         </div>
-      </div>
-    </form>
+      </div>    </form>
   );
 }
 
@@ -2569,21 +2444,13 @@ export function AdminProductCrud({
       id: selectedProduct.id,
     }).then((result) => {
       if (result.ok) {
-        showAdminToast({
-          title: "Товар деактивовано",
-          message: selectedProduct.title,
-          variant: "success",
-        });
+        toast.success("Товар деактивовано.");
         router.push("/admin/products");
         router.refresh();
         return;
       }
 
-      showAdminToast({
-        title: "Не вдалося зберегти товар",
-        message: result.error,
-        variant: "error",
-      });
+      toast.error(result.error || "Не вдалося зберегти товар.");
     });
   };
 
@@ -2619,7 +2486,7 @@ export function AdminProductCrud({
       {mode !== "edit" ? (
         <AdminSectionCard
           title="Створення нового товару"
-          description="Create-flow уже розбитий на всі 7 кроків і може створювати повноцінні товари з характеристиками, flags, images, опціями та SEO."
+          description="Create-flow розбитий на 7 кроків і може створювати повноцінні товари з характеристиками, flags, images, опціями та SEO."
         >
           <ProductWizard
             brands={brands}

@@ -288,7 +288,15 @@ const productOptionValueSchema = z.object({
   titleOverride: optionalTrimmedString(160),
   seoTitle: optionalTrimmedString(160),
   seoDescription: optionalTrimmedString(320),
-  image: z.string().trim().url().max(2048),
+  image: z
+    .string({
+      required_error: "Завантажте фото для цього значення опції.",
+      invalid_type_error: "Завантажте фото для цього значення опції.",
+    })
+    .trim()
+    .min(1, "Завантажте фото для цього значення опції.")
+    .url("Фото значення опції має бути коректним URL.")
+    .max(2048, "URL фото значення опції занадто довгий."),
   imagePublicId: optionalTrimmedString(255),
   sortOrder: sortOrderField(),
 });
