@@ -113,12 +113,101 @@ type NormalizedProductWritePayload = {
   title: string;
 };
 
-function validationError(fieldErrors: Record<string, string[] | undefined>) {
+function validationError(
+  fieldErrors: Record<string, string[] | undefined>,
+  error = "Перевірте коректність заповнених даних.",
+) {
   return {
     ok: false as const,
-    error: "Перевірте коректність заповнених даних.",
+    error,
     fieldErrors,
   };
+}
+
+const PRODUCT_VALIDATION_LABELS: Record<string, string> = {
+  availability: "Наявність",
+  brandId: "Виробник",
+  categoryId: "Категорія",
+  description: "Опис",
+  fieldValues: "Характеристики",
+  id: "Товар",
+  images: "Фото товару",
+  isActive: "Статус",
+  isFeaturedDiscount: "Бейдж Знижка",
+  isFeaturedHit: "Бейдж Хіт продажів",
+  isFeaturedNew: "Бейдж Новинка",
+  isFeaturedSale: "Бейдж Акція",
+  option: "Опції товару",
+  price: "Ціна",
+  seoDescription: "SEO description",
+  seoTitle: "SEO title",
+  slug: "Slug",
+  subcategoryId: "Підкатегорія",
+  title: "Назва товару",
+};
+
+function normalizeZodMessage(message: string) {
+  if (message === "Required" || message === "Invalid input") {
+    return "заповніть або перевірте це поле.";
+  }
+
+  if (message === "Invalid url") {
+    return "має бути коректним URL.";
+  }
+
+  if (message.includes("String must contain at most")) {
+    return "значення занадто довге.";
+  }
+
+  if (message.includes("String must contain at least")) {
+    return "поле обов'язкове.";
+  }
+
+  return message;
+}
+
+function formatProductValidationIssue(issue: z.ZodIssue) {
+  const [topLevelField, ...nestedPath] = issue.path;
+  const field = String(topLevelField ?? "form");
+  const label = PRODUCT_VALIDATION_LABELS[field] ?? field;
+  const nestedPathText = nestedPath.map(String).join(".");
+
+  if (field === "images") {
+    if (nestedPathText.includes("url")) {
+      return "Фото товару: перезавантажте фото або перевірте URL зображення.";
+    }
+
+    if (nestedPathText.includes("publicId")) {
+      return "Фото товару: відсутній Cloudinary publicId, перезавантажте фото.";
+    }
+  }
+
+  if (field === "option") {
+    if (nestedPathText.includes("image")) {
+      return "Опції товару: кожне значення опції повинно мати фото.";
+    }
+
+    if (nestedPathText.includes("label")) {
+      return "Опції товару: кожне значення опції повинно мати назву.";
+    }
+
+    if (nestedPathText.includes("name")) {
+      return "Опції товару: вкажіть назву групи опцій.";
+    }
+  }
+
+  if (field === "form") {
+    return normalizeZodMessage(issue.message);
+  }
+
+  return `${label}: ${normalizeZodMessage(issue.message)}`;
+}
+
+function productValidationError(error: z.ZodError) {
+  return validationError(
+    error.flatten().fieldErrors,
+    formatProductValidationIssue(error.issues[0]),
+  );
 }
 
 function ok<TData>(data: TData): MutationResult<TData> {
@@ -1491,7 +1580,7 @@ export async function createAdminProduct(input: unknown): Promise<
   const parsed = createProductSchema.safeParse(input);
 
   if (!parsed.success) {
-    return validationError(parsed.error.flatten().fieldErrors);
+    return productValidationError(parsed.error);
   }
 
   const payload: CreateProductInput = parsed.data;
@@ -1526,7 +1615,7 @@ export async function updateAdminProduct(input: unknown): Promise<
   const parsed = updateProductSchema.safeParse(input);
 
   if (!parsed.success) {
-    return validationError(parsed.error.flatten().fieldErrors);
+    return productValidationError(parsed.error);
   }
 
   const payload: UpdateProductInput = parsed.data;

@@ -357,18 +357,89 @@ function formatCatalogOptionStatus(isActive: boolean) {
   return isActive ? "" : " (inactive)";
 }
 
+const PRODUCT_FIELD_LABELS: Record<string, string> = {
+  availability: "Наявність",
+  brandId: "Виробник",
+  categoryId: "Категорія",
+  description: "Опис",
+  fieldValues: "Характеристики",
+  images: "Фото товару",
+  option: "Опції товару",
+  price: "Ціна",
+  seoDescription: "SEO description",
+  seoTitle: "SEO title",
+  slug: "Slug",
+  subcategoryId: "Підкатегорія",
+  title: "Назва товару",
+};
+
+const GENERIC_SERVER_VALIDATION_MESSAGE =
+  "Перевірте коректність заповнених даних.";
+
+function normalizeValidationMessage(message: string) {
+  if (message === "Required" || message === "Invalid input") {
+    return "заповніть або перевірте це поле.";
+  }
+
+  if (message === "Invalid url") {
+    return "має бути коректним URL.";
+  }
+
+  if (message.includes("String must contain at most")) {
+    return "значення занадто довге.";
+  }
+
+  if (message.includes("String must contain at least")) {
+    return "поле обов'язкове.";
+  }
+
+  return message;
+}
+
+function normalizeFieldError(message: string | undefined) {
+  return message ? normalizeValidationMessage(message) : undefined;
+}
+
+function formatFieldValidationMessage(field: string, message: string) {
+  const label = PRODUCT_FIELD_LABELS[field] ?? field;
+  const normalizedMessage = normalizeValidationMessage(message);
+
+  if (field === "images") {
+    return "Фото товару: додайте головне фото або перезавантажте некоректне фото.";
+  }
+
+  if (field === "option") {
+    return "Опції товару: перевірте назву опції, назви значень і фото для кожного значення.";
+  }
+
+  return `${label}: ${normalizedMessage}`;
+}
+
 function getServerValidationMessage(
   result: Extract<
     Awaited<ReturnType<typeof createProductAction>>,
     { ok: false }
   >,
 ) {
-  const fieldErrors = result.fieldErrors ?? {};
-  const messages = Object.values(fieldErrors)
-    .flatMap((errors) => errors ?? [])
-    .filter(Boolean);
+  if (result.error && result.error !== GENERIC_SERVER_VALIDATION_MESSAGE) {
+    return result.error;
+  }
 
-  return messages[0] ?? result.error;
+  const fieldErrors = result.fieldErrors ?? {};
+  const firstFieldError = Object.entries(fieldErrors).find(
+    ([, errors]) => errors?.some(Boolean),
+  );
+
+  if (firstFieldError) {
+    const [field, errors] = firstFieldError;
+    const message = errors?.find(Boolean);
+
+    if (message) {
+      return formatFieldValidationMessage(field, message);
+    }
+  }
+
+  return result.error ?? "Не вдалося зберегти товар.";
 }
 
 function buildCreateValues(
@@ -1510,19 +1581,35 @@ function ProductWizard({
         setFieldErrors((current) => ({
           ...current,
           availability:
-            result.fieldErrors?.availability?.[0] ?? current.availability,
-          brandId: result.fieldErrors?.brandId?.[0] ?? current.brandId,
-          categoryId: result.fieldErrors?.categoryId?.[0] ?? current.categoryId,
+            normalizeFieldError(result.fieldErrors?.availability?.[0]) ??
+            current.availability,
+          brandId:
+            normalizeFieldError(result.fieldErrors?.brandId?.[0]) ??
+            current.brandId,
+          categoryId:
+            normalizeFieldError(result.fieldErrors?.categoryId?.[0]) ??
+            current.categoryId,
           description:
-            result.fieldErrors?.description?.[0] ?? current.description,
-          price: result.fieldErrors?.price?.[0] ?? current.price,
+            normalizeFieldError(result.fieldErrors?.description?.[0]) ??
+            current.description,
+          price:
+            normalizeFieldError(result.fieldErrors?.price?.[0]) ??
+            current.price,
           seoDescription:
-            result.fieldErrors?.seoDescription?.[0] ?? current.seoDescription,
-          seoTitle: result.fieldErrors?.seoTitle?.[0] ?? current.seoTitle,
-          slug: result.fieldErrors?.slug?.[0] ?? current.slug,
+            normalizeFieldError(result.fieldErrors?.seoDescription?.[0]) ??
+            current.seoDescription,
+          seoTitle:
+            normalizeFieldError(result.fieldErrors?.seoTitle?.[0]) ??
+            current.seoTitle,
+          slug:
+            normalizeFieldError(result.fieldErrors?.slug?.[0]) ??
+            current.slug,
           subcategoryId:
-            result.fieldErrors?.subcategoryId?.[0] ?? current.subcategoryId,
-          title: result.fieldErrors?.title?.[0] ?? current.title,
+            normalizeFieldError(result.fieldErrors?.subcategoryId?.[0]) ??
+            current.subcategoryId,
+          title:
+            normalizeFieldError(result.fieldErrors?.title?.[0]) ??
+            current.title,
         }));
 
         const serverDynamicErrors = result.fieldErrors?.fieldValues ?? [];
@@ -1544,8 +1631,15 @@ function ProductWizard({
           setDynamicErrors(nextDynamicErrors);
         }
 
-        const imageErrors = result.fieldErrors?.images ?? [];
-        toast.error(imageErrors[0] ?? getServerValidationMessage(result));
+        const serverOptionError = result.fieldErrors?.option?.[0];
+        if (serverOptionError) {
+          setOptionErrors((current) => ({
+            ...current,
+            general: formatFieldValidationMessage("option", serverOptionError),
+          }));
+        }
+
+        toast.error(getServerValidationMessage(result));
         return;
       }
 
