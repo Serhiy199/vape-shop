@@ -203,9 +203,11 @@ type ProductImageDraft = {
 };
 
 type ProductOptionValueDraft = {
+  existingImage: string;
   id?: string;
   image: string;
   imagePublicId: string;
+  imageRemoved: boolean;
   label: string;
   slug: string;
   titleOverride: string;
@@ -555,9 +557,11 @@ function buildProductOptionDraft(
     id: selectedProduct.option.id,
     name: selectedProduct.option.name,
     values: selectedProduct.option.values.map((value, index) => ({
+      existingImage: value.image,
       id: value.id,
       image: value.image,
       imagePublicId: value.imagePublicId ?? "",
+      imageRemoved: false,
       label: value.label,
       slug: value.slug ?? "",
       titleOverride: value.titleOverride ?? "",
@@ -608,8 +612,11 @@ function normalizeProductOption(option: ProductOptionDraft | null) {
     name: option.name,
     values: option.values.map((value, index) => ({
       id: value.id,
-      image: value.image,
-      imagePublicId: value.imagePublicId || undefined,
+      image: getProductOptionValueImage(value),
+      imagePublicId: value.imageRemoved
+        ? undefined
+        : value.imagePublicId || undefined,
+      imageRemoved: value.imageRemoved,
       label: value.label,
       slug: value.slug || undefined,
       titleOverride: value.titleOverride || undefined,
@@ -618,6 +625,18 @@ function normalizeProductOption(option: ProductOptionDraft | null) {
       sortOrder: Number(value.sortOrder || index),
     })),
   };
+}
+
+function getProductOptionValueImage(value: ProductOptionValueDraft) {
+  if (value.imageRemoved) {
+    return "";
+  }
+
+  return value.image.trim() || value.existingImage.trim();
+}
+
+function hasProductOptionValueImage(value: ProductOptionValueDraft) {
+  return getProductOptionValueImage(value).length > 0;
 }
 
 function validateProductOption(option: ProductOptionDraft | null) {
@@ -647,7 +666,7 @@ function validateProductOption(option: ProductOptionDraft | null) {
       current.label = "Вкажіть назву значення.";
     }
 
-    if (!value.image.trim()) {
+    if (!hasProductOptionValueImage(value) && !value.imageRemoved) {
       current.image = "Завантажте фото для цього значення.";
     }
 
@@ -1262,8 +1281,10 @@ function ProductWizard({
       name: "",
       values: [
         {
+          existingImage: "",
           image: "",
           imagePublicId: "",
+          imageRemoved: false,
           label: "",
           slug: "",
           titleOverride: "",
@@ -1327,8 +1348,10 @@ function ProductWizard({
             values: [
               ...current.values,
               {
+                existingImage: "",
                 image: "",
                 imagePublicId: "",
+                imageRemoved: false,
                 label: "",
                 slug: "",
                 titleOverride: "",
@@ -1405,11 +1428,20 @@ function ProductWizard({
       updateOptionValue(index, {
         image: payload.data.file.url,
         imagePublicId: payload.data.file.publicId,
+        imageRemoved: false,
       });
       toast.success(payload.message || "Фото опції завантажено.");
     } finally {
       setOptionUploadIndex(null);
     }
+  };
+  const removeOptionValueImage = (index: number) => {
+    updateOptionValue(index, {
+      existingImage: "",
+      image: "",
+      imagePublicId: "",
+      imageRemoved: true,
+    });
   };
   const updateImage = (index: number, patch: Partial<ProductImageDraft>) => {
     setImages((current) =>
@@ -1688,7 +1720,7 @@ function ProductWizard({
           </Select>
           {relationHasInactiveCatalog ? (
             <p className="text-muted-foreground mt-2 text-sm leading-6">
-              Поточна категорія або підкатегорія деактивована. Зв'язок збережено для цього товару, але нові прив'язки можна робити тільки до активних гілок каталогу.
+              Поточна категорія або підкатегорія деактивована. Зв&apos;язок збережено для цього товару, але нові прив&apos;язки можна робити тільки до активних гілок каталогу.
             </p>
           ) : null}
         </AdminField>
@@ -2259,7 +2291,7 @@ function ProductWizard({
                     <div className="space-y-1">
                       <p className="text-sm font-medium">Значення #{index + 1}</p>
                       <p className="text-muted-foreground text-xs leading-5">
-                        Назва і фото обов'язкові.
+                        Назва і фото обов&apos;язкові.
                       </p>
                     </div>
                     <Button
@@ -2272,10 +2304,10 @@ function ProductWizard({
                   </div>
 
                   <div className="aspect-square overflow-hidden rounded-lg bg-muted/30">
-                    {optionValue.image ? (
+                    {getProductOptionValueImage(optionValue) ? (
                       <ProductThumbnail
                         alt={optionValue.label || `Option ${index + 1}`}
-                        src={optionValue.image}
+                        src={getProductOptionValueImage(optionValue)}
                       />
                     ) : (
                       <div className="text-muted-foreground flex h-full min-h-32 items-center justify-center rounded-lg border border-dashed text-sm">
@@ -2283,6 +2315,16 @@ function ProductWizard({
                       </div>
                     )}
                   </div>
+
+                  {getProductOptionValueImage(optionValue) ? (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => removeOptionValueImage(index)}
+                    >
+                      Видалити фото
+                    </Button>
+                  ) : null}
 
                   <AdminInputField
                     id={`${mode}-option-value-label-${index}`}

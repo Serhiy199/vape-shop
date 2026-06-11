@@ -1256,6 +1256,8 @@ function normalizeProductOptionPayload(
 
       return {
         ...value,
+        image: value.imageRemoved ? "" : value.image,
+        imagePublicId: value.imageRemoved ? undefined : value.imagePublicId,
         slug: optionSlug,
         titleOverride: optionTitle,
         seoTitle: value.seoTitle?.trim() || undefined,

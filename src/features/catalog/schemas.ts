@@ -281,25 +281,46 @@ const productImageSchema = z.object({
   isPrimary: z.coerce.boolean().default(false),
 });
 
-const productOptionValueSchema = z.object({
-  id: optionalIdField(),
-  label: requiredName(120),
-  slug: z.string().trim().max(160).optional(),
-  titleOverride: optionalTrimmedString(160),
-  seoTitle: optionalTrimmedString(160),
-  seoDescription: optionalTrimmedString(320),
-  image: z
-    .string({
-      required_error: "Завантажте фото для цього значення опції.",
-      invalid_type_error: "Завантажте фото для цього значення опції.",
-    })
-    .trim()
-    .min(1, "Завантажте фото для цього значення опції.")
-    .url("Фото значення опції має бути коректним URL.")
-    .max(2048, "URL фото значення опції занадто довгий."),
-  imagePublicId: optionalTrimmedString(255),
-  sortOrder: sortOrderField(),
-});
+const productOptionValueSchema = z
+  .object({
+    id: optionalIdField(),
+    label: requiredName(120),
+    slug: z.string().trim().max(160).optional(),
+    titleOverride: optionalTrimmedString(160),
+    seoTitle: optionalTrimmedString(160),
+    seoDescription: optionalTrimmedString(320),
+    image: z
+      .string({
+        required_error: "Завантажте фото для цього значення опції.",
+        invalid_type_error: "Завантажте фото для цього значення опції.",
+      })
+      .trim()
+      .max(2048, "URL фото значення опції занадто довгий."),
+    imagePublicId: optionalTrimmedString(255),
+    imageRemoved: z.coerce.boolean().default(false),
+    sortOrder: sortOrderField(),
+  })
+  .superRefine((value, ctx) => {
+    if (value.image.length === 0) {
+      if (!value.imageRemoved) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Завантажте фото для цього значення опції.",
+          path: ["image"],
+        });
+      }
+
+      return;
+    }
+
+    if (!/^https?:\/\//.test(value.image)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Фото значення опції має бути коректним URL.",
+        path: ["image"],
+      });
+    }
+  });
 
 const productOptionSchema = z.object({
   id: optionalIdField(),
