@@ -87,7 +87,7 @@ export function StorefrontProductPurchasePanel({
                 </span>
               ) : null}
             </div>
-            <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 lg:grid-cols-3 xl:grid-cols-4">
+            <div className="grid grid-cols-[repeat(auto-fill,minmax(88px,88px))] gap-2">
               {option.values.map((value) => {
                 const isSelected = selectedOptionValue?.id === value.id;
 
@@ -95,7 +95,7 @@ export function StorefrontProductPurchasePanel({
                   <button
                     key={value.id}
                     className={cn(
-                      "bg-background hover:border-primary/60 rounded-lg border p-2 text-left transition",
+                      "bg-background hover:border-primary/60 w-[88px] rounded-lg border text-left transition",
                       isSelected
                         ? "border-primary ring-primary/20 ring-2"
                         : "border-border/70",
@@ -103,15 +103,15 @@ export function StorefrontProductPurchasePanel({
                     onClick={() => onSelectOptionValue?.(value)}
                     type="button"
                   >
-                    <span className="bg-muted/70 grid aspect-square place-items-center overflow-hidden rounded-md">
+                    <span className="bg-muted/70 grid h-[72px] place-items-center overflow-hidden rounded-t-lg">
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img
                         src={value.image}
                         alt={value.label}
-                        className="h-full w-full object-cover"
+                        className="max-h-full max-w-full object-contain"
                       />
                     </span>
-                    <span className="mt-2 block truncate text-xs font-medium">
+                    <span className="block truncate px-1.5 py-1 text-center text-[11px] font-medium leading-4">
                       {value.label}
                     </span>
                   </button>

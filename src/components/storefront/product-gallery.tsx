@@ -60,13 +60,13 @@ export function StorefrontProductGallery({
 
   return (
     <div className="space-y-4">
-      <StorefrontCard className="grid aspect-[304/243] place-items-center overflow-hidden p-0 md:aspect-[740/456] lg:aspect-[570/456]">
+      <StorefrontCard className="grid aspect-[304/243] place-items-center overflow-hidden p-4 md:aspect-[740/456] lg:aspect-[570/456]">
         {primaryImage ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
             src={primaryImage.url}
             alt={primaryImage.alt ?? title}
-            className="h-full w-full object-contain"
+            className="max-h-full max-w-full object-contain"
           />
         ) : (
           <span className="bg-muted text-muted-foreground grid size-24 place-items-center rounded-xl">
