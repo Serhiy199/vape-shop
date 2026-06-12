@@ -2421,7 +2421,10 @@ function ProductWizard({
                     label="Фото значення"
                     error={optionErrors.values?.[index]?.image}
                     hint="Фото зберігається в Cloudinary у product-options/."
-                    required
+                    required={
+                      !hasProductOptionValueImage(optionValue) &&
+                      !optionValue.imageRemoved
+                    }
                   >
                     <Input
                       type="file"
