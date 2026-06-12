@@ -33,11 +33,11 @@ export function HomeBannersSlider({ banners }: { banners: HomeBanner[] }) {
         breakpoints={{
           320: {
             slidesPerView: 1,
-            spaceBetween: 10,
+            spaceBetween: 0,
           },
           768: {
             slidesPerView: 2,
-            spaceBetween: 16,
+            spaceBetween: 8,
           },
         }}
         className="home-banners-slider__swiper"
