@@ -1,14 +1,13 @@
 import {
-  BadgePercentIcon,
   BatteryChargingIcon,
   CircleHelpIcon,
   CreditCardIcon,
   DropletsIcon,
   HeadphonesIcon,
   PackageIcon,
+  RotateCcwIcon,
   ShieldCheckIcon,
   SparklesIcon,
-  TruckIcon,
   WrenchIcon,
   type LucideIcon,
 } from "lucide-react";
@@ -103,25 +102,26 @@ export const storefrontInfoLinks = [
 
 export const storefrontTrustItems = [
   {
-    description:
-      "Доставка по Україні з прозорими умовами для кожного замовлення.",
-    icon: TruckIcon,
+    description: "Безкоштовна доставка від 1500 грн",
+    icon: PackageIcon,
     title: "Швидка доставка",
   },
   {
-    description: "Каталог будується навколо перевірених брендів і товарів.",
+    description: "Гарантія здійснюється за законодавством України",
     icon: ShieldCheckIcon,
-    title: "Оригінальна продукція",
+    title: "Гарантія",
   },
   {
-    description: "Готівка, карта або інші способи оплати на етапі checkout.",
+    description:
+      "Оплатити покупку можливо готівкою, картою чи безготівковим розрахунком.",
     icon: CreditCardIcon,
-    title: "Зручна оплата",
+    title: "Оплата",
   },
   {
-    description: "Місце для промокодів, кешбеку і персональних пропозицій.",
-    icon: BadgePercentIcon,
-    title: "Акції та бонуси",
+    description:
+      "Повернення відбувається протягом 14 днів після покупки, у відповідності із діючим законом.",
+    icon: RotateCcwIcon,
+    title: "Повернення",
   },
 ];
 

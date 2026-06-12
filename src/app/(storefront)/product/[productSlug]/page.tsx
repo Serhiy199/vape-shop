@@ -15,7 +15,7 @@ import {
 } from "@/components/storefront/storefront-primitives";
 import {
   getActiveStorefrontProductBySlug,
-  listActiveStorefrontProducts,
+  getStorefrontProductRecommendations,
 } from "@/server/queries/storefront-catalog.query";
 
 export const dynamic = "force-dynamic";
@@ -50,12 +50,16 @@ export default async function ProductPage({ params }: ProductPageProps) {
     notFound();
   }
 
-  const relatedProducts = (
-    await listActiveStorefrontProducts({
-      categorySlug: product.category.slug,
-      limit: 6,
-    })
-  ).filter((item) => item.slug !== product.slug);
+  const {
+    companionProducts,
+    interestProducts,
+    otherModelProducts,
+  } = await getStorefrontProductRecommendations({
+    brandId: product.brand?.id,
+    categoryId: product.category.id,
+    currentProductId: product.id,
+    subcategoryId: product.subcategory.id,
+  });
   const purchaseHighlights = [
     { label: "Категорія", value: product.category.name },
     { label: "Підкатегорія", value: product.subcategory.name },
@@ -87,8 +91,10 @@ export default async function ProductPage({ params }: ProductPageProps) {
 
       <StorefrontSection>
         <StorefrontProductDetailExperience
+          companionProducts={companionProducts}
           highlights={purchaseHighlights}
           images={product.images}
+          otherModelProducts={otherModelProducts}
           option={product.option}
           product={product.card}
           selectedOptionValue={product.selectedOptionValue}
@@ -169,20 +175,18 @@ export default async function ProductPage({ params }: ProductPageProps) {
               Гарантія та повернення
             </Link>
           </ProductInfoAccordion>
-        </div>
-      </StorefrontSection>
 
-      <StorefrontSection tone="muted">
-        <StorefrontSectionHeader
-          eyebrow="Схожі товари"
-          title="Інші товари з цієї категорії"
-          description="Добірка активних товарів з тієї ж категорії."
-        />
-        <StorefrontProductGrid
-          products={relatedProducts}
-          emptyTitle="Схожих товарів поки немає"
-          emptyDescription="Коли в категорії з’явиться більше активних товарів, вони будуть показані тут."
-        />
+          {interestProducts.length > 0 ? (
+            <div className="pt-10">
+              <StorefrontSectionHeader title="Вас можуть зацікавити" />
+              <StorefrontProductGrid
+                products={interestProducts}
+                emptyTitle="Рекомендованих товарів поки немає"
+                emptyDescription="Коли в каталозі з’являться активні товари, вони будуть показані тут."
+              />
+            </div>
+          ) : null}
+        </div>
       </StorefrontSection>
     </>
   );

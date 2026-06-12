@@ -13,21 +13,21 @@ import { Separator } from "@/components/ui/separator";
 export function StorefrontFooter() {
   return (
     <footer className="border-t border-border/70 bg-card">
-      <section className="mx-auto grid w-full max-w-screen-2xl gap-3 px-4 py-6 sm:px-6 md:grid-cols-2 lg:grid-cols-4 lg:px-8">
+      <section className="mx-auto grid w-full max-w-screen-2xl gap-6 px-4 py-8 sm:px-6 md:grid-cols-2 lg:grid-cols-4 lg:px-8">
         {storefrontTrustItems.map((item) => {
           const Icon = item.icon;
 
           return (
             <div
               key={item.title}
-              className="flex gap-3 rounded-lg border border-border/70 bg-background/70 p-4"
+              className="flex items-start gap-4"
             >
-              <span className="grid size-10 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary">
-                <Icon className="size-5" />
+              <span className="grid size-12 shrink-0 place-items-center text-primary">
+                <Icon className="size-11 stroke-[1.8]" />
               </span>
               <div className="space-y-1">
-                <h2 className="text-sm font-semibold">{item.title}</h2>
-                <p className="text-muted-foreground text-sm leading-5">
+                <h2 className="text-base font-semibold">{item.title}</h2>
+                <p className="text-muted-foreground text-sm leading-5 md:max-w-[260px]">
                   {item.description}
                 </p>
               </div>
@@ -35,6 +35,13 @@ export function StorefrontFooter() {
           );
         })}
       </section>
+
+      <div className="bg-sky-50 px-4 py-3 text-center text-sm font-medium text-blue-900 sm:px-6">
+        Сайт kalyan-city.com.ua призначений{" "}
+        <span className="text-primary">виключно для осіб віком 18+</span>.
+        Продаж електронних сигарет та нікотиновмісної продукції неповнолітнім
+        заборонений законом.
+      </div>
 
       <Separator />
 

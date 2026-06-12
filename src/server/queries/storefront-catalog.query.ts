@@ -780,6 +780,101 @@ export async function getStorefrontSaleProducts(limit = 8) {
   });
 }
 
+function recommendationOrderBy(): Prisma.ProductOrderByWithRelationInput[] {
+  return [
+    { isFeaturedHit: "desc" },
+    { isFeaturedNew: "desc" },
+    { isFeaturedSale: "desc" },
+    { createdAt: "desc" },
+  ];
+}
+
+async function listRecommendationProducts({
+  excludeIds = [],
+  limit,
+  where,
+}: {
+  excludeIds?: string[];
+  limit: number;
+  where: Prisma.ProductWhereInput;
+}) {
+  const products = await prisma.product.findMany({
+    where: {
+      ...storefrontVisibleProductWhere,
+      ...where,
+      id: excludeIds.length > 0 ? { notIn: excludeIds } : undefined,
+    },
+    orderBy: recommendationOrderBy(),
+    take: limit,
+    select: storefrontProductListSelect,
+  });
+
+  return products.map(mapProductToCard);
+}
+
+export async function getStorefrontProductRecommendations({
+  brandId,
+  categoryId,
+  currentProductId,
+  subcategoryId,
+}: {
+  brandId?: string | null;
+  categoryId: string;
+  currentProductId: string;
+  subcategoryId: string;
+}) {
+  const companionProducts = await listRecommendationProducts({
+    excludeIds: [currentProductId],
+    limit: 8,
+    where: {
+      categoryId,
+      subcategoryId: {
+        not: subcategoryId,
+      },
+    },
+  });
+  const otherModelProducts = await listRecommendationProducts({
+    excludeIds: [currentProductId, ...companionProducts.map((product) => product.id)],
+    limit: 8,
+    where: {
+      ...(brandId ? { brandId } : {}),
+      subcategoryId,
+    },
+  });
+  const excludedInterestIds = [
+    currentProductId,
+    ...companionProducts.map((product) => product.id),
+    ...otherModelProducts.map((product) => product.id),
+  ];
+  let interestProducts = await listRecommendationProducts({
+    excludeIds: excludedInterestIds,
+    limit: 8,
+    where: {
+      categoryId,
+    },
+  });
+
+  if (interestProducts.length < 4) {
+    interestProducts = [
+      ...interestProducts,
+      ...(await listRecommendationProducts({
+        excludeIds: [
+          ...excludedInterestIds,
+          ...interestProducts.map((product) => product.id),
+        ],
+        limit: 8 - interestProducts.length,
+        where: {},
+      })),
+    ];
+  }
+
+  return {
+    companionProducts,
+    interestProducts,
+    otherModelProducts,
+  };
+}
+
 type StorefrontProductDetailRecord = Prisma.ProductGetPayload<{
   select: typeof storefrontProductDetailSelect;
 }>;

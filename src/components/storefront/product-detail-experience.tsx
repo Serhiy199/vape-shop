@@ -8,6 +8,7 @@ import {
   type StorefrontProductGalleryImage,
 } from "@/components/storefront/product-gallery";
 import { StorefrontProductPurchasePanel } from "@/components/storefront/product-purchase-panel";
+import { ProductRecommendationsStrip } from "@/components/storefront/product-recommendations-strip";
 import type {
   StorefrontProductCardItem,
   StorefrontProductOption,
@@ -31,15 +32,19 @@ function optionValueToGalleryImage(
 }
 
 export function StorefrontProductDetailExperience({
+  companionProducts,
   highlights,
   images,
+  otherModelProducts,
   option,
   product,
   selectedOptionValue: initialSelectedOptionValue = null,
   title,
 }: {
+  companionProducts?: StorefrontProductCardItem[];
   highlights: ProductPurchaseHighlight[];
   images: StorefrontProductGalleryImage[];
+  otherModelProducts?: StorefrontProductCardItem[];
   option?: StorefrontProductOption | null;
   product: StorefrontProductCardItem;
   selectedOptionValue?: StorefrontProductOptionValue | null;
@@ -81,13 +86,23 @@ export function StorefrontProductDetailExperience({
         onActiveImageChange={setActiveImage}
         title={title}
       />
-      <StorefrontProductPurchasePanel
-        highlights={highlights}
-        onSelectOptionValue={handleSelectOptionValue}
-        option={option}
-        product={product}
-        selectedOptionValue={selectedOptionValue}
-      />
+      <div className="space-y-3">
+        <StorefrontProductPurchasePanel
+          highlights={highlights}
+          onSelectOptionValue={handleSelectOptionValue}
+          option={option}
+          product={product}
+          selectedOptionValue={selectedOptionValue}
+        />
+        <ProductRecommendationsStrip
+          products={companionProducts ?? []}
+          title="Супутні товари"
+        />
+        <ProductRecommendationsStrip
+          products={otherModelProducts ?? []}
+          title="Інші моделі"
+        />
+      </div>
     </div>
   );
 }
