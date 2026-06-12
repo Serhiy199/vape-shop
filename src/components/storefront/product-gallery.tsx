@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { ChevronLeftIcon, ChevronRightIcon, ImageIcon } from "lucide-react";
 
 import { StorefrontCard } from "@/components/storefront/storefront-primitives";
@@ -31,24 +31,23 @@ export function StorefrontProductGallery({
   );
   const activeIndex = foundActiveIndex >= 0 ? foundActiveIndex : 0;
   const visibleCount = 4;
+  const effectiveThumbnailStart =
+    activeIndex < thumbnailStart
+      ? activeIndex
+      : activeIndex >= thumbnailStart + visibleCount
+        ? Math.max(0, activeIndex - visibleCount + 1)
+        : thumbnailStart;
   const visibleThumbnails = useMemo(
-    () => images.slice(thumbnailStart, thumbnailStart + visibleCount),
-    [images, thumbnailStart],
+    () =>
+      images.slice(
+        effectiveThumbnailStart,
+        effectiveThumbnailStart + visibleCount,
+      ),
+    [effectiveThumbnailStart, images],
   );
 
-  useEffect(() => {
-    if (activeIndex < thumbnailStart) {
-      setThumbnailStart(activeIndex);
-      return;
-    }
-
-    if (activeIndex >= thumbnailStart + visibleCount) {
-      setThumbnailStart(activeIndex - visibleCount + 1);
-    }
-  }, [activeIndex, thumbnailStart]);
-
-  const canGoPrev = thumbnailStart > 0;
-  const canGoNext = thumbnailStart + visibleCount < images.length;
+  const canGoPrev = effectiveThumbnailStart > 0;
+  const canGoNext = effectiveThumbnailStart + visibleCount < images.length;
   const canNavigateImages = images.length > 1;
 
   function selectImageAt(index: number) {
@@ -61,13 +60,13 @@ export function StorefrontProductGallery({
 
   return (
     <div className="space-y-4">
-      <StorefrontCard className="grid min-h-[420px] place-items-center overflow-hidden p-4 sm:min-h-[560px] lg:min-h-[640px]">
+      <StorefrontCard className="grid aspect-[304/243] place-items-center overflow-hidden p-0 md:aspect-[740/456] lg:aspect-[570/456]">
         {primaryImage ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
             src={primaryImage.url}
             alt={primaryImage.alt ?? title}
-            className="max-h-[380px] w-full rounded-lg object-contain sm:max-h-[520px] lg:max-h-[600px]"
+            className="h-full w-full object-contain"
           />
         ) : (
           <span className="bg-muted text-muted-foreground grid size-24 place-items-center rounded-xl">
@@ -77,10 +76,10 @@ export function StorefrontProductGallery({
       </StorefrontCard>
 
       {images.length > 1 ? (
-        <div className="grid grid-cols-[44px_minmax(0,1fr)_44px] gap-2">
+        <div className="grid grid-cols-[44px_minmax(0,1fr)_44px] gap-2 lg:min-h-[120px]">
           <button
             type="button"
-            className="bg-card text-muted-foreground hover:text-foreground border-border/70 grid min-h-24 place-items-center rounded-lg border transition disabled:cursor-not-allowed disabled:opacity-35"
+            className="bg-card text-muted-foreground hover:text-foreground border-border/70 grid min-h-20 place-items-center rounded-lg border transition disabled:cursor-not-allowed disabled:opacity-35 lg:min-h-[120px]"
             disabled={!canNavigateImages}
             onClick={() => {
               const nextIndex =
@@ -88,8 +87,8 @@ export function StorefrontProductGallery({
               selectImageAt(nextIndex);
 
               if (canGoPrev || activeIndex === 0) {
-                setThumbnailStart((current) =>
-                  Math.max(0, current - visibleCount),
+                setThumbnailStart(
+                  Math.max(0, effectiveThumbnailStart - visibleCount),
                 );
               }
             }}
@@ -98,7 +97,7 @@ export function StorefrontProductGallery({
             <ChevronLeftIcon className="size-5" />
           </button>
 
-          <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+          <div className="grid grid-cols-4 gap-2">
             {visibleThumbnails.map((image) => {
               const isActive = primaryImage?.url === image.url;
 
@@ -106,7 +105,7 @@ export function StorefrontProductGallery({
                 <button
                   key={image.id}
                   className={cn(
-                    "bg-card grid aspect-square place-items-center overflow-hidden rounded-lg border p-2 transition",
+                    "bg-card grid aspect-[76/96] place-items-center overflow-hidden rounded-lg border p-2 transition lg:aspect-[96/120]",
                     isActive
                       ? "border-primary ring-primary/20 ring-2"
                       : "border-border/70 hover:border-primary/50",
@@ -127,7 +126,7 @@ export function StorefrontProductGallery({
 
           <button
             type="button"
-            className="bg-card text-muted-foreground hover:text-foreground border-border/70 grid min-h-24 place-items-center rounded-lg border transition disabled:cursor-not-allowed disabled:opacity-35"
+            className="bg-card text-muted-foreground hover:text-foreground border-border/70 grid min-h-20 place-items-center rounded-lg border transition disabled:cursor-not-allowed disabled:opacity-35 lg:min-h-[120px]"
             disabled={!canNavigateImages}
             onClick={() => {
               const nextIndex =
@@ -135,10 +134,10 @@ export function StorefrontProductGallery({
               selectImageAt(nextIndex);
 
               if (canGoNext || activeIndex === images.length - 1) {
-                setThumbnailStart((current) =>
+                setThumbnailStart(
                   Math.min(
                     Math.max(0, images.length - visibleCount),
-                    current + visibleCount,
+                    effectiveThumbnailStart + visibleCount,
                   ),
                 );
               }

@@ -74,7 +74,7 @@ export function StorefrontProductDetailExperience({
   }
 
   return (
-    <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_420px]">
+    <div className="grid gap-8 lg:grid-cols-[minmax(0,570px)_minmax(0,1fr)]">
       <StorefrontProductGallery
         activeImage={activeImage}
         images={galleryImages}
