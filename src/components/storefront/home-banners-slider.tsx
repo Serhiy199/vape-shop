@@ -32,23 +32,11 @@ export function HomeBannersSlider({ banners }: { banners: HomeBanner[] }) {
         watchOverflow
         breakpoints={{
           320: {
-            slidesPerView: 1.35,
+            slidesPerView: 1,
             spaceBetween: 10,
           },
-          480: {
-            slidesPerView: 2,
-            spaceBetween: 12,
-          },
           768: {
-            slidesPerView: 3,
-            spaceBetween: 14,
-          },
-          1024: {
-            slidesPerView: 4,
-            spaceBetween: 16,
-          },
-          1280: {
-            slidesPerView: 5,
+            slidesPerView: 2,
             spaceBetween: 16,
           },
         }}
