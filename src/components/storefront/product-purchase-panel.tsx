@@ -1,6 +1,6 @@
 "use client";
 
-import { HeartIcon, StarIcon } from "lucide-react";
+import { StarIcon } from "lucide-react";
 
 import { AddToCartButton } from "@/components/storefront/add-to-cart-button";
 import { currencyFormatter } from "@/components/storefront/product-card";
@@ -10,11 +10,11 @@ import type {
   StorefrontProductOption,
   StorefrontProductOptionValue,
 } from "@/components/storefront/product-types";
+import { WishlistButton } from "@/features/wishlist/components/wishlist-button";
 import {
   StorefrontBadge,
   StorefrontCard,
 } from "@/components/storefront/storefront-primitives";
-import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 export function StorefrontProductPurchasePanel({
@@ -147,14 +147,10 @@ export function StorefrontProductPurchasePanel({
                 : null
             }
           />
-          <Button
-            variant="outline"
-            size="icon"
-            className="h-12 w-full rounded-lg sm:w-12 lg:w-full xl:w-12"
-          >
-            <HeartIcon className="size-5" />
-            <span className="sr-only">Додати в обране</span>
-          </Button>
+          <WishlistButton
+            productId={product.id}
+            className="h-12 w-full sm:w-12 lg:w-full xl:w-12"
+          />
         </div>
 
         <ProductRecommendationsStrip

@@ -31,16 +31,20 @@ function CheckoutField({
   autoComplete,
   label,
   name,
+  onChange,
   placeholder,
   required = false,
   type = "text",
+  value,
 }: {
   autoComplete?: string;
   label: string;
   name: string;
+  onChange?: (value: string) => void;
   placeholder: string;
   required?: boolean;
   type?: string;
+  value?: string;
 }) {
   return (
     <div className="space-y-2">
@@ -53,9 +57,11 @@ function CheckoutField({
         className="bg-background h-11"
         id={name}
         name={name}
+        onChange={onChange ? (event) => onChange(event.target.value) : undefined}
         placeholder={placeholder}
         required={required}
         type={type}
+        value={value}
       />
     </div>
   );
@@ -85,11 +91,88 @@ function EmptyCheckout() {
   );
 }
 
-export function CheckoutForm() {
+type CheckoutAddress = {
+  address: string;
+  city: string;
+  comment: string;
+  fullName: string;
+  id: string;
+  isDefault: boolean;
+  phone: string;
+};
+
+type CheckoutProfile = {
+  email: string;
+  firstName: string | null;
+  lastName: string | null;
+  phone: string | null;
+} | null;
+
+function splitFullName(fullName: string) {
+  const [firstName, ...rest] = fullName.trim().split(/\s+/);
+
+  return {
+    firstName: firstName ?? "",
+    lastName: rest.join(" "),
+  };
+}
+
+function buildInitialValues(profile: CheckoutProfile, addresses: CheckoutAddress[]) {
+  const defaultAddress = addresses.find((address) => address.isDefault) ?? addresses[0];
+  const addressName = defaultAddress ? splitFullName(defaultAddress.fullName) : null;
+
+  return {
+    customerNote: defaultAddress?.comment ?? "",
+    deliveryAddress: defaultAddress
+      ? `${defaultAddress.city}, ${defaultAddress.address}`
+      : "",
+    email: profile?.email ?? "",
+    firstName: addressName?.firstName ?? profile?.firstName ?? "",
+    lastName: addressName?.lastName ?? profile?.lastName ?? "",
+    phone: defaultAddress?.phone ?? profile?.phone ?? "",
+  };
+}
+
+export function CheckoutForm({
+  addresses = [],
+  profile = null,
+}: {
+  addresses?: CheckoutAddress[];
+  profile?: CheckoutProfile;
+}) {
   const { clearCart, isHydrated, itemCount, items, totalAmount } = useCart();
+  const [formValues, setFormValues] = useState(() =>
+    buildInitialValues(profile, addresses),
+  );
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
+
+  function updateField(field: keyof typeof formValues, value: string) {
+    setFormValues((current) => ({
+      ...current,
+      [field]: value,
+    }));
+  }
+
+  function handleAddressSelect(addressId: string) {
+    const address = addresses.find((item) => item.id === addressId);
+
+    if (!address) {
+      return;
+    }
+
+    const name = splitFullName(address.fullName);
+
+    setFormValues((current) => ({
+      ...current,
+      customerNote: address.comment,
+      deliveryAddress: `${address.city}, ${address.address}`,
+      firstName: name.firstName,
+      lastName: name.lastName,
+      phone: address.phone,
+    }));
+  }
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -179,30 +262,38 @@ export function CheckoutForm() {
                 autoComplete="given-name"
                 label="Ім'я"
                 name="firstName"
+                onChange={(value) => updateField("firstName", value)}
                 placeholder={checkoutFieldPlaceholders.firstName}
                 required
+                value={formValues.firstName}
               />
               <CheckoutField
                 autoComplete="family-name"
                 label="Прізвище"
                 name="lastName"
+                onChange={(value) => updateField("lastName", value)}
                 placeholder={checkoutFieldPlaceholders.lastName}
+                value={formValues.lastName}
               />
               <CheckoutField
                 autoComplete="tel"
                 label="Телефон"
                 name="phone"
+                onChange={(value) => updateField("phone", value)}
                 placeholder={checkoutFieldPlaceholders.phone}
                 required
                 type="tel"
+                value={formValues.phone}
               />
               <CheckoutField
                 autoComplete="email"
                 label="Email"
                 name="email"
+                onChange={(value) => updateField("email", value)}
                 placeholder={checkoutFieldPlaceholders.email}
                 required
                 type="email"
+                value={formValues.email}
               />
             </div>
           </div>
@@ -221,12 +312,34 @@ export function CheckoutForm() {
               </p>
             </div>
 
+            {addresses.length > 0 ? (
+              <div className="space-y-2">
+                <Label htmlFor="savedAddress">Збережена адреса</Label>
+                <select
+                  id="savedAddress"
+                  className="border-border bg-background h-11 w-full rounded-lg border px-3 text-sm"
+                  defaultValue={
+                    addresses.find((address) => address.isDefault)?.id ?? addresses[0]?.id
+                  }
+                  onChange={(event) => handleAddressSelect(event.target.value)}
+                >
+                  {addresses.map((address) => (
+                    <option key={address.id} value={address.id}>
+                      {address.fullName}, {address.city}, {address.address}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            ) : null}
+
             <CheckoutField
               autoComplete="street-address"
               label="Адреса доставки"
               name="deliveryAddress"
+              onChange={(value) => updateField("deliveryAddress", value)}
               placeholder={checkoutFieldPlaceholders.deliveryAddress}
               required
+              value={formValues.deliveryAddress}
             />
 
             <div className="space-y-2">
@@ -235,7 +348,9 @@ export function CheckoutForm() {
                 className="bg-background min-h-24"
                 id="customerNote"
                 name="customerNote"
+                onChange={(event) => updateField("customerNote", event.target.value)}
                 placeholder={checkoutFieldPlaceholders.customerNote}
+                value={formValues.customerNote}
               />
             </div>
           </div>

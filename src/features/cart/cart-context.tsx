@@ -147,8 +147,12 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   const [isHydrated, setIsHydrated] = useState(false);
 
   useEffect(() => {
-    setItems(readStoredCart());
-    setIsHydrated(true);
+    const timeoutId = window.setTimeout(() => {
+      setItems(readStoredCart());
+      setIsHydrated(true);
+    }, 0);
+
+    return () => window.clearTimeout(timeoutId);
   }, []);
 
   useEffect(() => {

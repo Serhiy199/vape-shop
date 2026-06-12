@@ -77,7 +77,7 @@ export function StorefrontHeader() {
 
         <div className="ml-auto flex items-center gap-2">
           <Link
-            href="/wishlist"
+            href="/account/wishlist"
             className={cn(
               buttonVariants({ variant: "outline", size: "icon" }),
               "bg-card hidden rounded-lg sm:inline-flex",

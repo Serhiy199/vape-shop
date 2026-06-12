@@ -3,10 +3,20 @@ import {
   StorefrontPageHeader,
   StorefrontSection,
 } from "@/components/storefront/storefront-primitives";
+import { auth } from "@/lib/auth/auth";
+import { getAccountProfile, listCheckoutAddresses } from "@/server/queries/account.query";
 
 export const dynamic = "force-dynamic";
 
-export default function CheckoutPage() {
+export default async function CheckoutPage() {
+  const session = await auth();
+  const [profile, addresses] = session?.user?.id
+    ? await Promise.all([
+        getAccountProfile(session.user.id),
+        listCheckoutAddresses(session.user.id),
+      ])
+    : [null, []];
+
   return (
     <>
       <StorefrontPageHeader
@@ -21,7 +31,7 @@ export default function CheckoutPage() {
       />
 
       <StorefrontSection>
-        <CheckoutForm />
+        <CheckoutForm addresses={addresses} profile={profile} />
       </StorefrontSection>
     </>
   );

@@ -355,6 +355,8 @@ model OrderItem {
   productId             String
   productTitle          String
   productSlug           String
+  productImage          String?
+  selectedOptions       Json?
   selectedOptionName    String?
   selectedOptionValue   String?
   selectedOptionValueId String?
@@ -374,10 +376,13 @@ model OrderItem {
 model Address {
   id           String   @id @default(cuid())
   userId       String
+  fullName     String?
   firstName    String
   lastName     String
   phone        String
   city         String
+  address      String?
+  comment      String?
   addressLine1 String
   addressLine2 String?
   label        String?

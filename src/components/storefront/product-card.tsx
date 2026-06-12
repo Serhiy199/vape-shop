@@ -1,17 +1,17 @@
 import Link from "next/link";
-import { HeartIcon, ImageIcon, StarIcon } from "lucide-react";
+import { ImageIcon, StarIcon } from "lucide-react";
 
 import { AddToCartButton } from "@/components/storefront/add-to-cart-button";
 import type {
   StorefrontProductBadge,
   StorefrontProductCardItem,
 } from "@/components/storefront/product-types";
+import { WishlistButton } from "@/features/wishlist/components/wishlist-button";
 import {
   StorefrontBadge,
   StorefrontCard,
   storefrontPatterns,
 } from "@/components/storefront/storefront-primitives";
-import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 const badgeLabels: Record<StorefrontProductBadge, string> = {
@@ -77,14 +77,10 @@ export function StorefrontProductCard({
             </div>
           ) : null}
 
-          <Button
-            variant="outline"
-            size="icon"
-            className="bg-card/90 absolute top-2 right-2 size-9 rounded-lg"
-            aria-label="Додати товар в обране"
-          >
-            <HeartIcon className="size-4" />
-          </Button>
+          <WishlistButton
+            productId={product.id}
+            className="bg-card/90 absolute top-2 right-2 size-9"
+          />
         </div>
 
         <div className="flex min-h-0 flex-1 flex-col gap-3">

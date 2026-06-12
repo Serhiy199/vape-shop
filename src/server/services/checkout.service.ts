@@ -216,7 +216,21 @@ export async function createStorefrontCheckoutOrder(
       productId: item.product.id,
       productSlug: item.product.slug,
       productTitle: item.product.title,
+      productImage: item.product.images[0]?.url,
       quantity: item.quantity,
+      selectedOptions:
+        item.selectedOptionName &&
+        item.selectedOptionValue &&
+        item.selectedOptionValueId
+          ? [
+              {
+                optionId: item.product.option?.id ?? null,
+                optionName: item.selectedOptionName,
+                valueId: item.selectedOptionValueId,
+                valueName: item.selectedOptionValue,
+              },
+            ]
+          : undefined,
       selectedOptionName: item.selectedOptionName,
       selectedOptionValue: item.selectedOptionValue,
       selectedOptionValueId: item.selectedOptionValueId,
