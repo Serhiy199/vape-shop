@@ -613,15 +613,13 @@ function normalizeProductOption(option: ProductOptionDraft | null) {
     values: option.values.map((value, index) => ({
       id: value.id,
       image: getProductOptionValueImage(value),
-      imagePublicId: value.imageRemoved
-        ? undefined
-        : value.imagePublicId || undefined,
+      imagePublicId: value.imageRemoved ? "" : value.imagePublicId,
       imageRemoved: value.imageRemoved,
       label: value.label,
       slug: value.slug || undefined,
-      titleOverride: value.titleOverride || undefined,
-      seoTitle: value.seoTitle || undefined,
-      seoDescription: value.seoDescription || undefined,
+      titleOverride: value.titleOverride,
+      seoTitle: value.seoTitle,
+      seoDescription: value.seoDescription,
       sortOrder: Number(value.sortOrder || index),
     })),
   };
@@ -1689,9 +1687,14 @@ function ProductWizard({
 
         const serverOptionError = result.fieldErrors?.option?.[0];
         if (serverOptionError) {
+          const optionErrorMessage =
+            result.error && result.error !== GENERIC_SERVER_VALIDATION_MESSAGE
+              ? result.error
+              : formatFieldValidationMessage("option", serverOptionError);
+
           setOptionErrors((current) => ({
             ...current,
-            general: formatFieldValidationMessage("option", serverOptionError),
+            general: optionErrorMessage,
           }));
         }
 
