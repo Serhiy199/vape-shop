@@ -8,7 +8,7 @@ import { StorefrontProductGrid } from "@/components/storefront/product-grid";
 import { SafeRichTextContent } from "@/components/storefront/safe-rich-text-content";
 import {
   StorefrontCard,
-  StorefrontPageHeader,
+  StorefrontBreadcrumbs,
   StorefrontSection,
   StorefrontSectionHeader,
   storefrontPatterns,
@@ -60,19 +60,11 @@ export default async function ProductPage({ params }: ProductPageProps) {
     currentProductId: product.id,
     subcategoryId: product.subcategory.id,
   });
-  const purchaseHighlights = [
-    { label: "Категорія", value: product.category.name },
-    { label: "Підкатегорія", value: product.subcategory.name },
-    ...product.fieldValues.slice(0, 4).map((fieldValue) => ({
-      label: fieldValue.label,
-      value: fieldValue.value,
-    })),
-  ].filter((highlight) => highlight.value);
-
   return (
     <>
-      <StorefrontPageHeader
-        breadcrumbs={[
+      <StorefrontSection tone="surface" spacing="sm" className="border-b border-border/70">
+        <StorefrontBreadcrumbs
+          items={[
           { href: "/", label: "Головна" },
           { href: "/catalog", label: "Каталог" },
           {
@@ -84,15 +76,13 @@ export default async function ProductPage({ params }: ProductPageProps) {
             label: product.subcategory.name,
           },
           { label: product.pageTitle },
-        ]}
-        eyebrow={product.brand?.name ?? product.category.name}
-        title={product.pageTitle}
-      />
+          ]}
+        />
+      </StorefrontSection>
 
       <StorefrontSection>
         <StorefrontProductDetailExperience
           companionProducts={companionProducts}
-          highlights={purchaseHighlights}
           images={product.images}
           otherModelProducts={otherModelProducts}
           option={product.option}

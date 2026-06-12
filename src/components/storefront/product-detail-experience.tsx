@@ -8,17 +8,11 @@ import {
   type StorefrontProductGalleryImage,
 } from "@/components/storefront/product-gallery";
 import { StorefrontProductPurchasePanel } from "@/components/storefront/product-purchase-panel";
-import { ProductRecommendationsStrip } from "@/components/storefront/product-recommendations-strip";
 import type {
   StorefrontProductCardItem,
   StorefrontProductOption,
   StorefrontProductOptionValue,
 } from "@/components/storefront/product-types";
-
-type ProductPurchaseHighlight = {
-  label: string;
-  value: string;
-};
 
 function optionValueToGalleryImage(
   value: StorefrontProductOptionValue,
@@ -33,7 +27,6 @@ function optionValueToGalleryImage(
 
 export function StorefrontProductDetailExperience({
   companionProducts,
-  highlights,
   images,
   otherModelProducts,
   option,
@@ -42,7 +35,6 @@ export function StorefrontProductDetailExperience({
   title,
 }: {
   companionProducts?: StorefrontProductCardItem[];
-  highlights: ProductPurchaseHighlight[];
   images: StorefrontProductGalleryImage[];
   otherModelProducts?: StorefrontProductCardItem[];
   option?: StorefrontProductOption | null;
@@ -88,19 +80,13 @@ export function StorefrontProductDetailExperience({
       />
       <div className="space-y-3">
         <StorefrontProductPurchasePanel
-          highlights={highlights}
+          companionProducts={companionProducts}
           onSelectOptionValue={handleSelectOptionValue}
+          otherModelProducts={otherModelProducts}
           option={option}
           product={product}
           selectedOptionValue={selectedOptionValue}
-        />
-        <ProductRecommendationsStrip
-          products={companionProducts ?? []}
-          title="Супутні товари"
-        />
-        <ProductRecommendationsStrip
-          products={otherModelProducts ?? []}
-          title="Інші моделі"
+          title={title}
         />
       </div>
     </div>

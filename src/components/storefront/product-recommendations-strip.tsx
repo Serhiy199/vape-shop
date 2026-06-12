@@ -6,7 +6,6 @@ import { ChevronLeftIcon, ChevronRightIcon, ImageIcon } from "lucide-react";
 
 import { currencyFormatter } from "@/components/storefront/product-card";
 import type { StorefrontProductCardItem } from "@/components/storefront/product-types";
-import { StorefrontCard } from "@/components/storefront/storefront-primitives";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -33,7 +32,12 @@ export function ProductRecommendationsStrip({
   }
 
   return (
-    <StorefrontCard className={cn("overflow-hidden p-0", className)}>
+    <div
+      className={cn(
+        "border-border/70 bg-background overflow-hidden rounded-lg border",
+        className,
+      )}
+    >
       <div className="border-border/70 border-b px-4 py-3">
         <h2 className="text-base font-semibold tracking-tight">{title}</h2>
       </div>
@@ -46,7 +50,7 @@ export function ProductRecommendationsStrip({
         </div>
         <StripArrow direction="next" onClick={() => scrollProducts("next")} />
       </div>
-    </StorefrontCard>
+    </div>
   );
 }
 

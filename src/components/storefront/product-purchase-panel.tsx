@@ -1,14 +1,15 @@
 "use client";
 
-import { HeartIcon, ShieldCheckIcon, TruckIcon } from "lucide-react";
+import { HeartIcon, StarIcon } from "lucide-react";
 
 import { AddToCartButton } from "@/components/storefront/add-to-cart-button";
+import { currencyFormatter } from "@/components/storefront/product-card";
+import { ProductRecommendationsStrip } from "@/components/storefront/product-recommendations-strip";
 import type {
   StorefrontProductCardItem,
   StorefrontProductOption,
   StorefrontProductOptionValue,
 } from "@/components/storefront/product-types";
-import { currencyFormatter } from "@/components/storefront/product-card";
 import {
   StorefrontBadge,
   StorefrontCard,
@@ -16,29 +17,28 @@ import {
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
-type ProductPurchaseHighlight = {
-  label: string;
-  value: string;
-};
-
 export function StorefrontProductPurchasePanel({
-  highlights = [],
+  companionProducts = [],
   onSelectOptionValue,
+  otherModelProducts = [],
   option,
   product,
   selectedOptionValue,
+  title,
 }: {
-  highlights?: ProductPurchaseHighlight[];
+  companionProducts?: StorefrontProductCardItem[];
   onSelectOptionValue?: (value: StorefrontProductOptionValue) => void;
+  otherModelProducts?: StorefrontProductCardItem[];
   option?: StorefrontProductOption | null;
   product: StorefrontProductCardItem;
   selectedOptionValue?: StorefrontProductOptionValue | null;
+  title: string;
 }) {
   const isAvailable = product.availability === "in_stock";
   const requiresOption = Boolean(option && option.values.length > 0);
 
   return (
-    <StorefrontCard className="p-5 lg:sticky lg:top-40">
+    <StorefrontCard className="p-5">
       <div className="space-y-5">
         <div className="flex flex-wrap gap-2">
           {product.badges?.map((badge) => (
@@ -66,15 +66,17 @@ export function StorefrontProductPurchasePanel({
           </StorefrontBadge>
         </div>
 
-        <div className="space-y-1">
-          {product.brand ? (
-            <p className="text-muted-foreground text-sm">
-              Виробник: {product.brand}
-            </p>
-          ) : null}
-          <p className="text-3xl font-semibold tracking-tight">
-            {currencyFormatter.format(product.price)}
-          </p>
+        <div className="space-y-2">
+          <h1 className="text-2xl font-semibold leading-tight tracking-tight sm:text-3xl">
+            {title}
+          </h1>
+          <div className="text-muted-foreground flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
+            <span className="inline-flex items-center gap-1">
+              <StarIcon className="size-4 fill-primary text-primary" />
+              5/5
+            </span>
+            {product.brand ? <span>Виробник: {product.brand}</span> : null}
+          </div>
         </div>
 
         {option && option.values.length > 0 ? (
@@ -121,6 +123,10 @@ export function StorefrontProductPurchasePanel({
           </div>
         ) : null}
 
+        <p className="text-3xl font-semibold tracking-tight">
+          {currencyFormatter.format(product.price)}
+        </p>
+
         <div className="grid gap-2 sm:grid-cols-[1fr_auto] lg:grid-cols-1 xl:grid-cols-[1fr_auto]">
           <AddToCartButton
             className="h-12 rounded-lg"
@@ -151,42 +157,16 @@ export function StorefrontProductPurchasePanel({
           </Button>
         </div>
 
-        {highlights.length > 0 ? (
-          <div className="border-border/70 bg-background grid gap-2 rounded-lg border p-4">
-            {highlights.map((highlight) => (
-              <div
-                key={`${highlight.label}-${highlight.value}`}
-                className="flex items-start justify-between gap-3 text-sm"
-              >
-                <span className="text-muted-foreground">{highlight.label}</span>
-                <span className="max-w-[55%] text-right font-medium">
-                  {highlight.value}
-                </span>
-              </div>
-            ))}
-          </div>
-        ) : null}
-
-        <div className="border-border/70 bg-background grid gap-3 rounded-lg border p-4 text-sm">
-          <span className="inline-flex gap-3">
-            <TruckIcon className="text-primary size-5 shrink-0" />
-            <span>
-              <strong className="block">Доставка по Україні</strong>
-              <span className="text-muted-foreground">
-                Детальні умови будуть підключені на checkout етапі.
-              </span>
-            </span>
-          </span>
-          <span className="inline-flex gap-3">
-            <ShieldCheckIcon className="text-primary size-5 shrink-0" />
-            <span>
-              <strong className="block">Перевірений товар</strong>
-              <span className="text-muted-foreground">
-                Дані товару керуються з адмін-панелі.
-              </span>
-            </span>
-          </span>
-        </div>
+        <ProductRecommendationsStrip
+          className="shadow-none"
+          products={otherModelProducts}
+          title="Інші моделі"
+        />
+        <ProductRecommendationsStrip
+          className="shadow-none"
+          products={companionProducts}
+          title="Супутні товари"
+        />
       </div>
     </StorefrontCard>
   );
