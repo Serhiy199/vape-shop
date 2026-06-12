@@ -213,6 +213,7 @@ function SubcategoryFormFields({
           value={values.seoTitle}
           onChange={(event) => onInputChange("seoTitle", event.target.value)}
           error={errors.seoTitle}
+          hint={`Якщо залишити порожнім: ${values.name}: купити в інтернет-магазині VapeShop`}
         />
       </AdminFormGrid>
 
@@ -236,6 +237,7 @@ function SubcategoryFormFields({
           }
           error={errors.seoDescription}
           rows={3}
+          hint={`Якщо залишити порожнім: ${values.name}: замовити за вигідною ціною в Україні у VapeShop. Швидке оформлення, зручна доставка по Україні та актуальний асортимент.`}
         />
 
         <AdminField label="Статус" error={errors.isActive}>

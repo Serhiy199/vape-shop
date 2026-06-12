@@ -236,6 +236,26 @@ const deactivateSchema = z.object({
   id: z.string().trim().min(1).max(191),
 });
 
+const SEO_STORE_NAME = "VapeShop";
+
+function buildSeoTitle(name: string) {
+  return `${name}: купити в інтернет-магазині ${SEO_STORE_NAME}`;
+}
+
+function buildSeoDescription(name: string) {
+  return `${name}: замовити за вигідною ціною в Україні у ${SEO_STORE_NAME}. Швидке оформлення, зручна доставка по Україні та актуальний асортимент.`;
+}
+
+function withDefaultSeo<TPayload extends { name: string; seoDescription?: string; seoTitle?: string }>(
+  payload: TPayload,
+) {
+  return {
+    ...payload,
+    seoDescription: payload.seoDescription ?? buildSeoDescription(payload.name),
+    seoTitle: payload.seoTitle ?? buildSeoTitle(payload.name),
+  };
+}
+
 async function ensureCategory(categoryId: string) {
   const category = await getCategoryById(categoryId);
 
@@ -288,7 +308,7 @@ export async function createAdminCategory(input: unknown): Promise<
     return validationError(parsed.error.flatten().fieldErrors);
   }
 
-  const payload: CreateCategoryInput = parsed.data;
+  const payload: CreateCategoryInput = withDefaultSeo(parsed.data);
   const uniquenessError = await validateCategoryUniqueness(payload);
 
   if (uniquenessError) {
@@ -313,7 +333,7 @@ export async function updateCategory(input: unknown): Promise<
     return validationError(parsed.error.flatten().fieldErrors);
   }
 
-  const payload: UpdateCategoryInput = parsed.data;
+  const payload: UpdateCategoryInput = withDefaultSeo(parsed.data);
   const category = await ensureCategory(payload.id);
 
   if (!category) {
@@ -536,7 +556,7 @@ export async function createAdminSubcategory(input: unknown): Promise<
     return validationError(parsed.error.flatten().fieldErrors);
   }
 
-  const payload: CreateSubcategoryInput = parsed.data;
+  const payload: CreateSubcategoryInput = withDefaultSeo(parsed.data);
   const category = await ensureCategory(payload.categoryId);
 
   if (!category) {
@@ -608,7 +628,7 @@ export async function updateAdminSubcategory(input: unknown): Promise<
     return validationError(parsed.error.flatten().fieldErrors);
   }
 
-  const payload: UpdateSubcategoryInput = parsed.data;
+  const payload: UpdateSubcategoryInput = withDefaultSeo(parsed.data);
   const existingSubcategory = await getSubcategoryById(payload.id);
 
   if (!existingSubcategory) {
@@ -1253,6 +1273,7 @@ function normalizeProductOptionPayload(
         slugifyText(`${payload.slug}-${value.label}`) ||
         `${payload.slug}-option-${index + 1}`;
       const optionTitle = value.titleOverride?.trim() || undefined;
+      const optionPageTitle = optionTitle || `${payload.title} ${value.label}`;
 
       return {
         ...value,
@@ -1260,8 +1281,9 @@ function normalizeProductOptionPayload(
         imagePublicId: value.imageRemoved ? undefined : value.imagePublicId,
         slug: optionSlug,
         titleOverride: optionTitle,
-        seoTitle: value.seoTitle?.trim() || undefined,
-        seoDescription: value.seoDescription?.trim() || undefined,
+        seoTitle: value.seoTitle?.trim() || buildSeoTitle(optionPageTitle),
+        seoDescription:
+          value.seoDescription?.trim() || buildSeoDescription(optionPageTitle),
       };
     }),
   };
@@ -1375,12 +1397,9 @@ async function normalizeProductWritePayload(
     return normalizedFieldValues;
   }
 
-  const productSeoTitle =
-    payload.seoTitle ??
-    `${payload.title}: купити в інтернет-магазині Voodoo Vape`;
+  const productSeoTitle = payload.seoTitle ?? buildSeoTitle(payload.title);
   const productSeoDescription =
-    payload.seoDescription ??
-    `${payload.title}: замовити за вигідною ціною в Україні у Voodoo Vape. Швидке оформлення, зручна доставка по Україні та актуальний асортимент.`;
+    payload.seoDescription ?? buildSeoDescription(payload.title);
 
   const normalizedOption = normalizeProductOptionPayload(payload);
   const optionSlugError = await validateProductOptionSlugUniqueness(
@@ -1464,7 +1483,7 @@ export async function createAdminBrand(input: unknown): Promise<
     return validationError(parsed.error.flatten().fieldErrors);
   }
 
-  const payload: CreateBrandInput = parsed.data;
+  const payload: CreateBrandInput = withDefaultSeo(parsed.data);
   const subcategory = await getSubcategoryById(payload.subcategoryId);
 
   if (!subcategory) {
@@ -1500,7 +1519,7 @@ export async function updateAdminBrand(input: unknown): Promise<
     return validationError(parsed.error.flatten().fieldErrors);
   }
 
-  const payload: UpdateBrandInput = parsed.data;
+  const payload: UpdateBrandInput = withDefaultSeo(parsed.data);
   const existingBrand = await getBrandById(payload.id);
 
   if (!existingBrand) {

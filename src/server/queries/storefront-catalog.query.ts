@@ -866,11 +866,11 @@ export async function getActiveStorefrontProductBySlug(slug: string) {
   const metaTitle =
     selectedOptionValue?.seoTitle ??
     product.seoTitle ??
-    `${pageTitle}: купити в інтернет-магазині Voodoo Vape`;
+    `${pageTitle}: купити в інтернет-магазині VapeShop`;
   const metaDescription =
     selectedOptionValue?.seoDescription ??
     product.seoDescription ??
-    `${pageTitle}: замовити за вигідною ціною в Україні у Voodoo Vape. Швидке оформлення, зручна доставка по Україні та актуальний асортимент.`;
+    `${pageTitle}: замовити за вигідною ціною в Україні у VapeShop. Швидке оформлення, зручна доставка по Україні та актуальний асортимент.`;
 
   return {
     ...product,

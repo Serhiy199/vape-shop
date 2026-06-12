@@ -778,18 +778,30 @@ function resolveProductSlug(values: ProductFormValues) {
   return values.slug.trim() || slugifyText(values.title);
 }
 
-function resolveSeoTitle(values: ProductFormValues) {
+function buildSeoTitle(name: string) {
+  return `${name}: купити в інтернет-магазині VapeShop`;
+}
+
+function buildSeoDescription(name: string) {
+  return `${name}: замовити за вигідною ціною в Україні у VapeShop. Швидке оформлення, зручна доставка по Україні та актуальний асортимент.`;
+}
+
+function resolveOptionValuePageTitle(
+  values: ProductFormValues,
+  optionValue: ProductOptionValueDraft,
+) {
   return (
-    values.seoTitle.trim() ||
-    `${values.title.trim()}: купити в інтернет-магазині Voodoo Vape`
+    optionValue.titleOverride.trim() ||
+    `${values.title.trim()} ${optionValue.label.trim()}`.trim()
   );
 }
 
+function resolveSeoTitle(values: ProductFormValues) {
+  return values.seoTitle.trim() || buildSeoTitle(values.title.trim());
+}
+
 function resolveSeoDescription(values: ProductFormValues) {
-  return (
-    values.seoDescription.trim() ||
-    `${values.title.trim()}: замовити за вигідною ціною в Україні у Voodoo Vape. Швидке оформлення, зручна доставка по Україні та актуальний асортимент.`
-  );
+  return values.seoDescription.trim() || buildSeoDescription(values.title.trim());
 }
 function validateDynamicFields(
   fieldDefinitions: FieldDefinition[],
@@ -2393,6 +2405,7 @@ function ProductWizard({
                         seoTitle: event.target.value,
                       })
                     }
+                    hint={`Якщо залишити порожнім: ${buildSeoTitle(resolveOptionValuePageTitle(values, optionValue))}`}
                   />
 
                   <AdminInputField
@@ -2404,6 +2417,7 @@ function ProductWizard({
                         seoDescription: event.target.value,
                       })
                     }
+                    hint={`Якщо залишити порожнім: ${buildSeoDescription(resolveOptionValuePageTitle(values, optionValue))}`}
                   />
 
                   <AdminInputField
