@@ -1,6 +1,8 @@
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
+import Link from "next/link";
 
+import { ProductInfoAccordion } from "@/components/storefront/product-info-accordion";
 import { StorefrontProductDetailExperience } from "@/components/storefront/product-detail-experience";
 import { StorefrontProductGrid } from "@/components/storefront/product-grid";
 import { SafeRichTextContent } from "@/components/storefront/safe-rich-text-content";
@@ -95,7 +97,7 @@ export default async function ProductPage({ params }: ProductPageProps) {
       </StorefrontSection>
 
       <StorefrontSection tone="muted">
-        <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_420px]">
+        <div className="space-y-4">
           <StorefrontCard className="p-5">
             <div className="space-y-4">
               <h2 className={storefrontPatterns.sectionTitle}>Опис товару</h2>
@@ -110,60 +112,64 @@ export default async function ProductPage({ params }: ProductPageProps) {
             </div>
           </StorefrontCard>
 
-          <StorefrontCard className="p-5">
-            <div className="space-y-4">
-              <h2 className={storefrontPatterns.sectionTitle}>
-                Доставка та оплата
-              </h2>
-              <div className="text-muted-foreground grid gap-3 text-sm">
-                <p>
-                  Доставка по Україні. Детальні сценарії будуть підключені в
-                  checkout.
-                </p>
-                <p>
-                  Оплата та промокоди будуть активовані на наступних e-commerce
-                  етапах.
-                </p>
+          {product.fieldValues.length > 0 ? (
+            <StorefrontCard className="overflow-hidden p-0">
+              <div className="border-border/70 border-b px-5 py-4">
+                <h2 className="text-xl font-semibold tracking-tight">
+                  Характеристики
+                </h2>
               </div>
-            </div>
-          </StorefrontCard>
-        </div>
-      </StorefrontSection>
+              <dl className="px-5 py-4">
+                {product.fieldValues.map((fieldValue) => (
+                  <div
+                    key={fieldValue.id}
+                    className="flex items-baseline gap-3 py-2 text-sm sm:text-base"
+                  >
+                    <dt className="text-muted-foreground shrink-0">
+                      {fieldValue.label}
+                    </dt>
+                    <dd className="flex min-w-0 flex-1 items-baseline gap-3 text-right">
+                      <span className="border-border/80 h-px flex-1 border-b border-dashed" />
+                      <span className="max-w-[48%] leading-6 font-medium">
+                        {fieldValue.value}
+                      </span>
+                    </dd>
+                  </div>
+                ))}
+              </dl>
+            </StorefrontCard>
+          ) : (
+            <StorefrontCard className="p-5">
+              <p className={storefrontPatterns.bodyText}>
+                Для цього товару ще не додані характеристики.
+              </p>
+            </StorefrontCard>
+          )}
 
-      <StorefrontSection>
-        {product.fieldValues.length > 0 ? (
-          <StorefrontCard className="overflow-hidden p-0">
-            <div className="border-border/70 border-b px-5 py-4">
-              <h2 className="text-xl font-semibold tracking-tight">
-                Характеристики
-              </h2>
-            </div>
-            <dl className="px-5 py-4">
-              {product.fieldValues.map((fieldValue) => (
-                <div
-                  key={fieldValue.id}
-                  className="flex items-baseline gap-3 py-2 text-sm sm:text-base"
-                >
-                  <dt className="text-muted-foreground shrink-0">
-                    {fieldValue.label}
-                  </dt>
-                  <dd className="flex min-w-0 flex-1 items-baseline gap-3 text-right">
-                    <span className="border-border/80 h-px flex-1 border-b border-dashed" />
-                    <span className="max-w-[48%] leading-6 font-medium">
-                      {fieldValue.value}
-                    </span>
-                  </dd>
-                </div>
-              ))}
-            </dl>
-          </StorefrontCard>
-        ) : (
-          <StorefrontCard className="p-5">
-            <p className={storefrontPatterns.bodyText}>
-              Для цього товару ще не додані характеристики.
+          <ProductInfoAccordion title="Доставка та оплата">
+            <p>
+              Доставка по Україні. Детальні сценарії будуть підключені в
+              checkout.
             </p>
-          </StorefrontCard>
-        )}
+            <p>
+              Оплата та промокоди будуть активовані на наступних e-commerce
+              етапах.
+            </p>
+          </ProductInfoAccordion>
+
+          <ProductInfoAccordion title="Гарантія">
+            <p>
+              За посиланням нижче Ви можете детально ознайомитись з гарантією,
+              яку надає наш магазин.
+            </p>
+            <Link
+              href="/terms"
+              className="text-primary underline underline-offset-4 hover:text-primary/80"
+            >
+              Гарантія та повернення
+            </Link>
+          </ProductInfoAccordion>
+        </div>
       </StorefrontSection>
 
       <StorefrontSection tone="muted">
