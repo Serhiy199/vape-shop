@@ -846,11 +846,21 @@ function validateDynamicFields(
 
   return errors;
 }
-function validateImages(images: ProductImageDraft[]) {
+function validateImages(
+  images: ProductImageDraft[],
+  options: { requireImage: boolean },
+) {
   const itemErrors: Record<number, { publicId?: string; url?: string }> = {};
   let generalError: string | null = null;
 
   if (images.length === 0) {
+    if (!options.requireImage) {
+      return {
+        generalError,
+        itemErrors,
+      };
+    }
+
     return {
       generalError: "Додайте головне фото товару.",
       itemErrors,
@@ -1545,7 +1555,9 @@ function ProductWizard({
     }
 
     if (step === "images") {
-      const validation = validateImages(images);
+      const validation = validateImages(images, {
+        requireImage: mode === "create",
+      });
       setImageItemErrors(validation.itemErrors);
 
       if (

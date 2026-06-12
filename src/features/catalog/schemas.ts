@@ -331,15 +331,18 @@ const productOptionSchema = z.object({
     .max(100, "Опція товару може містити максимум 100 значень."),
 });
 
-const productImagesSchema = z
-  .array(productImageSchema)
-  .superRefine((images, ctx) => {
+function createProductImagesSchema(options: { requireImage: boolean }) {
+  return z.array(productImageSchema).superRefine((images, ctx) => {
     const primaryImages = images.filter((image) => image.isPrimary);
     const galleryImagesCount = images.filter(
       (image) => !image.isPrimary,
     ).length;
 
     if (images.length === 0) {
+      if (!options.requireImage) {
+        return;
+      }
+
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         message: "Потрібно додати головне фото товару.",
@@ -388,6 +391,12 @@ const productImagesSchema = z
       seenPublicIds.add(normalizedPublicId);
     });
   });
+}
+
+const productImagesSchema = createProductImagesSchema({ requireImage: true });
+const updateProductImagesSchema = createProductImagesSchema({
+  requireImage: false,
+});
 
 const subcategoryFieldBaseSchema = z.object({
   subcategoryId: idField(),
@@ -556,6 +565,7 @@ export const createProductSchema = productBaseSchema;
 
 export const updateProductSchema = productBaseSchema.extend({
   id: idField(),
+  images: updateProductImagesSchema,
 });
 
 export const deleteProductSchema = z.object({
