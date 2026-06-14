@@ -32,6 +32,13 @@ type RepeatCartItem = {
   price: number;
   productId: string;
   quantity: number;
+  selectedOptions?: Array<{
+    optionId: string;
+    optionName: string;
+    valueId: string;
+    valueName: string;
+    valueSlug?: string | null;
+  }>;
   selectedOptionName?: string;
   selectedOptionValue?: string;
   selectedOptionValueId?: string;
@@ -407,9 +414,45 @@ function normalizeSelectedOptions(item: {
   selectedOptionValue: string | null;
   selectedOptionValueId: string | null;
   selectedOptions: Prisma.JsonValue | null;
-}) {
+}): Array<{
+  optionId?: string;
+  optionName?: string;
+  valueId: string;
+  valueName?: string;
+}> {
   if (Array.isArray(item.selectedOptions)) {
-    return item.selectedOptions;
+    return item.selectedOptions.flatMap((option) => {
+      if (!option || typeof option !== "object" || Array.isArray(option)) {
+        return [];
+      }
+
+      const current = option as {
+        optionId?: unknown;
+        optionName?: unknown;
+        valueId?: unknown;
+        valueName?: unknown;
+      };
+
+      if (typeof current.valueId !== "string") {
+        return [];
+      }
+
+      return [
+        {
+          optionId:
+            typeof current.optionId === "string" ? current.optionId : undefined,
+          optionName:
+            typeof current.optionName === "string"
+              ? current.optionName
+              : undefined,
+          valueId: current.valueId,
+          valueName:
+            typeof current.valueName === "string"
+              ? current.valueName
+              : undefined,
+        },
+      ];
+    });
   }
 
   if (
@@ -455,29 +498,45 @@ export async function repeatOrderAction(orderId: string): Promise<RepeatOrderRes
       continue;
     }
 
-    const selectedOptions = normalizeSelectedOptions(item);
-    const firstSelectedOption = selectedOptions[0];
+    const storedSelectedOptions = normalizeSelectedOptions(item);
+    const storedSelectedOptionsById = new Map(
+      storedSelectedOptions
+        .filter((option) => typeof option.optionId === "string")
+        .map((option) => [option.optionId, option]),
+    );
+    const firstStoredOption = storedSelectedOptions[0];
     const selectedOptionValueId =
-      typeof firstSelectedOption === "object" &&
-      firstSelectedOption &&
-      "valueId" in firstSelectedOption &&
-      typeof firstSelectedOption.valueId === "string"
-        ? firstSelectedOption.valueId
-        : item.selectedOptionValueId;
+      firstStoredOption?.valueId ?? item.selectedOptionValueId;
 
-    const selectedOptionValue = selectedOptionValueId
-      ? product.option?.values.find((value) => value.id === selectedOptionValueId)
+    const firstProductOption = product.options[0] ?? null;
+    const selectedOptions = product.options.flatMap((option, optionIndex) => {
+      const storedOption = storedSelectedOptionsById.get(option.id);
+      const legacyValueId =
+        optionIndex === 0 ? selectedOptionValueId : undefined;
+      const valueId = storedOption?.valueId ?? legacyValueId;
+      const value = valueId
+        ? option.values.find((current) => current.id === valueId)
+        : (option.values[0] ?? null);
+
+      if (!value) {
+        return [];
+      }
+
+      return [
+        {
+          optionId: option.id,
+          optionName: option.name,
+          valueId: value.id,
+          valueName: value.label,
+          valueSlug: value.slug ?? null,
+        },
+      ];
+    });
+    const selectedOptionValue = selectedOptions[0]
+      ? firstProductOption?.values.find(
+          (value) => value.id === selectedOptions[0].valueId,
+        )
       : null;
-
-    if (product.option && !selectedOptionValue) {
-      skippedItems.push(item.productTitle);
-      continue;
-    }
-
-    if (!product.option && selectedOptionValueId) {
-      skippedItems.push(item.productTitle);
-      continue;
-    }
 
     addedItems.push({
       availability: "in_stock",
@@ -486,8 +545,11 @@ export async function repeatOrderAction(orderId: string): Promise<RepeatOrderRes
       price: Number(product.price),
       productId: product.id,
       quantity: item.quantity,
+      selectedOptions: selectedOptions.length > 0 ? selectedOptions : undefined,
       selectedOptionName:
-        product.option && selectedOptionValue ? product.option.name : undefined,
+        firstProductOption && selectedOptionValue
+          ? firstProductOption.name
+          : undefined,
       selectedOptionValue: selectedOptionValue?.label,
       selectedOptionValueId: selectedOptionValue?.id,
       slug: product.slug,

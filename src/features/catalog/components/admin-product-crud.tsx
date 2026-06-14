@@ -2401,10 +2401,18 @@ function ProductWizard({
 
       <AdminFormSection
         title="Опції товару"
-        description="Товар може мати 0 або 1 групу опцій. Якщо опцій немає, цей блок не потрапить у payload."
+        description="Товар може мати кілька груп опцій. Ціна, stock і availability залишаються спільними для товару."
       >
         {optionDraft ? (
           <div className="space-y-4">
+            <div className="border-border/70 bg-muted/30 flex flex-col gap-3 rounded-2xl border p-4 sm:flex-row sm:items-center sm:justify-between">
+              <p className="text-muted-foreground text-sm leading-6">
+                Перша група опцій формує окремі SEO-сторінки товару. Додаткові групи змінюються локально на PDP.
+              </p>
+              <Button type="button" variant="outline" onClick={addOptionGroup}>
+                Додати групу опцій
+              </Button>
+            </div>
             <div className="border-border/70 bg-card/90 space-y-4 rounded-2xl border p-4">
               <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                 <div className="space-y-1">
@@ -2430,6 +2438,56 @@ function ProductWizard({
                 error={optionErrors.name}
                 required
               />
+              <AdminFormGrid>
+                <AdminInputField
+                  id={`${mode}-option-sort`}
+                  type="number"
+                  min={0}
+                  step={1}
+                  label="Порядок групи"
+                  value={optionDraft.sortOrder}
+                  onChange={(event) =>
+                    updateOption({ sortOrder: event.target.value })
+                  }
+                  required
+                />
+                <AdminField label="Тип відображення" required>
+                  <Select
+                    value={optionDraft.displayType}
+                    onValueChange={(value) =>
+                      updateOption({
+                        displayType:
+                          value as ProductOptionDraft["displayType"],
+                      })
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Оберіть тип" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="IMAGE_SWATCH">Фото-плитки</SelectItem>
+                      <SelectItem value="BUTTONS">Кнопки</SelectItem>
+                      <SelectItem value="SELECT">Dropdown</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </AdminField>
+                <AdminField label="Фото для значень">
+                  <div className="border-border/70 flex items-center justify-between gap-4 rounded-xl border p-3">
+                    <div>
+                      <p className="text-sm font-medium">Фото обовʼязкове</p>
+                      <p className="text-muted-foreground text-xs leading-5">
+                        Якщо вимкнути, значення можна зберігати без фото.
+                      </p>
+                    </div>
+                    <Switch
+                      checked={optionDraft.isImageRequired}
+                      onCheckedChange={(checked) =>
+                        updateOption({ isImageRequired: checked })
+                      }
+                    />
+                  </div>
+                </AdminField>
+              </AdminFormGrid>
             </div>
 
             <div className="grid gap-4 lg:grid-cols-2 2xl:grid-cols-4">
@@ -2563,6 +2621,7 @@ function ProductWizard({
                     error={optionErrors.values?.[index]?.image}
                     hint="Фото зберігається в Cloudinary у product-options/."
                     required={
+                      optionDraft.isImageRequired &&
                       !hasProductOptionValueImage(optionValue) &&
                       !optionValue.imageRemoved
                     }
@@ -2580,12 +2639,238 @@ function ProductWizard({
                     />
                   </AdminField>
 
-                  {optionUploadIndex === index ? (
+                  {optionUploadIndex?.groupIndex === 0 &&
+                  optionUploadIndex.valueIndex === index ? (
                     <Badge variant="outline">Завантажуємо фото...</Badge>
                   ) : null}
                 </div>
               ))}
             </div>
+
+            {optionsDraft.slice(1).map((option, offset) => {
+              const groupIndex = offset + 1;
+              const groupErrors = optionErrors.groups?.[groupIndex];
+
+              return (
+                <div
+                  key={option.id ?? `${mode}-option-group-${groupIndex}`}
+                  className="border-border/70 bg-card/90 space-y-4 rounded-2xl border p-4"
+                >
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                    <div className="space-y-1">
+                      <p className="text-sm font-medium">
+                        Додаткова група #{groupIndex + 1}
+                      </p>
+                      <p className="text-muted-foreground text-sm leading-6">
+                        Ця група не створює окремі URL, а змінюється локально на сторінці товару.
+                      </p>
+                    </div>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => removeOptionGroup(groupIndex)}
+                    >
+                      Видалити групу
+                    </Button>
+                  </div>
+
+                  <AdminFormGrid>
+                    <AdminInputField
+                      id={`${mode}-option-${groupIndex}-name`}
+                      label="Назва опції"
+                      value={option.name}
+                      onChange={(event) =>
+                        updateOption(groupIndex, { name: event.target.value })
+                      }
+                      error={groupErrors?.name}
+                      required
+                    />
+                    <AdminInputField
+                      id={`${mode}-option-${groupIndex}-sort`}
+                      type="number"
+                      min={0}
+                      step={1}
+                      label="Порядок групи"
+                      value={option.sortOrder}
+                      onChange={(event) =>
+                        updateOption(groupIndex, {
+                          sortOrder: event.target.value,
+                        })
+                      }
+                      required
+                    />
+                    <AdminField label="Тип відображення" required>
+                      <Select
+                        value={option.displayType}
+                        onValueChange={(value) =>
+                          updateOption(groupIndex, {
+                            displayType:
+                              value as ProductOptionDraft["displayType"],
+                          })
+                        }
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Оберіть тип" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="IMAGE_SWATCH">Фото-плитки</SelectItem>
+                          <SelectItem value="BUTTONS">Кнопки</SelectItem>
+                          <SelectItem value="SELECT">Dropdown</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </AdminField>
+                    <AdminField label="Фото для значень">
+                      <div className="border-border/70 flex items-center justify-between gap-4 rounded-xl border p-3">
+                        <div>
+                          <p className="text-sm font-medium">
+                            Фото обовʼязкове
+                          </p>
+                          <p className="text-muted-foreground text-xs leading-5">
+                            Якщо вимкнути, значення можна зберігати без фото.
+                          </p>
+                        </div>
+                        <Switch
+                          checked={option.isImageRequired}
+                          onCheckedChange={(checked) =>
+                            updateOption(groupIndex, {
+                              isImageRequired: checked,
+                            })
+                          }
+                        />
+                      </div>
+                    </AdminField>
+                  </AdminFormGrid>
+
+                  {groupErrors?.general ? (
+                    <div className="border-destructive/20 bg-destructive/8 text-destructive rounded-2xl border px-4 py-3 text-sm">
+                      {groupErrors.general}
+                    </div>
+                  ) : null}
+
+                  <div className="grid gap-4 lg:grid-cols-2 2xl:grid-cols-4">
+                    {option.values.map((optionValue, index) => (
+                      <div
+                        key={
+                          optionValue.id ??
+                          `${mode}-option-${groupIndex}-value-${index}`
+                        }
+                        className="border-border/70 bg-card/90 space-y-3 rounded-xl border p-3"
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="space-y-1">
+                            <p className="text-sm font-medium">
+                              Значення #{index + 1}
+                            </p>
+                            <p className="text-muted-foreground text-xs leading-5">
+                              Назва значення обовʼязкова.
+                            </p>
+                          </div>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => removeOptionValue(groupIndex, index)}
+                          >
+                            Видалити
+                          </Button>
+                        </div>
+
+                        <div className="aspect-square overflow-hidden rounded-lg bg-muted/30">
+                          {getProductOptionValueImage(optionValue) ? (
+                            <ProductThumbnail
+                              alt={optionValue.label || `Option ${index + 1}`}
+                              src={getProductOptionValueImage(optionValue)}
+                            />
+                          ) : (
+                            <div className="text-muted-foreground flex h-full min-h-32 items-center justify-center rounded-lg border border-dashed text-sm">
+                              Фото ще не додано
+                            </div>
+                          )}
+                        </div>
+
+                        {getProductOptionValueImage(optionValue) ? (
+                          <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() =>
+                              removeOptionValueImage(groupIndex, index)
+                            }
+                          >
+                            Видалити фото
+                          </Button>
+                        ) : null}
+
+                        <AdminInputField
+                          id={`${mode}-option-${groupIndex}-value-label-${index}`}
+                          label="Назва значення"
+                          value={optionValue.label}
+                          onChange={(event) =>
+                            updateOptionValue(groupIndex, index, {
+                              label: event.target.value,
+                            })
+                          }
+                          error={groupErrors?.values?.[index]?.label}
+                          required
+                        />
+                        <AdminInputField
+                          id={`${mode}-option-${groupIndex}-value-sort-${index}`}
+                          type="number"
+                          min={0}
+                          step={1}
+                          label="Порядок"
+                          value={optionValue.sortOrder}
+                          onChange={(event) =>
+                            updateOptionValue(groupIndex, index, {
+                              sortOrder: event.target.value,
+                            })
+                          }
+                        />
+                        <AdminField
+                          label="Фото значення"
+                          error={groupErrors?.values?.[index]?.image}
+                          hint="Фото зберігається в Cloudinary у product-options/."
+                          required={
+                            option.isImageRequired &&
+                            !hasProductOptionValueImage(optionValue) &&
+                            !optionValue.imageRemoved
+                          }
+                        >
+                          <Input
+                            type="file"
+                            accept="image/jpeg,image/png,image/webp"
+                            onChange={(event) => {
+                              const file = event.target.files?.[0];
+
+                              if (file) {
+                                void uploadOptionValueImage(
+                                  groupIndex,
+                                  index,
+                                  file,
+                                );
+                              }
+                            }}
+                          />
+                        </AdminField>
+
+                        {optionUploadIndex?.groupIndex === groupIndex &&
+                        optionUploadIndex.valueIndex === index ? (
+                          <Badge variant="outline">Завантажуємо фото...</Badge>
+                        ) : null}
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="flex justify-end">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => addOptionValue(groupIndex)}
+                    >
+                      Додати значення
+                    </Button>
+                  </div>
+                </div>
+              );
+            })}
 
             {optionErrors.general ? (
               <div className="border-destructive/20 bg-destructive/8 text-destructive rounded-2xl border px-4 py-3 text-sm">
@@ -2597,7 +2882,11 @@ function ProductWizard({
               <p className="text-muted-foreground text-sm leading-6">
                 Порядок на фронтенді відповідає порядку значень у цьому списку.
               </p>
-              <Button type="button" variant="outline" onClick={addOptionValue}>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => addOptionValue()}
+              >
                 Додати значення
               </Button>
             </div>
@@ -2734,8 +3023,8 @@ export function AdminProductCrud({
     () => buildCreateValues(createCategories, createSubcategories),
     [createCategories, createSubcategories],
   );
-  const editInitialOption = useMemo(
-    () => buildProductOptionDraft(selectedProduct),
+  const editInitialOptions = useMemo(
+    () => buildProductOptionDrafts(selectedProduct),
     [selectedProduct],
   );
 
@@ -2768,7 +3057,7 @@ export function AdminProductCrud({
             fields={fields}
             initialDynamicValues={buildDynamicValueMap(selectedProduct)}
             initialImages={buildImageDrafts(selectedProduct)}
-            initialOption={editInitialOption}
+            initialOptions={editInitialOptions}
             initialValues={buildEditValues(selectedProduct)}
             mode="edit"
             onDelete={handleDelete}
@@ -2798,7 +3087,7 @@ export function AdminProductCrud({
             fields={fields}
             initialDynamicValues={{}}
             initialImages={[]}
-            initialOption={null}
+            initialOptions={[]}
             initialValues={createInitialValues}
             mode="create"
             onSuccess={(id) => {

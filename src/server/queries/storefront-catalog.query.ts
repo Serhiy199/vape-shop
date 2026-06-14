@@ -197,10 +197,14 @@ const storefrontProductDetailSelect = {
       sortOrder: true,
     },
   },
-  option: {
+  options: {
+    orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
     select: {
       id: true,
+      displayType: true,
+      isImageRequired: true,
       name: true,
+      sortOrder: true,
       values: {
         orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
         select: {
@@ -926,6 +930,8 @@ export async function getActiveStorefrontProductBySlug(slug: string) {
         id: true,
         productOption: {
           select: {
+            id: true,
+            sortOrder: true,
             product: {
               select: storefrontProductDetailSelect,
             },
@@ -938,6 +944,7 @@ export async function getActiveStorefrontProductBySlug(slug: string) {
 
     if (
       !variantProduct ||
+      variantProduct.options[0]?.id !== optionValue.productOption.id ||
       !variantProduct.isActive ||
       !variantProduct.category.isActive ||
       !variantProduct.subcategory.isActive ||
@@ -950,9 +957,11 @@ export async function getActiveStorefrontProductBySlug(slug: string) {
     product = variantProduct;
   }
 
+  const firstProductOption = product.options[0] ?? null;
   const selectedOptionValue =
-    product.option?.values.find((value) => value.id === selectedOptionValueId) ??
-    null;
+    firstProductOption?.values.find(
+      (value) => value.id === selectedOptionValueId,
+    ) ?? null;
   const pageTitle =
     selectedOptionValue?.titleOverride ??
     (selectedOptionValue
@@ -975,6 +984,13 @@ export async function getActiveStorefrontProductBySlug(slug: string) {
     pageTitle,
     price: Number(product.price),
     selectedOptionValue,
+    selectedOptions: product.options.map((option) => ({
+      option,
+      value:
+        option.id === firstProductOption?.id && selectedOptionValue
+          ? selectedOptionValue
+          : (option.values[0] ?? null),
+    })),
     fieldValues: product.fieldValues.map((fieldValue) => ({
       id: fieldValue.id,
       key: fieldValue.field.key,

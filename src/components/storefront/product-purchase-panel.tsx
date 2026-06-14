@@ -9,6 +9,7 @@ import type {
   StorefrontProductCardItem,
   StorefrontProductOption,
   StorefrontProductOptionValue,
+  StorefrontSelectedProductOption,
 } from "@/components/storefront/product-types";
 import { WishlistButton } from "@/features/wishlist/components/wishlist-button";
 import {
@@ -21,21 +22,29 @@ export function StorefrontProductPurchasePanel({
   companionProducts = [],
   onSelectOptionValue,
   otherModelProducts = [],
-  option,
+  options = [],
   product,
   selectedOptionValue,
+  selectedOptionValues = {},
+  selectedOptions = [],
   title,
 }: {
   companionProducts?: StorefrontProductCardItem[];
-  onSelectOptionValue?: (value: StorefrontProductOptionValue) => void;
+  onSelectOptionValue?: (
+    option: StorefrontProductOption,
+    value: StorefrontProductOptionValue,
+  ) => void;
   otherModelProducts?: StorefrontProductCardItem[];
-  option?: StorefrontProductOption | null;
+  options?: StorefrontProductOption[];
   product: StorefrontProductCardItem;
   selectedOptionValue?: StorefrontProductOptionValue | null;
+  selectedOptionValues?: Record<string, StorefrontProductOptionValue>;
+  selectedOptions?: StorefrontSelectedProductOption[];
   title: string;
 }) {
   const isAvailable = product.availability === "in_stock";
-  const requiresOption = Boolean(option && option.values.length > 0);
+  const firstOption = options[0] ?? null;
+  const requiresOption = options.some((option) => option.values.length > 0);
 
   return (
     <StorefrontCard className="p-5">
@@ -79,49 +88,16 @@ export function StorefrontProductPurchasePanel({
           </div>
         </div>
 
-        {option && option.values.length > 0 ? (
-          <div className="space-y-3">
-            <div className="flex items-center justify-between gap-3">
-              <p className="font-medium">{option.name}</p>
-              {selectedOptionValue ? (
-                <span className="text-muted-foreground text-sm">
-                  {selectedOptionValue.label}
-                </span>
-              ) : null}
-            </div>
-            <div className="grid grid-cols-[repeat(auto-fill,minmax(88px,88px))] gap-2">
-              {option.values.map((value) => {
-                const isSelected = selectedOptionValue?.id === value.id;
-
-                return (
-                  <button
-                    key={value.id}
-                    className={cn(
-                      "bg-background hover:border-primary/60 w-[88px] rounded-lg border text-left transition",
-                      isSelected
-                        ? "border-primary ring-primary/20 ring-2"
-                        : "border-border/70",
-                    )}
-                    onClick={() => onSelectOptionValue?.(value)}
-                    type="button"
-                  >
-                    <span className="bg-muted/70 grid h-[72px] place-items-center overflow-hidden rounded-t-lg">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
-                        src={value.image}
-                        alt={value.label}
-                        className="max-h-full max-w-full object-contain"
-                      />
-                    </span>
-                    <span className="block truncate px-1.5 py-1 text-center text-[11px] font-medium leading-4">
-                      {value.label}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        ) : null}
+        {options.map((option) =>
+          option.values.length > 0 ? (
+            <ProductOptionPicker
+              key={option.id}
+              option={option}
+              selectedValue={selectedOptionValues[option.id] ?? null}
+              onSelectOptionValue={onSelectOptionValue}
+            />
+          ) : null,
+        )}
 
         <p className="text-3xl font-semibold tracking-tight">
           {currencyFormatter.format(product.price)}
@@ -131,21 +107,22 @@ export function StorefrontProductPurchasePanel({
           <AddToCartButton
             className="h-12 rounded-lg"
             disabledReason={
-              requiresOption && !selectedOptionValue
+              requiresOption && selectedOptions.length === 0
                 ? "Оберіть продукт вище"
                 : undefined
             }
             product={product}
             selectedOption={
-              selectedOptionValue && option
+              selectedOptionValue && firstOption
                 ? {
-                    image: selectedOptionValue.image,
+                    image: selectedOptionValue.image ?? undefined,
                     label: selectedOptionValue.label,
-                    name: option.name,
+                    name: firstOption.name,
                     valueId: selectedOptionValue.id,
                   }
                 : null
             }
+            selectedOptions={selectedOptions}
           />
           <WishlistButton
             productId={product.id}
@@ -165,5 +142,115 @@ export function StorefrontProductPurchasePanel({
         />
       </div>
     </StorefrontCard>
+  );
+}
+
+function ProductOptionPicker({
+  onSelectOptionValue,
+  option,
+  selectedValue,
+}: {
+  onSelectOptionValue?: (
+    option: StorefrontProductOption,
+    value: StorefrontProductOptionValue,
+  ) => void;
+  option: StorefrontProductOption;
+  selectedValue?: StorefrontProductOptionValue | null;
+}) {
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center justify-between gap-3">
+        <p className="font-medium">{option.name}</p>
+        {selectedValue ? (
+          <span className="text-muted-foreground text-sm">
+            {selectedValue.label}
+          </span>
+        ) : null}
+      </div>
+
+      {option.displayType === "SELECT" ? (
+        <select
+          className="border-input bg-background h-11 w-full rounded-lg border px-3 text-sm"
+          value={selectedValue?.id ?? ""}
+          onChange={(event) => {
+            const value = option.values.find(
+              (current) => current.id === event.target.value,
+            );
+
+            if (value) {
+              onSelectOptionValue?.(option, value);
+            }
+          }}
+        >
+          {option.values.map((value) => (
+            <option key={value.id} value={value.id}>
+              {value.label}
+            </option>
+          ))}
+        </select>
+      ) : (
+        <div
+          className={cn(
+            option.displayType === "BUTTONS"
+              ? "flex flex-wrap gap-2"
+              : "grid grid-cols-[repeat(auto-fill,minmax(88px,88px))] gap-2",
+          )}
+        >
+          {option.values.map((value) => {
+            const isSelected = selectedValue?.id === value.id;
+
+            if (option.displayType === "BUTTONS") {
+              return (
+                <button
+                  key={value.id}
+                  className={cn(
+                    "bg-background hover:border-primary/60 rounded-lg border px-3 py-2 text-sm font-medium transition",
+                    isSelected
+                      ? "border-primary ring-primary/20 ring-2"
+                      : "border-border/70",
+                  )}
+                  onClick={() => onSelectOptionValue?.(option, value)}
+                  type="button"
+                >
+                  {value.label}
+                </button>
+              );
+            }
+
+            return (
+              <button
+                key={value.id}
+                className={cn(
+                  "bg-background hover:border-primary/60 w-[88px] rounded-lg border text-left transition",
+                  isSelected
+                    ? "border-primary ring-primary/20 ring-2"
+                    : "border-border/70",
+                )}
+                onClick={() => onSelectOptionValue?.(option, value)}
+                type="button"
+              >
+                <span className="bg-muted/70 grid h-[72px] place-items-center overflow-hidden rounded-t-lg">
+                  {value.image ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={value.image}
+                      alt={value.label}
+                      className="max-h-full max-w-full object-contain"
+                    />
+                  ) : (
+                    <span className="px-2 text-center text-xs font-medium">
+                      {value.label}
+                    </span>
+                  )}
+                </span>
+                <span className="block truncate px-1.5 py-1 text-center text-[11px] font-medium leading-4">
+                  {value.label}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </div>
   );
 }

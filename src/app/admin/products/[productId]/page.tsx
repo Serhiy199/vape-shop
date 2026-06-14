@@ -120,11 +120,13 @@ export default async function AdminProductEditPage({
           isFeaturedHit: selectedProduct.isFeaturedHit,
           isFeaturedNew: selectedProduct.isFeaturedNew,
           isFeaturedSale: selectedProduct.isFeaturedSale,
-          option: selectedProduct.option
-            ? {
-                id: selectedProduct.option.id,
-                name: selectedProduct.option.name,
-                values: selectedProduct.option.values.map((value) => ({
+          options: selectedProduct.options.map((option) => ({
+            displayType: option.displayType,
+            id: option.id,
+            isImageRequired: option.isImageRequired,
+            name: option.name,
+            sortOrder: option.sortOrder,
+            values: option.values.map((value) => ({
                   id: value.id,
                   image: value.image,
                   imagePublicId: value.imagePublicId,
@@ -134,9 +136,8 @@ export default async function AdminProductEditPage({
                   seoTitle: value.seoTitle,
                   seoDescription: value.seoDescription,
                   sortOrder: value.sortOrder,
-                })),
-              }
-            : null,
+            })),
+          })),
           price: selectedProduct.price,
           seoDescription: selectedProduct.seoDescription,
           seoTitle: selectedProduct.seoTitle,

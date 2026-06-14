@@ -3,7 +3,10 @@
 import { useState } from "react";
 import { CheckIcon, ShoppingCartIcon } from "lucide-react";
 
-import type { StorefrontProductCardItem } from "@/components/storefront/product-types";
+import type {
+  StorefrontProductCardItem,
+  StorefrontSelectedProductOption,
+} from "@/components/storefront/product-types";
 import { Button } from "@/components/ui/button";
 import { useCart } from "@/features/cart/cart-context";
 import { cn } from "@/lib/utils";
@@ -21,6 +24,7 @@ export function AddToCartButton({
   product,
   quantity = 1,
   selectedOption,
+  selectedOptions,
   size = "default",
 }: {
   className?: string;
@@ -28,6 +32,7 @@ export function AddToCartButton({
   product: StorefrontProductCardItem;
   quantity?: number;
   selectedOption?: SelectedCartOption | null;
+  selectedOptions?: StorefrontSelectedProductOption[];
   size?: React.ComponentProps<typeof Button>["size"];
 }) {
   const { addItem } = useCart();
@@ -47,6 +52,7 @@ export function AddToCartButton({
         imageSrc: selectedOption?.image ?? product.imageSrc,
         price: product.price,
         productId: product.id,
+        selectedOptions,
         selectedOptionName: selectedOption?.name,
         selectedOptionValue: selectedOption?.label,
         selectedOptionValueId: selectedOption?.valueId,

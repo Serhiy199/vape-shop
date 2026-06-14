@@ -19,6 +19,55 @@ const orderStatusLabels = {
   CANCELED: "Скасовано",
 } as const;
 
+function normalizeOrderItemOptions(item: {
+  selectedOptionName: string | null;
+  selectedOptionValue: string | null;
+  selectedOptions: unknown;
+}) {
+  if (Array.isArray(item.selectedOptions)) {
+    return item.selectedOptions
+      .map((option) => {
+        if (!option || typeof option !== "object") {
+          return null;
+        }
+
+        const current = option as {
+          optionName?: unknown;
+          valueName?: unknown;
+        };
+
+        if (
+          typeof current.optionName !== "string" ||
+          typeof current.valueName !== "string"
+        ) {
+          return null;
+        }
+
+        return {
+          optionName: current.optionName,
+          valueName: current.valueName,
+        };
+      })
+      .filter(
+        (
+          option,
+        ): option is { optionName: string; valueName: string } =>
+          Boolean(option),
+      );
+  }
+
+  if (item.selectedOptionName && item.selectedOptionValue) {
+    return [
+      {
+        optionName: item.selectedOptionName,
+        valueName: item.selectedOptionValue,
+      },
+    ];
+  }
+
+  return [];
+}
+
 export default async function AccountOrderDetailPage({
   params,
 }: {
@@ -79,11 +128,14 @@ export default async function AccountOrderDetailPage({
                   >
                     {item.productTitle}
                   </Link>
-                  {item.selectedOptionName && item.selectedOptionValue ? (
-                    <p className="text-muted-foreground text-sm">
-                      {item.selectedOptionName}: {item.selectedOptionValue}
+                  {normalizeOrderItemOptions(item).map((option) => (
+                    <p
+                      key={`${option.optionName}-${option.valueName}`}
+                      className="text-muted-foreground text-sm"
+                    >
+                      {option.optionName}: {option.valueName}
                     </p>
-                  ) : null}
+                  ))}
                   <p className="text-muted-foreground text-sm">
                     {item.quantity} x {currencyFormatter.format(Number(item.unitPrice))}
                   </p>

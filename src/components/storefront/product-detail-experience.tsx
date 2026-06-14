@@ -12,6 +12,7 @@ import type {
   StorefrontProductCardItem,
   StorefrontProductOption,
   StorefrontProductOptionValue,
+  StorefrontSelectedProductOption,
 } from "@/components/storefront/product-types";
 
 function optionValueToGalleryImage(
@@ -21,7 +22,7 @@ function optionValueToGalleryImage(
     alt: value.label,
     id: `option-${value.id}`,
     isPrimary: false,
-    url: value.image,
+    url: value.image ?? "",
   };
 }
 
@@ -29,7 +30,7 @@ export function StorefrontProductDetailExperience({
   companionProducts,
   images,
   otherModelProducts,
-  option,
+  options = [],
   product,
   selectedOptionValue: initialSelectedOptionValue = null,
   title,
@@ -37,38 +38,90 @@ export function StorefrontProductDetailExperience({
   companionProducts?: StorefrontProductCardItem[];
   images: StorefrontProductGalleryImage[];
   otherModelProducts?: StorefrontProductCardItem[];
-  option?: StorefrontProductOption | null;
+  options?: StorefrontProductOption[];
   product: StorefrontProductCardItem;
   selectedOptionValue?: StorefrontProductOptionValue | null;
   title: string;
 }) {
   const router = useRouter();
+  const firstOption = options[0] ?? null;
+  const initialSelectedValues = useMemo(() => {
+    return Object.fromEntries(
+      options.flatMap((option) => {
+        const value =
+          option.id === firstOption?.id && initialSelectedOptionValue
+            ? initialSelectedOptionValue
+            : option.values[0];
+
+        return value ? [[option.id, value]] : [];
+      }),
+    ) as Record<string, StorefrontProductOptionValue>;
+  }, [firstOption?.id, initialSelectedOptionValue, options]);
   const [activeImage, setActiveImage] =
     useState<StorefrontProductGalleryImage | null>(
-      initialSelectedOptionValue
+      initialSelectedOptionValue?.image
         ? optionValueToGalleryImage(initialSelectedOptionValue)
         : null,
     );
   const [selectedOptionValue, setSelectedOptionValue] =
     useState<StorefrontProductOptionValue | null>(initialSelectedOptionValue);
+  const [selectedValuesByOptionId, setSelectedValuesByOptionId] =
+    useState(initialSelectedValues);
 
   const galleryImages = useMemo(() => {
     const optionImages =
-      option?.values.map(optionValueToGalleryImage).filter((image) => {
-        return !images.some((productImage) => productImage.url === image.url);
-      }) ?? [];
+      options
+        .flatMap((option) => option.values)
+        .filter((value) => Boolean(value.image))
+        .map(optionValueToGalleryImage)
+        .filter((image) => {
+          return !images.some((productImage) => productImage.url === image.url);
+        });
 
     return [...images, ...optionImages];
-  }, [images, option]);
+  }, [images, options]);
 
-  function handleSelectOptionValue(value: StorefrontProductOptionValue) {
-    setSelectedOptionValue(value);
-    setActiveImage(optionValueToGalleryImage(value));
+  function handleSelectOptionValue(
+    option: StorefrontProductOption,
+    value: StorefrontProductOptionValue,
+  ) {
+    setSelectedValuesByOptionId((current) => ({
+      ...current,
+      [option.id]: value,
+    }));
 
-    if (value.slug) {
+    if (option.id === firstOption?.id) {
+      setSelectedOptionValue(value);
+    }
+
+    if (option.id === firstOption?.id && value.image) {
+      setActiveImage(optionValueToGalleryImage(value));
+    }
+
+    if (option.id === firstOption?.id && value.slug) {
       router.push(`/product/${value.slug}`);
     }
   }
+
+  const selectedOptions = useMemo<StorefrontSelectedProductOption[]>(() => {
+    return options.flatMap((option) => {
+      const value = selectedValuesByOptionId[option.id] ?? option.values[0];
+
+      if (!value) {
+        return [];
+      }
+
+      return [
+        {
+          optionId: option.id,
+          optionName: option.name,
+          valueId: value.id,
+          valueName: value.label,
+          valueSlug: value.slug ?? null,
+        },
+      ];
+    });
+  }, [options, selectedValuesByOptionId]);
 
   return (
     <div className="grid gap-8 lg:grid-cols-[minmax(0,570px)_minmax(0,1fr)]">
@@ -83,9 +136,11 @@ export function StorefrontProductDetailExperience({
           companionProducts={companionProducts}
           onSelectOptionValue={handleSelectOptionValue}
           otherModelProducts={otherModelProducts}
-          option={option}
+          options={options}
           product={product}
           selectedOptionValue={selectedOptionValue}
+          selectedOptionValues={selectedValuesByOptionId}
+          selectedOptions={selectedOptions}
           title={title}
         />
       </div>

@@ -85,7 +85,7 @@ export default async function ProductPage({ params }: ProductPageProps) {
           companionProducts={companionProducts}
           images={product.images}
           otherModelProducts={otherModelProducts}
-          option={product.option}
+          options={product.options}
           product={product.card}
           selectedOptionValue={product.selectedOptionValue}
           title={product.pageTitle}

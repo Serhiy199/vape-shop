@@ -17,7 +17,7 @@ export type StorefrontProductCardItem = {
 
 export type StorefrontProductOptionValue = {
   id: string;
-  image: string;
+  image?: string | null;
   imagePublicId?: string | null;
   label: string;
   slug?: string | null;
@@ -28,7 +28,18 @@ export type StorefrontProductOptionValue = {
 };
 
 export type StorefrontProductOption = {
+  displayType: "BUTTONS" | "IMAGE_SWATCH" | "SELECT";
   id: string;
+  isImageRequired: boolean;
   name: string;
+  sortOrder: number;
   values: StorefrontProductOptionValue[];
+};
+
+export type StorefrontSelectedProductOption = {
+  optionId: string;
+  optionName: string;
+  valueId: string;
+  valueName: string;
+  valueSlug?: string | null;
 };

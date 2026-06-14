@@ -39,16 +39,19 @@ const accountProductSelect = {
       url: true,
     },
   },
-  option: {
+  options: {
+    orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
     select: {
       id: true,
       name: true,
+      sortOrder: true,
       values: {
         orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
         select: {
           id: true,
           image: true,
           label: true,
+          slug: true,
         },
       },
     },

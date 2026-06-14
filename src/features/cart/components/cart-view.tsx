@@ -38,6 +38,34 @@ function CartProductMedia({ item }: { item: CartItem }) {
   );
 }
 
+function CartLineOptions({ item }: { item: CartItem }) {
+  const selectedOptions =
+    item.selectedOptions && item.selectedOptions.length > 0
+      ? item.selectedOptions
+      : item.selectedOptionName && item.selectedOptionValue
+        ? [
+            {
+              optionName: item.selectedOptionName,
+              valueName: item.selectedOptionValue,
+            },
+          ]
+        : [];
+
+  if (selectedOptions.length === 0) {
+    return null;
+  }
+
+  return (
+    <div className="text-muted-foreground space-y-0.5 text-sm">
+      {selectedOptions.map((option) => (
+        <p key={`${option.optionName}-${option.valueName}`}>
+          {option.optionName}: {option.valueName}
+        </p>
+      ))}
+    </div>
+  );
+}
+
 function CartQuantityControls({ item }: { item: CartItem }) {
   const { decrementItem, incrementItem, removeItem, updateQuantity } =
     useCart();
@@ -110,11 +138,7 @@ function CartItemRow({ item }: { item: CartItem }) {
               <p className="text-muted-foreground text-sm">
                 {currencyFormatter.format(item.price)} за одиницю
               </p>
-              {item.selectedOptionName && item.selectedOptionValue ? (
-                <p className="text-muted-foreground text-sm">
-                  {item.selectedOptionName}: {item.selectedOptionValue}
-                </p>
-              ) : null}
+              <CartLineOptions item={item} />
             </div>
             <p className="text-lg font-semibold tracking-tight">
               {currencyFormatter.format(item.price * item.quantity)}

@@ -19,6 +19,13 @@ export type CartProductSnapshot = {
   imageSrc?: string;
   price: number;
   productId: string;
+  selectedOptions?: Array<{
+    optionId: string;
+    optionName: string;
+    valueId: string;
+    valueName: string;
+    valueSlug?: string | null;
+  }>;
   selectedOptionName?: string;
   selectedOptionValue?: string;
   selectedOptionValueId?: string;
@@ -70,6 +77,8 @@ function normalizeStoredItem(value: unknown): CartItem | null {
     return null;
   }
 
+  const selectedOptions = normalizeCartSelectedOptions(item);
+
   return {
     availability:
       item.availability === "out_of_stock" ? "out_of_stock" : "in_stock",
@@ -102,6 +111,7 @@ function normalizeStoredItem(value: unknown): CartItem | null {
       typeof item.selectedOptionValueId === "string"
         ? item.selectedOptionValueId
         : undefined,
+    selectedOptions,
     slug: item.slug,
     title: item.title,
   };
@@ -109,11 +119,83 @@ function normalizeStoredItem(value: unknown): CartItem | null {
 
 function createCartLineItemId(product: {
   productId: string;
+  selectedOptions?: Array<{ valueId: string }>;
   selectedOptionValueId?: string;
 }) {
+  const selectedValueIds =
+    product.selectedOptions
+      ?.map((option) => option.valueId)
+      .filter(Boolean)
+      .sort() ?? [];
+
+  if (selectedValueIds.length > 0) {
+    return `${product.productId}:${selectedValueIds.join(":")}`;
+  }
+
   return product.selectedOptionValueId
     ? `${product.productId}:${product.selectedOptionValueId}`
     : product.productId;
+}
+
+function normalizeCartSelectedOptions(item: Partial<CartItem>) {
+  if (Array.isArray(item.selectedOptions)) {
+    const selectedOptions: NonNullable<CartProductSnapshot["selectedOptions"]> =
+      [];
+
+    item.selectedOptions
+      .map((option) => {
+        if (!option || typeof option !== "object") {
+          return null;
+        }
+
+        const current = option as Partial<
+          NonNullable<CartProductSnapshot["selectedOptions"]>[number]
+        >;
+
+        if (
+          typeof current.optionId !== "string" ||
+          typeof current.optionName !== "string" ||
+          typeof current.valueId !== "string" ||
+          typeof current.valueName !== "string"
+        ) {
+          return null;
+        }
+
+        return {
+          optionId: current.optionId,
+          optionName: current.optionName,
+          valueId: current.valueId,
+          valueName: current.valueName,
+          valueSlug:
+            typeof current.valueSlug === "string" ? current.valueSlug : null,
+        };
+      })
+      .forEach((option) => {
+        if (option) {
+          selectedOptions.push(option);
+        }
+      });
+
+    return selectedOptions.length > 0 ? selectedOptions : undefined;
+  }
+
+  if (
+    typeof item.selectedOptionName === "string" &&
+    typeof item.selectedOptionValue === "string" &&
+    typeof item.selectedOptionValueId === "string"
+  ) {
+    return [
+      {
+        optionId: "legacy",
+        optionName: item.selectedOptionName,
+        valueId: item.selectedOptionValueId,
+        valueName: item.selectedOptionValue,
+        valueSlug: null,
+      },
+    ];
+  }
+
+  return undefined;
 }
 
 function readStoredCart() {

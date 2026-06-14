@@ -20,11 +20,39 @@ import {
   checkoutPaymentOptions,
 } from "@/features/checkout/schemas";
 import { createCheckoutOrderAction } from "@/features/checkout/actions/checkout";
-import { useCart } from "@/features/cart/cart-context";
+import { useCart, type CartItem } from "@/features/cart/cart-context";
 import { cn } from "@/lib/utils";
 
 function RequiredMark() {
   return <span className="text-destructive">*</span>;
+}
+
+function CartItemOptions({ item }: { item: CartItem }) {
+  const selectedOptions =
+    item.selectedOptions && item.selectedOptions.length > 0
+      ? item.selectedOptions
+      : item.selectedOptionName && item.selectedOptionValue
+        ? [
+            {
+              optionName: item.selectedOptionName,
+              valueName: item.selectedOptionValue,
+            },
+          ]
+        : [];
+
+  if (selectedOptions.length === 0) {
+    return null;
+  }
+
+  return (
+    <div className="text-muted-foreground space-y-0.5">
+      {selectedOptions.map((option) => (
+        <p key={`${option.optionName}-${option.valueName}`}>
+          {option.optionName}: {option.valueName}
+        </p>
+      ))}
+    </div>
+  );
 }
 
 function CheckoutField({
@@ -186,6 +214,7 @@ export function CheckoutForm({
       items: items.map((item) => ({
         productId: item.productId,
         quantity: item.quantity,
+        selectedOptions: item.selectedOptions,
         selectedOptionName: item.selectedOptionName,
         selectedOptionValue: item.selectedOptionValue,
         selectedOptionValueId: item.selectedOptionValueId,
@@ -455,11 +484,7 @@ export function CheckoutForm({
                     <p className="text-muted-foreground">
                       {item.quantity} x {currencyFormatter.format(item.price)}
                     </p>
-                    {item.selectedOptionName && item.selectedOptionValue ? (
-                      <p className="text-muted-foreground">
-                        {item.selectedOptionName}: {item.selectedOptionValue}
-                      </p>
-                    ) : null}
+                    <CartItemOptions item={item} />
                   </div>
                 </div>
               ))}

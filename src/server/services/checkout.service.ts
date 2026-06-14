@@ -40,6 +40,13 @@ type NormalizedCheckoutItem = {
   lineTotal: number;
   product: CheckoutProductRecord;
   quantity: number;
+  selectedOptions: Array<{
+    optionId: string;
+    optionName: string;
+    valueId: string;
+    valueName: string;
+    valueSlug?: string | null;
+  }>;
   selectedOptionName?: string;
   selectedOptionValue?: string;
   selectedOptionValueId?: string;
@@ -81,9 +88,17 @@ function aggregateItems(items: CheckoutCartItemInput[]) {
   >();
 
   items.forEach((item) => {
-    const lineItemId = item.selectedOptionValueId
-      ? `${item.productId}:${item.selectedOptionValueId}`
-      : item.productId;
+    const selectedValueIds =
+      item.selectedOptions
+        ?.map((option) => option.valueId)
+        .filter(Boolean)
+        .sort() ?? [];
+    const lineItemId =
+      selectedValueIds.length > 0
+        ? `${item.productId}:${selectedValueIds.join(":")}`
+        : item.selectedOptionValueId
+          ? `${item.productId}:${item.selectedOptionValueId}`
+          : item.productId;
     const current = itemsByLineId.get(lineItemId);
 
     itemsByLineId.set(lineItemId, {
@@ -123,25 +138,58 @@ async function resolveCheckoutItems(items: CheckoutCartItemInput[]) {
       };
     }
 
-    const selectedOptionValue = item.selectedOptionValueId
-      ? product.option?.values.find(
-          (value) => value.id === item.selectedOptionValueId,
+    const providedOptions = item.selectedOptions ?? [];
+    const productOptionIds = new Set(product.options.map((option) => option.id));
+    const providedOptionsById = new Map(
+      providedOptions.map((option) => [option.optionId, option]),
+    );
+
+    for (const providedOption of providedOptions) {
+      if (!productOptionIds.has(providedOption.optionId)) {
+        return {
+          ok: false as const,
+          error: `Товар "${product.title}" отримав опцію від іншого товару.`,
+        };
+      }
+    }
+
+    const selectedOptions = product.options.flatMap((option, optionIndex) => {
+      const providedOption = providedOptionsById.get(option.id);
+      const legacyValueId =
+        optionIndex === 0 ? item.selectedOptionValueId : undefined;
+      const selectedValueId = providedOption?.valueId ?? legacyValueId;
+      const selectedValue = selectedValueId
+        ? option.values.find((value) => value.id === selectedValueId)
+        : (option.values[0] ?? null);
+
+      if (!selectedValue) {
+        return [];
+      }
+
+      return [
+        {
+          optionId: option.id,
+          optionName: option.name,
+          valueId: selectedValue.id,
+          valueName: selectedValue.label,
+          valueSlug: selectedValue.slug ?? null,
+        },
+      ];
+    });
+
+    if (providedOptions.length > selectedOptions.length) {
+      return {
+        ok: false as const,
+        error: `Товар "${product.title}" має некоректний набір опцій.`,
+      };
+    }
+
+    const firstSelectedOption = selectedOptions[0];
+    const selectedOptionValue = firstSelectedOption
+      ? product.options[0]?.values.find(
+          (value) => value.id === firstSelectedOption.valueId,
         )
       : null;
-
-    if (product.option && !selectedOptionValue) {
-      return {
-        ok: false as const,
-        error: `Для товару "${product.title}" потрібно обрати опцію.`,
-      };
-    }
-
-    if (!product.option && item.selectedOptionValueId) {
-      return {
-        ok: false as const,
-        error: `Товар "${product.title}" не має опцій для вибору.`,
-      };
-    }
 
     const unitPrice = Number(product.price);
     const lineTotal = roundMoney(unitPrice * item.quantity);
@@ -150,8 +198,9 @@ async function resolveCheckoutItems(items: CheckoutCartItemInput[]) {
       lineTotal,
       product,
       quantity: item.quantity,
+      selectedOptions,
       selectedOptionName:
-        product.option && selectedOptionValue ? product.option.name : undefined,
+        firstSelectedOption?.optionName,
       selectedOptionValue: selectedOptionValue?.label,
       selectedOptionValueId: selectedOptionValue?.id,
       unitPrice,
@@ -219,18 +268,7 @@ export async function createStorefrontCheckoutOrder(
       productImage: item.product.images[0]?.url,
       quantity: item.quantity,
       selectedOptions:
-        item.selectedOptionName &&
-        item.selectedOptionValue &&
-        item.selectedOptionValueId
-          ? [
-              {
-                optionId: item.product.option?.id ?? null,
-                optionName: item.selectedOptionName,
-                valueId: item.selectedOptionValueId,
-                valueName: item.selectedOptionValue,
-              },
-            ]
-          : undefined,
+        item.selectedOptions.length > 0 ? item.selectedOptions : undefined,
       selectedOptionName: item.selectedOptionName,
       selectedOptionValue: item.selectedOptionValue,
       selectedOptionValueId: item.selectedOptionValueId,

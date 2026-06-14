@@ -46,6 +46,17 @@ export const checkoutPaymentOptions = [
 
 export const checkoutCartItemSchema = z.object({
   productId: idField(),
+  selectedOptions: z
+    .array(
+      z.object({
+        optionId: idField(),
+        optionName: requiredText(120, "Вкажіть назву опції."),
+        valueId: idField(),
+        valueName: requiredText(120, "Вкажіть значення опції."),
+        valueSlug: optionalText(191),
+      }),
+    )
+    .optional(),
   selectedOptionName: optionalText(120),
   selectedOptionValue: optionalText(120),
   selectedOptionValueId: optionalText(191),
@@ -89,9 +100,17 @@ export const createCheckoutOrderSchema = checkoutCustomerSchema
     const seenLineItemIds = new Set<string>();
 
     value.items.forEach((item, index) => {
-      const lineItemId = item.selectedOptionValueId
-        ? `${item.productId}:${item.selectedOptionValueId}`
-        : item.productId;
+      const selectedValueIds =
+        item.selectedOptions
+          ?.map((option) => option.valueId)
+          .filter(Boolean)
+          .sort() ?? [];
+      const lineItemId =
+        selectedValueIds.length > 0
+          ? `${item.productId}:${selectedValueIds.join(":")}`
+          : item.selectedOptionValueId
+            ? `${item.productId}:${item.selectedOptionValueId}`
+            : item.productId;
 
       if (seenLineItemIds.has(lineItemId)) {
         ctx.addIssue({
