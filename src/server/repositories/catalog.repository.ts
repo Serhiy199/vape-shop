@@ -1014,18 +1014,23 @@ type ProductImageWriteInput = {
 };
 
 type ProductOptionValueWriteInput = {
+  id?: string;
   label: string;
   slug?: string;
   titleOverride?: string;
   seoTitle?: string;
   seoDescription?: string;
-  image: string;
+  image?: string;
   imagePublicId?: string;
   sortOrder: number;
 };
 
 type ProductOptionWriteInput = {
+  id?: string;
   name: string;
+  isImageRequired: boolean;
+  displayType: "BUTTONS" | "IMAGE_SWATCH" | "SELECT";
+  sortOrder: number;
   values: ProductOptionValueWriteInput[];
 };
 
@@ -1047,7 +1052,7 @@ type ProductWriteInput = {
   seoDescription?: string;
   images: ProductImageWriteInput[];
   fieldValues: ProductFieldValueWriteInput[];
-  option?: ProductOptionWriteInput;
+  options: ProductOptionWriteInput[];
 };
 
 const adminProductListSelect = {
@@ -1169,10 +1174,14 @@ const adminProductDetailSelect = {
       updatedAt: true,
     },
   },
-  option: {
+  options: {
+    orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
     select: {
       id: true,
       name: true,
+      isImageRequired: true,
+      displayType: true,
+      sortOrder: true,
       values: {
         orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
         select: {
@@ -1358,12 +1367,16 @@ export async function createProduct(input: ProductWriteInput) {
         isFeaturedHit: input.isFeaturedHit,
         seoTitle: input.seoTitle,
         seoDescription: input.seoDescription,
-        option: input.option
+        options:
+          input.options.length > 0
           ? {
-              create: {
-                name: input.option.name,
+              create: input.options.map((option) => ({
+                name: option.name,
+                isImageRequired: option.isImageRequired,
+                displayType: option.displayType,
+                sortOrder: option.sortOrder,
                 values: {
-                  create: input.option.values.map((value) => ({
+                  create: option.values.map((value) => ({
                     label: value.label,
                     slug: value.slug,
                     titleOverride: value.titleOverride,
@@ -1374,7 +1387,7 @@ export async function createProduct(input: ProductWriteInput) {
                     sortOrder: value.sortOrder,
                   })),
                 },
-              },
+              })),
             }
           : undefined,
         images: {
@@ -1448,12 +1461,6 @@ export async function updateProduct(input: ProductWriteInput & { id: string }) {
       },
     });
 
-    await tx.productOption.deleteMany({
-      where: {
-        productId: input.id,
-      },
-    });
-
     if (input.images.length > 0) {
       await tx.productImage.createMany({
         data: input.images.map((image) => ({
@@ -1481,28 +1488,121 @@ export async function updateProduct(input: ProductWriteInput & { id: string }) {
       });
     }
 
-    if (input.option) {
-      await tx.productOption.create({
-        data: {
-          productId: input.id,
-          name: input.option.name,
-          values: {
-            create: input.option.values.map((value) => ({
-              label: value.label,
-              slug: value.slug,
-              titleOverride: value.titleOverride,
-              seoTitle: value.seoTitle,
-              seoDescription: value.seoDescription,
-              image: value.image,
-              imagePublicId: value.imagePublicId,
-              sortOrder: value.sortOrder,
-            })),
+    const existingOptions = await tx.productOption.findMany({
+      where: {
+        productId: input.id,
+      },
+      select: {
+        id: true,
+        values: {
+          select: {
+            id: true,
           },
         },
-        select: {
-          id: true,
+      },
+    });
+
+    const nextOptionIds = new Set(
+      input.options
+        .map((option) => option.id)
+        .filter((id): id is string => typeof id === "string" && id.length > 0),
+    );
+
+    await tx.productOption.deleteMany({
+      where: {
+        productId: input.id,
+        id: {
+          notIn: [...nextOptionIds],
         },
-      });
+      },
+    });
+
+    for (const option of input.options) {
+      const optionRecord = option.id
+        ? await tx.productOption.update({
+            where: {
+              id: option.id,
+            },
+            data: {
+              name: option.name,
+              isImageRequired: option.isImageRequired,
+              displayType: option.displayType,
+              sortOrder: option.sortOrder,
+            },
+            select: {
+              id: true,
+            },
+          })
+        : await tx.productOption.create({
+            data: {
+              productId: input.id,
+              name: option.name,
+              isImageRequired: option.isImageRequired,
+              displayType: option.displayType,
+              sortOrder: option.sortOrder,
+            },
+            select: {
+              id: true,
+            },
+          });
+
+      const existingOption = existingOptions.find(
+        (currentOption) => currentOption.id === optionRecord.id,
+      );
+      const nextValueIds = new Set(
+        option.values
+          .map((value) => value.id)
+          .filter(
+            (id): id is string => typeof id === "string" && id.length > 0,
+          ),
+      );
+
+      if (existingOption) {
+        await tx.productOptionValue.deleteMany({
+          where: {
+            productOptionId: optionRecord.id,
+            id: {
+              notIn: [...nextValueIds],
+            },
+          },
+        });
+      }
+
+      for (const value of option.values) {
+        const data = {
+          label: value.label,
+          slug: value.slug,
+          titleOverride: value.titleOverride,
+          seoTitle: value.seoTitle,
+          seoDescription: value.seoDescription,
+          image: value.image,
+          imagePublicId: value.imagePublicId,
+          sortOrder: value.sortOrder,
+        };
+
+        if (value.id) {
+          await tx.productOptionValue.update({
+            where: {
+              id: value.id,
+            },
+            data,
+            select: {
+              id: true,
+            },
+          });
+          continue;
+        }
+
+        await tx.productOptionValue.create({
+          data: {
+            productOptionId: optionRecord.id,
+            ...data,
+          },
+          select: {
+            id: true,
+          },
+        });
+      }
     }
 
     return tx.product.findUniqueOrThrow({

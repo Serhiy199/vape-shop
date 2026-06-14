@@ -132,12 +132,15 @@ type SelectedProduct = {
     sortOrder: number;
     url: string;
   }>;
-  option: {
+  options: Array<{
     id: string;
+    displayType: "BUTTONS" | "IMAGE_SWATCH" | "SELECT";
+    isImageRequired: boolean;
     name: string;
+    sortOrder: number;
     values: Array<{
       id: string;
-      image: string;
+      image: string | null;
       imagePublicId: string | null;
       label: string;
       slug: string | null;
@@ -146,7 +149,7 @@ type SelectedProduct = {
       seoDescription: string | null;
       sortOrder: number;
     }>;
-  } | null;
+  }>;
   isActive: boolean;
   isFeaturedDiscount: boolean;
   isFeaturedHit: boolean;
@@ -217,15 +220,22 @@ type ProductOptionValueDraft = {
 };
 
 type ProductOptionDraft = {
+  displayType: "BUTTONS" | "IMAGE_SWATCH" | "SELECT";
   id?: string;
+  isImageRequired: boolean;
   name: string;
+  sortOrder: string;
   values: ProductOptionValueDraft[];
 };
 
 type ProductOptionErrors = {
   general?: string;
   name?: string;
-  values?: Record<number, { image?: string; label?: string }>;
+  values?: Record<number, { image?: string; label?: string; slug?: string }>;
+  groups?: Record<
+    number,
+    { general?: string; name?: string; values?: Record<number, { image?: string; label?: string; slug?: string }> }
+  >;
 };
 
 type NormalizedSubmittedFieldValue =
@@ -546,20 +556,23 @@ function buildImageDrafts(selectedProduct: SelectedProduct | null) {
   }));
 }
 
-function buildProductOptionDraft(
+function buildProductOptionDrafts(
   selectedProduct: SelectedProduct | null,
-): ProductOptionDraft | null {
-  if (!selectedProduct?.option) {
-    return null;
+): ProductOptionDraft[] {
+  if (!selectedProduct?.options?.length) {
+    return [];
   }
 
-  return {
-    id: selectedProduct.option.id,
-    name: selectedProduct.option.name,
-    values: selectedProduct.option.values.map((value, index) => ({
-      existingImage: value.image,
+  return selectedProduct.options.map((option, optionIndex) => ({
+    displayType: option.displayType,
+    id: option.id,
+    isImageRequired: option.isImageRequired,
+    name: option.name,
+    sortOrder: option.sortOrder.toString() || optionIndex.toString(),
+    values: option.values.map((value, index) => ({
+      existingImage: value.image ?? "",
       id: value.id,
-      image: value.image,
+      image: value.image ?? "",
       imagePublicId: value.imagePublicId ?? "",
       imageRemoved: false,
       label: value.label,
@@ -567,9 +580,9 @@ function buildProductOptionDraft(
       titleOverride: value.titleOverride ?? "",
       seoTitle: value.seoTitle ?? "",
       seoDescription: value.seoDescription ?? "",
-      sortOrder: value.sortOrder.toString() || (index + 1).toString(),
+      sortOrder: value.sortOrder.toString() || index.toString(),
     })),
-  };
+  }));
 }
 
 function getSubcategoryFields(
@@ -602,14 +615,13 @@ function normalizeImages(images: ProductImageDraft[]) {
   }));
 }
 
-function normalizeProductOption(option: ProductOptionDraft | null) {
-  if (!option) {
-    return undefined;
-  }
-
-  return {
+function normalizeProductOptions(options: ProductOptionDraft[]) {
+  return options.map((option, optionIndex) => ({
+    displayType: option.displayType,
     id: option.id,
+    isImageRequired: option.isImageRequired,
     name: option.name,
+    sortOrder: Number(option.sortOrder || optionIndex),
     values: option.values.map((value, index) => ({
       id: value.id,
       image: getProductOptionValueImage(value),
@@ -617,12 +629,12 @@ function normalizeProductOption(option: ProductOptionDraft | null) {
       imageRemoved: value.imageRemoved,
       label: value.label,
       slug: value.slug || undefined,
-      titleOverride: value.titleOverride,
-      seoTitle: value.seoTitle,
-      seoDescription: value.seoDescription,
+      titleOverride: optionIndex === 0 ? value.titleOverride : "",
+      seoTitle: optionIndex === 0 ? value.seoTitle : "",
+      seoDescription: optionIndex === 0 ? value.seoDescription : "",
       sortOrder: Number(value.sortOrder || index),
     })),
-  };
+  }));
 }
 
 function getProductOptionValueImage(value: ProductOptionValueDraft) {
@@ -637,44 +649,80 @@ function hasProductOptionValueImage(value: ProductOptionValueDraft) {
   return getProductOptionValueImage(value).length > 0;
 }
 
-function validateProductOption(option: ProductOptionDraft | null) {
+function validateProductOptions(options: ProductOptionDraft[]) {
   const errors: ProductOptionErrors = {};
 
-  if (!option) {
+  if (options.length === 0) {
     return errors;
   }
 
-  if (!option.name.trim()) {
-    errors.name =
-      "Вкажіть назву опції, наприклад Смак, Колір або Опір.";
-  }
+  const groupErrors: NonNullable<ProductOptionErrors["groups"]> = {};
+  const seenNames = new Set<string>();
 
-  if (option.values.length === 0) {
-    errors.general =
-      "Додайте хоча б одне значення опції або вимкніть блок.";
-    return errors;
-  }
+  options.forEach((option, optionIndex) => {
+    const currentGroup: NonNullable<ProductOptionErrors["groups"]>[number] = {};
 
-  const valueErrors: NonNullable<ProductOptionErrors["values"]> = {};
-
-  option.values.forEach((value, index) => {
-    const current: { image?: string; label?: string } = {};
-
-    if (!value.label.trim()) {
-      current.label = "Вкажіть назву значення.";
+    if (!option.name.trim()) {
+      currentGroup.name =
+        "Вкажіть назву опції, наприклад Смак, Колір або Опір.";
     }
 
-    if (!hasProductOptionValueImage(value) && !value.imageRemoved) {
-      current.image = "Завантажте фото для цього значення.";
+    const normalizedName = option.name.trim().toLowerCase();
+    if (normalizedName && seenNames.has(normalizedName)) {
+      currentGroup.name = "Назви груп опцій не можна дублювати.";
+    }
+    seenNames.add(normalizedName);
+
+    if (option.values.length === 0) {
+      currentGroup.general = "Додайте хоча б одне значення опції.";
     }
 
-    if (current.label || current.image) {
-      valueErrors[index] = current;
+    const valueErrors: NonNullable<
+      NonNullable<ProductOptionErrors["groups"]>[number]["values"]
+    > = {};
+    const seenLabels = new Set<string>();
+
+    option.values.forEach((value, index) => {
+      const current: { image?: string; label?: string; slug?: string } = {};
+
+      if (!value.label.trim()) {
+        current.label = "Вкажіть назву значення.";
+      }
+
+      const normalizedLabel = value.label.trim().toLowerCase();
+      if (normalizedLabel && seenLabels.has(normalizedLabel)) {
+        current.label = "Значення в межах групи не можна дублювати.";
+      }
+      seenLabels.add(normalizedLabel);
+
+      if (
+        option.isImageRequired &&
+        !hasProductOptionValueImage(value) &&
+        !value.imageRemoved
+      ) {
+        current.image = "Завантажте фото для цього значення.";
+      }
+
+      if (optionIndex === 0 && !value.slug.trim()) {
+        current.slug = "Slug потрібен для SEO-сторінки першої групи.";
+      }
+
+      if (current.label || current.image || current.slug) {
+        valueErrors[index] = current;
+      }
+    });
+
+    if (Object.keys(valueErrors).length > 0) {
+      currentGroup.values = valueErrors;
+    }
+
+    if (currentGroup.general || currentGroup.name || currentGroup.values) {
+      groupErrors[optionIndex] = currentGroup;
     }
   });
 
-  if (Object.keys(valueErrors).length > 0) {
-    errors.values = valueErrors;
+  if (Object.keys(groupErrors).length > 0) {
+    errors.groups = groupErrors;
   }
 
   return errors;
@@ -947,7 +995,7 @@ function ProductWizard({
   fields,
   initialDynamicValues,
   initialImages,
-  initialOption,
+  initialOptions,
   initialValues,
   mode,
   onDelete,
@@ -960,7 +1008,7 @@ function ProductWizard({
   fields: FieldDefinition[];
   initialDynamicValues: Record<string, ProductDynamicValue>;
   initialImages: ProductImageDraft[];
-  initialOption: ProductOptionDraft | null;
+  initialOptions: ProductOptionDraft[];
   initialValues: ProductFormValues;
   mode: "create" | "edit";
   onDelete?: () => void;
@@ -975,17 +1023,17 @@ function ProductWizard({
   );
   const [dynamicValues, setDynamicValues] = useState(initialDynamicValues);
   const [images, setImages] = useState<ProductImageDraft[]>(initialImages);
-  const [optionDraft, setOptionDraft] = useState<ProductOptionDraft | null>(
-    initialOption,
-  );
+  const [optionsDraft, setOptionsDraft] =
+    useState<ProductOptionDraft[]>(initialOptions);
   const [fieldErrors, setFieldErrors] = useState<ProductFieldErrors>({});
   const [dynamicErrors, setDynamicErrors] = useState<Record<string, string>>(
     {},
   );
   const [optionErrors, setOptionErrors] = useState<ProductOptionErrors>({});
-  const [optionUploadIndex, setOptionUploadIndex] = useState<number | null>(
-    null,
-  );
+  const [optionUploadIndex, setOptionUploadIndex] = useState<{
+    groupIndex: number;
+    valueIndex: number;
+  } | null>(null);
   const [imageItemErrors, setImageItemErrors] = useState<
     Record<number, { publicId?: string; url?: string }>
   >({});
@@ -994,6 +1042,7 @@ function ProductWizard({
     SelectedUploadPreview[]
   >([]);
   const [, setGeneralMessage] = useState<string | null>(null);
+  const optionDraft = optionsDraft[0] ?? null;
 
   const selectedCategory = categories.find(
     (category) => category.id === values.categoryId,
@@ -1068,7 +1117,7 @@ function ProductWizard({
       setValues(initialValues);
       setDynamicValues(initialDynamicValues);
       setImages(initialImages);
-      setOptionDraft(initialOption);
+      setOptionsDraft(initialOptions);
       setFieldErrors({});
       setDynamicErrors({});
       setImageItemErrors({});
@@ -1082,7 +1131,7 @@ function ProductWizard({
   }, [
     initialDynamicValues,
     initialImages,
-    initialOption,
+    initialOptions,
     initialValues,
     productId,
   ]);
@@ -1296,113 +1345,182 @@ function ProductWizard({
       toast.success(payload.message || "Фото товару завантажено.");
     });
   };
+  const createEmptyOptionGroup = (sortOrder: number): ProductOptionDraft => ({
+    displayType: "IMAGE_SWATCH",
+    isImageRequired: true,
+    name: "",
+    sortOrder: sortOrder.toString(),
+    values: [
+      {
+        existingImage: "",
+        image: "",
+        imagePublicId: "",
+        imageRemoved: false,
+        label: "",
+        slug: "",
+        titleOverride: "",
+        seoTitle: "",
+        seoDescription: "",
+        sortOrder: "0",
+      },
+    ],
+  });
+
+  const addOptionGroup = () => {
+    setOptionsDraft((current) => [
+      ...current,
+      createEmptyOptionGroup(current.length),
+    ]);
+    setOptionErrors({});
+    clearMessages();
+  };
+
+  const removeOptionGroup = (groupIndex: number) => {
+    setOptionsDraft((current) =>
+      current.filter((_, index) => index !== groupIndex),
+    );
+    setOptionErrors({});
+    clearMessages();
+  };
+
   const enableProductOption = () => {
-    setOptionDraft({
-      name: "",
-      values: [
-        {
-          existingImage: "",
-          image: "",
-          imagePublicId: "",
-          imageRemoved: false,
-          label: "",
-          slug: "",
-          titleOverride: "",
-          seoTitle: "",
-          seoDescription: "",
-          sortOrder: "0",
-        },
-      ],
-    });
+    setOptionsDraft([createEmptyOptionGroup(0)]);
     setOptionErrors({});
     clearMessages();
   };
 
   const disableProductOption = () => {
-    setOptionDraft(null);
+    setOptionsDraft([]);
     setOptionErrors({});
     clearMessages();
   };
 
-  const updateOption = (patch: Partial<ProductOptionDraft>) => {
-    setOptionDraft((current) =>
-      current
-        ? {
-            ...current,
-            ...patch,
-          }
-        : current,
+  const updateOption = (
+    groupIndexOrPatch: number | Partial<ProductOptionDraft>,
+    patchMaybe?: Partial<ProductOptionDraft>,
+  ) => {
+    const groupIndex =
+      typeof groupIndexOrPatch === "number" ? groupIndexOrPatch : 0;
+    const patch =
+      typeof groupIndexOrPatch === "number" ? patchMaybe : groupIndexOrPatch;
+
+    if (!patch) {
+      return;
+    }
+
+    setOptionsDraft((current) =>
+      current.map((option, index) =>
+        index === groupIndex
+          ? {
+              ...option,
+              ...patch,
+            }
+          : option,
+      ),
     );
     setOptionErrors({});
     clearMessages();
   };
 
   const updateOptionValue = (
-    index: number,
-    patch: Partial<ProductOptionValueDraft>,
+    groupIndexOrIndex: number,
+    indexOrPatch: number | Partial<ProductOptionValueDraft>,
+    patchMaybe?: Partial<ProductOptionValueDraft>,
   ) => {
-    setOptionDraft((current) =>
-      current
-        ? {
-            ...current,
-            values: current.values.map((value, valueIndex) =>
-              valueIndex === index
-                ? {
-                    ...value,
-                    ...patch,
-                  }
-                : value,
-            ),
-          }
-        : current,
+    const groupIndex = typeof indexOrPatch === "number" ? groupIndexOrIndex : 0;
+    const index =
+      typeof indexOrPatch === "number" ? indexOrPatch : groupIndexOrIndex;
+    const patch =
+      typeof indexOrPatch === "number" ? patchMaybe : indexOrPatch;
+
+    if (!patch) {
+      return;
+    }
+
+    setOptionsDraft((current) =>
+      current.map((option, optionIndex) =>
+        optionIndex === groupIndex
+          ? {
+              ...option,
+              values: option.values.map((value, valueIndex) =>
+                valueIndex === index
+                  ? {
+                      ...value,
+                      ...patch,
+                    }
+                  : value,
+              ),
+            }
+          : option,
+      ),
     );
     setOptionErrors({});
     clearMessages();
   };
 
-  const addOptionValue = () => {
-    setOptionDraft((current) =>
-      current
-        ? {
-            ...current,
-            values: [
-              ...current.values,
-              {
-                existingImage: "",
-                image: "",
-                imagePublicId: "",
-                imageRemoved: false,
-                label: "",
-                slug: "",
-                titleOverride: "",
-                seoTitle: "",
-                seoDescription: "",
-                sortOrder: current.values.length.toString(),
-              },
-            ],
-          }
-        : current,
+  const addOptionValue = (groupIndex = 0) => {
+    setOptionsDraft((current) =>
+      current.map((option, optionIndex) =>
+        optionIndex === groupIndex
+          ? {
+              ...option,
+              values: [
+                ...option.values,
+                {
+                  existingImage: "",
+                  image: "",
+                  imagePublicId: "",
+                  imageRemoved: false,
+                  label: "",
+                  slug: "",
+                  titleOverride: "",
+                  seoTitle: "",
+                  seoDescription: "",
+                  sortOrder: option.values.length.toString(),
+                },
+              ],
+            }
+          : option,
+      ),
     );
     setOptionErrors({});
     clearMessages();
   };
 
-  const removeOptionValue = (index: number) => {
-    setOptionDraft((current) =>
-      current
-        ? {
-            ...current,
-            values: current.values.filter(
-              (_, valueIndex) => valueIndex !== index,
-            ),
-          }
-        : current,
+  const removeOptionValue = (groupIndex: number, index?: number) => {
+    const resolvedGroupIndex = typeof index === "number" ? groupIndex : 0;
+    const resolvedIndex = typeof index === "number" ? index : groupIndex;
+
+    setOptionsDraft((current) =>
+      current.map((option, optionIndex) =>
+        optionIndex === resolvedGroupIndex
+          ? {
+              ...option,
+              values: option.values.filter(
+                (_, valueIndex) => valueIndex !== resolvedIndex,
+              ),
+            }
+          : option,
+      ),
     );
     setOptionErrors({});
     clearMessages();
   };
 
-  const uploadOptionValueImage = async (index: number, file: File) => {
+  const uploadOptionValueImage = async (
+    groupIndexOrIndex: number,
+    indexOrFile: number | File,
+    fileMaybe?: File,
+  ) => {
+    const groupIndex = typeof indexOrFile === "number" ? groupIndexOrIndex : 0;
+    const index =
+      typeof indexOrFile === "number" ? indexOrFile : groupIndexOrIndex;
+    const file = typeof indexOrFile === "number" ? fileMaybe : indexOrFile;
+
+    if (!file) {
+      return;
+    }
+
     const productSlug = resolveProductSlug(values);
 
     if (!productSlug) {
@@ -1415,7 +1533,7 @@ function ProductWizard({
     uploadFormData.append("valueNumber", (index + 1).toString());
     uploadFormData.append("file", file);
 
-    setOptionUploadIndex(index);
+    setOptionUploadIndex({ groupIndex, valueIndex: index });
 
     try {
       const response = await fetch("/api/upload/product-option-images", {
@@ -1445,7 +1563,7 @@ function ProductWizard({
         return;
       }
 
-      updateOptionValue(index, {
+      updateOptionValue(groupIndex, index, {
         image: payload.data.file.url,
         imagePublicId: payload.data.file.publicId,
         imageRemoved: false,
@@ -1455,8 +1573,18 @@ function ProductWizard({
       setOptionUploadIndex(null);
     }
   };
-  const removeOptionValueImage = (index: number) => {
-    updateOptionValue(index, {
+  const removeOptionValueImage = (groupIndex: number, index?: number) => {
+    if (typeof index === "number") {
+      updateOptionValue(groupIndex, index, {
+        existingImage: "",
+        image: "",
+        imagePublicId: "",
+        imageRemoved: true,
+      });
+      return;
+    }
+
+    updateOptionValue(0, groupIndex, {
       existingImage: "",
       image: "",
       imagePublicId: "",
@@ -1579,14 +1707,10 @@ function ProductWizard({
     }
 
     if (step === "options") {
-      const nextOptionErrors = validateProductOption(optionDraft);
+      const nextOptionErrors = validateProductOptions(optionsDraft);
       setOptionErrors(nextOptionErrors);
 
-      if (
-        nextOptionErrors.general ||
-        nextOptionErrors.name ||
-        nextOptionErrors.values
-      ) {
+      if (nextOptionErrors.general || nextOptionErrors.groups) {
         isValid = false;
       }
     }
@@ -1627,7 +1751,7 @@ function ProductWizard({
       isFeaturedHit: values.isFeaturedHit,
       isFeaturedNew: values.isFeaturedNew,
       isFeaturedSale: values.isFeaturedSale,
-      option: normalizeProductOption(optionDraft),
+      options: normalizeProductOptions(optionsDraft),
       price: values.price,
       seoDescription: resolveSeoDescription(values),
       seoTitle: resolveSeoTitle(values),

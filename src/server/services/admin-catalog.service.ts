@@ -105,7 +105,7 @@ type NormalizedProductWritePayload = {
   isFeaturedNew: boolean;
   isFeaturedSale: boolean;
   price: number;
-  option?: ProductOptionInput;
+  options: ProductOptionInput[];
   seoDescription?: string;
   seoTitle?: string;
   slug: string;
@@ -182,7 +182,7 @@ function formatProductValidationIssue(issue: z.ZodIssue) {
     }
   }
 
-  if (field === "option") {
+  if (field === "option" || field === "options") {
     const optionValueIndex = nestedPath.find(
       (pathPart) => typeof pathPart === "number",
     );
@@ -1258,42 +1258,49 @@ async function validateProductSlugUniqueness(
   return null;
 }
 
-function normalizeProductOptionPayload(
+function normalizeProductOptionsPayload(
   payload: CreateProductInput | UpdateProductInput,
-): ProductOptionInput | undefined {
-  if (!payload.option) {
-    return undefined;
-  }
-
-  return {
-    ...payload.option,
-    values: payload.option.values.map((value, index) => {
+): ProductOptionInput[] {
+  return (payload.options ?? []).map((option, optionIndex) => ({
+    ...option,
+    sortOrder: option.sortOrder ?? optionIndex,
+    values: option.values.map((value, index) => {
       const optionSlug =
-        value.slug?.trim() ||
-        slugifyText(`${payload.slug}-${value.label}`) ||
-        `${payload.slug}-option-${index + 1}`;
+        optionIndex === 0
+          ? value.slug?.trim() ||
+            slugifyText(`${payload.slug}-${value.label}`) ||
+            `${payload.slug}-option-${index + 1}`
+          : value.slug?.trim() || undefined;
       const optionTitle = value.titleOverride?.trim() || undefined;
       const optionPageTitle = optionTitle || `${payload.title} ${value.label}`;
 
       return {
         ...value,
-        image: value.imageRemoved ? "" : value.image,
+        image: value.imageRemoved ? undefined : value.image,
         imagePublicId: value.imageRemoved ? undefined : value.imagePublicId,
         slug: optionSlug,
-        titleOverride: optionTitle,
-        seoTitle: value.seoTitle?.trim() || buildSeoTitle(optionPageTitle),
+        titleOverride: optionIndex === 0 ? optionTitle : undefined,
+        seoTitle:
+          optionIndex === 0
+            ? value.seoTitle?.trim() || buildSeoTitle(optionPageTitle)
+            : undefined,
         seoDescription:
-          value.seoDescription?.trim() || buildSeoDescription(optionPageTitle),
+          optionIndex === 0
+            ? value.seoDescription?.trim() ||
+              buildSeoDescription(optionPageTitle)
+            : undefined,
       };
     }),
-  };
+  }));
 }
 
 async function validateProductOptionSlugUniqueness(
-  option: ProductOptionInput | undefined,
+  options: ProductOptionInput[],
   productSlug: string,
   currentProductId?: string,
 ) {
+  const option = options[0];
+
   if (!option) {
     return null;
   }
@@ -1401,9 +1408,9 @@ async function normalizeProductWritePayload(
   const productSeoDescription =
     payload.seoDescription ?? buildSeoDescription(payload.title);
 
-  const normalizedOption = normalizeProductOptionPayload(payload);
+  const normalizedOptions = normalizeProductOptionsPayload(payload);
   const optionSlugError = await validateProductOptionSlugUniqueness(
-    normalizedOption,
+    normalizedOptions,
     payload.slug,
     "id" in payload ? payload.id : undefined,
   );
@@ -1425,7 +1432,7 @@ async function normalizeProductWritePayload(
     isFeaturedHit: payload.isFeaturedHit,
     isFeaturedNew: payload.isFeaturedNew,
     isFeaturedSale: payload.isFeaturedSale,
-    option: normalizedOption,
+    options: normalizedOptions,
     price: payload.price,
     seoDescription: productSeoDescription,
     seoTitle: productSeoTitle,

@@ -50,6 +50,12 @@ enum ProductAvailability {
   OUT_OF_STOCK
 }
 
+enum ProductOptionDisplayType {
+  BUTTONS
+  IMAGE_SWATCH
+  SELECT
+}
+
 model User {
   id                 String           @id @default(cuid())
   email              String           @unique
@@ -227,7 +233,7 @@ model Product {
   subcategory        Subcategory         @relation(fields: [subcategoryId], references: [id], onDelete: Restrict)
   brand              Brand?              @relation(fields: [brandId], references: [id], onDelete: SetNull)
   images             ProductImage[]
-  option             ProductOption?
+  options            ProductOption[]
   fieldValues        ProductFieldValue[]
   orderItems         OrderItem[]
   wishlistItems      WishlistItem[]
@@ -255,15 +261,20 @@ model ProductImage {
 }
 
 model ProductOption {
-  id        String               @id @default(cuid())
-  productId String               @unique
-  name      String
-  createdAt DateTime             @default(now())
-  updatedAt DateTime             @updatedAt
-  product   Product              @relation(fields: [productId], references: [id], onDelete: Cascade)
-  values    ProductOptionValue[]
+  id              String                   @id @default(cuid())
+  productId       String
+  name            String
+  isImageRequired Boolean                  @default(true)
+  displayType     ProductOptionDisplayType @default(IMAGE_SWATCH)
+  sortOrder       Int                      @default(0)
+  createdAt       DateTime                 @default(now())
+  updatedAt       DateTime                 @updatedAt
+  product         Product                  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  values          ProductOptionValue[]
 
+  @@unique([productId, name])
   @@index([productId])
+  @@index([productId, sortOrder])
 }
 
 model ProductOptionValue {
@@ -274,13 +285,15 @@ model ProductOptionValue {
   titleOverride   String?
   seoTitle        String?
   seoDescription  String?
-  image           String
+  image           String?
   imagePublicId   String?
   sortOrder       Int           @default(0)
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt
   productOption   ProductOption @relation(fields: [productOptionId], references: [id], onDelete: Cascade)
 
+  @@unique([productOptionId, label])
+  @@index([productOptionId])
   @@index([productOptionId, sortOrder])
 }
 

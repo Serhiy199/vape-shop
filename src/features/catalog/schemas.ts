@@ -1,4 +1,8 @@
-import { ProductAvailability, SubcategoryFieldType } from "@prisma/client";
+import {
+  ProductAvailability,
+  ProductOptionDisplayType,
+  SubcategoryFieldType,
+} from "@prisma/client";
 import { z } from "zod";
 
 function optionalTrimmedString(max: number) {
@@ -289,27 +293,13 @@ const productOptionValueSchema = z
     titleOverride: optionalTrimmedString(160),
     seoTitle: optionalTrimmedString(160),
     seoDescription: optionalTrimmedString(320),
-    image: z
-      .string({
-        required_error: "Завантажте фото для цього значення опції.",
-        invalid_type_error: "Завантажте фото для цього значення опції.",
-      })
-      .trim()
-      .max(2048, "URL фото значення опції занадто довгий."),
+    image: optionalTextField(2048),
     imagePublicId: optionalTrimmedString(255),
     imageRemoved: z.coerce.boolean().default(false),
     sortOrder: sortOrderField(),
   })
   .superRefine((value, ctx) => {
-    if (value.image.length === 0) {
-      if (!value.imageRemoved) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: "Завантажте фото для цього значення опції.",
-          path: ["image"],
-        });
-      }
-
+    if (!value.image) {
       return;
     }
 
@@ -325,11 +315,71 @@ const productOptionValueSchema = z
 const productOptionSchema = z.object({
   id: optionalIdField(),
   name: requiredName(80),
+  isImageRequired: z.coerce.boolean().default(true),
+  displayType: z
+    .nativeEnum(ProductOptionDisplayType)
+    .default(ProductOptionDisplayType.IMAGE_SWATCH),
+  sortOrder: sortOrderField(),
   values: z
     .array(productOptionValueSchema)
     .min(1, "Потрібно додати хоча б одне значення опції товару.")
     .max(100, "Опція товару може містити максимум 100 значень."),
 });
+
+const productOptionsSchema = z
+  .array(productOptionSchema)
+  .max(20, "Товар може мати не більше 20 груп опцій.")
+  .default([])
+  .superRefine((options, ctx) => {
+    const seenNames = new Set<string>();
+
+    options.forEach((option, optionIndex) => {
+      const normalizedName = option.name.trim().toLowerCase();
+
+      if (seenNames.has(normalizedName)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Назви груп опцій не можна дублювати.",
+          path: [optionIndex, "name"],
+        });
+      }
+
+      seenNames.add(normalizedName);
+
+      const seenLabels = new Set<string>();
+
+      option.values.forEach((value, valueIndex) => {
+        const normalizedLabel = value.label.trim().toLowerCase();
+
+        if (seenLabels.has(normalizedLabel)) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: "Значення опцій не можна дублювати в межах однієї групи.",
+            path: [optionIndex, "values", valueIndex, "label"],
+          });
+        }
+
+        seenLabels.add(normalizedLabel);
+
+        if (option.isImageRequired && !value.image && !value.imageRemoved) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: "Завантажте фото для цього значення опції.",
+            path: [optionIndex, "values", valueIndex, "image"],
+          });
+        }
+
+        if (optionIndex === 0 && !value.slug?.trim()) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message:
+              "Slug для SEO-сторінки першої групи опцій обов'язковий.",
+            path: [optionIndex, "values", valueIndex, "slug"],
+          });
+        }
+      });
+    });
+  });
 
 function createProductImagesSchema(options: { requireImage: boolean }) {
   return z.array(productImageSchema).superRefine((images, ctx) => {
@@ -555,10 +605,7 @@ const productBaseSchema = z.object({
   seoDescription: optionalTrimmedString(320),
   images: productImagesSchema,
   fieldValues: productFieldValuesSchema.default([]),
-  option: productOptionSchema
-    .nullable()
-    .optional()
-    .transform((value) => value ?? undefined),
+  options: productOptionsSchema,
 });
 
 export const createProductSchema = productBaseSchema;
