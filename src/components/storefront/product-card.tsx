@@ -31,6 +31,14 @@ const badgeTones: Record<
   discount: "sale",
 };
 
+const badgeClassNames: Record<StorefrontProductBadge, string> = {
+  hit: "border-amber-300 bg-amber-400 text-stone-950 shadow-sm ring-1 ring-white/90",
+  new: "border-emerald-700 bg-emerald-600 text-white shadow-sm ring-1 ring-white/90",
+  sale: "border-rose-700 bg-rose-600 text-white shadow-sm ring-1 ring-white/90",
+  discount:
+    "border-orange-700 bg-orange-600 text-white shadow-sm ring-1 ring-white/90",
+};
+
 export const currencyFormatter = new Intl.NumberFormat("uk-UA", {
   currency: "UAH",
   maximumFractionDigits: 0,
@@ -70,17 +78,16 @@ export function StorefrontProductCard({
           {product.badges?.length ? (
             <div className="absolute top-2 left-2 flex flex-wrap gap-1.5">
               {product.badges.map((badge) => (
-                <StorefrontBadge key={badge} tone={badgeTones[badge]}>
+                <StorefrontBadge
+                  key={badge}
+                  tone={badgeTones[badge]}
+                  className={badgeClassNames[badge]}
+                >
                   {badgeLabels[badge]}
                 </StorefrontBadge>
               ))}
             </div>
           ) : null}
-
-          <WishlistButton
-            productId={product.id}
-            className="bg-card/90 absolute top-2 right-2 size-9"
-          />
         </div>
 
         <div className="flex min-h-0 flex-1 flex-col gap-3">
@@ -121,19 +128,25 @@ export function StorefrontProductCard({
               {currencyFormatter.format(product.price)}
             </span>
 
-            {isAvailable ? (
-              <AddToCartButton
-                className="h-10 w-full rounded-lg"
-                product={product}
+            <div className="flex items-center gap-2">
+              {isAvailable ? (
+                <AddToCartButton
+                  className="h-10 min-w-0 flex-1 rounded-lg"
+                  product={product}
+                />
+              ) : (
+                <Link
+                  href={product.href}
+                  className="border-border bg-background hover:bg-muted hover:text-foreground inline-flex h-10 min-w-0 flex-1 items-center justify-center rounded-lg border px-3 text-sm font-medium transition"
+                >
+                  Детальніше
+                </Link>
+              )}
+              <WishlistButton
+                productId={product.id}
+                className="bg-background hover:bg-muted h-10 w-10 shrink-0 rounded-lg"
               />
-            ) : (
-              <Link
-                href={product.href}
-                className="border-border bg-background hover:bg-muted hover:text-foreground inline-flex h-10 w-full items-center justify-center rounded-lg border px-3 text-sm font-medium transition"
-              >
-                Детальніше
-              </Link>
-            )}
+            </div>
           </div>
         </div>
       </div>

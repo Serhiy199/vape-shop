@@ -47,6 +47,10 @@ const slugSchema = z
   .transform((value) => slugifyText(value))
   .refine((value) => value.length > 0, "Slug обов'язковий");
 
+const optionalSlugSchema = optionalString.transform((value) =>
+  value ? slugifyText(value) : undefined,
+);
+
 export const contentPageSlugSchema = slugSchema.refine(
   (value) => !reservedContentSlugs.has(value),
   "Цей slug зарезервований системним маршрутом.",
@@ -118,7 +122,7 @@ export const contactRequestStatusSchema = idSchema.extend({
 export const blogCategoryMutationSchema = z.object({
   id: optionalString,
   name: z.string().trim().min(1, "Назва обов'язкова"),
-  slug: slugSchema,
+  slug: optionalSlugSchema,
   sortOrder: z.coerce.number().int().min(0).default(0),
   isActive: z.boolean().default(true),
 });
@@ -153,7 +157,7 @@ export const blogPostMutationSchema = z.object({
 export const faqSectionMutationSchema = z.object({
   id: optionalString,
   title: z.string().trim().min(1, "Назва обов'язкова"),
-  slug: slugSchema,
+  slug: optionalSlugSchema,
   sortOrder: z.coerce.number().int().min(0).default(0),
   isActive: z.boolean().default(true),
 });
@@ -199,7 +203,7 @@ export const certificateSettingsMutationSchema = z.object({
 export const certificateGroupMutationSchema = z.object({
   id: optionalString,
   name: z.string().trim().min(1, "Назва обов'язкова"),
-  slug: slugSchema,
+  slug: optionalSlugSchema,
   descriptionHtml: htmlString,
   sortOrder: z.coerce.number().int().min(0).default(0),
   isActive: z.boolean().default(true),

@@ -19,14 +19,15 @@ export function StorefrontLogo({
       )}
       aria-label={`${storefrontBrand.name} - головна сторінка`}
     >
-      <span className="relative block h-14 w-36 overflow-hidden sm:h-16 sm:w-44 lg:h-18 lg:w-52">
+      <span className="block w-full">
         <Image
           src={storefrontBrand.logoSrc}
           alt={`${storefrontBrand.name} logo`}
-          fill
+          width={1270}
+          height={630}
           priority
-          sizes="(max-width: 640px) 144px, (max-width: 1024px) 176px, 208px"
-          className="object-contain object-left"
+          sizes="(max-width: 640px) 42vw, (max-width: 1024px) 220px, 260px"
+          className="h-auto w-full object-contain object-left"
         />
       </span>
     </Link>

@@ -1,4 +1,5 @@
 import type { z } from "zod";
+import { Prisma } from "@prisma/client";
 
 import {
   activeStatusSchema,
@@ -18,6 +19,7 @@ import {
   publicReviewSchema,
   reviewMutationSchema,
 } from "@/features/content/schemas";
+import { slugifyText } from "@/lib/text/slug";
 import {
   createContactRequest,
   deleteBlogCategory,
@@ -71,6 +73,42 @@ function validationError(fieldErrors: Record<string, string[] | undefined>) {
     fieldErrors,
     ok: false as const,
   };
+}
+
+function mutationError(
+  error: string,
+  fieldErrors?: Record<string, string[] | undefined>,
+): ContentMutationResult<never> {
+  return {
+    error,
+    fieldErrors,
+    ok: false,
+  };
+}
+
+async function safelyMutate<TData>(
+  action: () => Promise<TData>,
+  uniqueField: string = "slug",
+): Promise<ContentMutationResult<TData>> {
+  try {
+    return ok(await action());
+  } catch (error) {
+    if (error instanceof Prisma.PrismaClientKnownRequestError) {
+      if (error.code === "P2002") {
+        return mutationError("Запис з таким slug вже існує.", {
+          [uniqueField]: ["Такий slug вже використовується."],
+        });
+      }
+
+      if (error.code === "P2021" || error.code === "P2022") {
+        return mutationError(
+          "Таблиці CMS ще не застосовані в базі даних. Запустіть Prisma migration для production DB.",
+        );
+      }
+    }
+
+    throw error;
+  }
 }
 
 async function parseInput<TSchema extends z.ZodTypeAny>(
@@ -193,7 +231,9 @@ export async function saveBlogCategory(input: unknown) {
   }
   const data = parsed.data;
 
-  return ok(await upsertBlogCategory(data));
+  const slug = data.slug || slugifyText(data.name);
+
+  return safelyMutate(() => upsertBlogCategory({ ...data, slug }));
 }
 
 export async function saveBlogTag(input: unknown) {
@@ -204,7 +244,9 @@ export async function saveBlogTag(input: unknown) {
   }
   const data = parsed.data;
 
-  return ok(await upsertBlogTag(data));
+  const slug = data.slug || slugifyText(data.name);
+
+  return safelyMutate(() => upsertBlogTag({ ...data, slug }));
 }
 
 export async function saveBlogPost(input: unknown) {
@@ -215,7 +257,7 @@ export async function saveBlogPost(input: unknown) {
   }
   const data = parsed.data;
 
-  return ok(await upsertBlogPost(data));
+  return safelyMutate(() => upsertBlogPost(data));
 }
 
 export async function removeBlogCategory(input: unknown) {
@@ -259,7 +301,9 @@ export async function saveFAQSection(input: unknown) {
   }
   const data = parsed.data;
 
-  return ok(await upsertFAQSection(data));
+  const slug = data.slug || slugifyText(data.title);
+
+  return safelyMutate(() => upsertFAQSection({ ...data, slug }));
 }
 
 export async function saveFAQItem(input: unknown) {
@@ -353,7 +397,9 @@ export async function saveCertificateGroup(input: unknown) {
   }
   const data = parsed.data;
 
-  return ok(await upsertCertificateGroup(data));
+  const slug = data.slug || slugifyText(data.name);
+
+  return safelyMutate(() => upsertCertificateGroup({ ...data, slug }));
 }
 
 export async function saveCertificateItem(input: unknown) {

@@ -171,6 +171,8 @@ export function AdminRichTextEditor({
         heading: {
           levels: [2, 3, 4],
         },
+        link: false,
+        underline: false,
       }),
       Underline,
       Link.configure({

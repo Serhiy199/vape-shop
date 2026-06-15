@@ -14,7 +14,6 @@ import { Textarea } from "@/components/ui/textarea";
 import {
   deleteBlogCategoryAction,
   deleteBlogPostAction,
-  deleteBlogTagAction,
   deleteCertificateGroupAction,
   deleteCertificateItemAction,
   deleteContentPageAction,
@@ -23,7 +22,6 @@ import {
   deleteReviewAction,
   saveBlogCategoryAction,
   saveBlogPostAction,
-  saveBlogTagAction,
   saveCertificateGroupAction,
   saveCertificateItemAction,
   saveCertificateSettingsAction,
@@ -96,13 +94,6 @@ type BlogCategoryItem = {
   name: string;
   slug: string;
   sortOrder: number;
-};
-
-type BlogTagItem = {
-  id: string;
-  isActive: boolean;
-  name: string;
-  slug: string;
 };
 
 type BlogPostItem = {
@@ -668,11 +659,9 @@ export function AdminContactsCrud({
 export function AdminBlogCrud({
   categories,
   posts,
-  tags,
 }: {
   categories: BlogCategoryItem[];
   posts: BlogPostItem[];
-  tags: BlogTagItem[];
 }) {
   const { isPending, run } = useActionState();
   const [postDraft, setPostDraft] = useState<BlogPostItem | null>(posts[0] ?? null);
@@ -724,7 +713,7 @@ export function AdminBlogCrud({
           status: fieldValue(formData, "status"),
           publishedAt: emptyToUndefined(fieldValue(formData, "publishedAt")),
           categoryId: emptyToUndefined(fieldValue(formData, "categoryId")),
-          tagIds: formData.getAll("tagIds").map(String),
+          tagIds: [],
           seoTitle: emptyToUndefined(fieldValue(formData, "seoTitle")),
           seoDescription: emptyToUndefined(fieldValue(formData, "seoDescription")),
           seoImage: emptyToUndefined(fieldValue(formData, "seoImage")),
@@ -735,17 +724,16 @@ export function AdminBlogCrud({
 
   return (
     <div className="space-y-6">
-      <div className="grid gap-6 lg:grid-cols-2">
+      <div className="grid gap-6">
         <Card>
           <h2 className="text-lg font-semibold">Категорії</h2>
           <form
-            className="grid gap-3 md:grid-cols-4"
+            className="grid gap-3 md:grid-cols-3"
             onSubmit={(event) =>
               saveSimple(event, saveBlogCategoryAction, "Категорію збережено")
             }
           >
             <SimpleField name="name" label="Назва" />
-            <SimpleField name="slug" label="Slug" />
             <SimpleField name="sortOrder" label="Порядок" type="number" />
             <label className="flex items-end gap-2 text-sm">
               <input name="isActive" type="checkbox" defaultChecked />
@@ -770,44 +758,6 @@ export function AdminBlogCrud({
                       () => deleteBlogCategoryAction({ id: category.id }),
                       "Категорію видалено",
                     )
-                  }
-                >
-                  Видалити
-                </Button>
-              </div>
-            ))}
-          </div>
-        </Card>
-        <Card>
-          <h2 className="text-lg font-semibold">Теги</h2>
-          <form
-            className="grid gap-3 md:grid-cols-3"
-            onSubmit={(event) =>
-              saveSimple(event, saveBlogTagAction, "Тег збережено")
-            }
-          >
-            <SimpleField name="name" label="Назва" />
-            <SimpleField name="slug" label="Slug" />
-            <label className="flex items-end gap-2 text-sm">
-              <input name="isActive" type="checkbox" defaultChecked />
-              Активний
-            </label>
-            <SubmitButton disabled={isPending}>Додати</SubmitButton>
-          </form>
-          <div className="space-y-2">
-            {tags.map((tag) => (
-              <div
-                key={tag.id}
-                className="border-border flex items-center justify-between rounded-lg border p-2 text-sm"
-              >
-                <span>
-                  {tag.name} / {tag.slug}
-                </span>
-                <Button
-                  type="button"
-                  variant="destructive"
-                  onClick={() =>
-                    run(() => deleteBlogTagAction({ id: tag.id }), "Тег видалено")
                   }
                 >
                   Видалити
@@ -927,22 +877,6 @@ export function AdminBlogCrud({
                 ))}
               </select>
             </label>
-            <div className="space-y-2">
-              <p className="text-sm font-medium">Теги</p>
-              <div className="flex flex-wrap gap-2">
-                {tags.map((tag) => (
-                  <label key={tag.id} className="flex items-center gap-2 text-sm">
-                    <input
-                      name="tagIds"
-                      type="checkbox"
-                      value={tag.id}
-                      defaultChecked={postDraft?.tagIds.includes(tag.id)}
-                    />
-                    {tag.name}
-                  </label>
-                ))}
-              </div>
-            </div>
             <SimpleField
               name="seoTitle"
               label="SEO title"
@@ -975,7 +909,7 @@ export function AdminFAQCrud({ sections }: { sections: FAQSectionItem[] }) {
       <Card>
         <h2 className="text-lg font-semibold">Розділи FAQ</h2>
         <form
-          className="grid gap-3 md:grid-cols-4"
+          className="grid gap-3 md:grid-cols-3"
           onSubmit={(event) => {
             event.preventDefault();
             const formData = new FormData(event.currentTarget);
@@ -993,7 +927,6 @@ export function AdminFAQCrud({ sections }: { sections: FAQSectionItem[] }) {
           }}
         >
           <SimpleField name="title" label="Назва" />
-          <SimpleField name="slug" label="Slug" />
           <SimpleField name="sortOrder" label="Порядок" type="number" />
           <label className="flex items-end gap-2 text-sm">
             <input name="isActive" type="checkbox" defaultChecked />
@@ -1333,7 +1266,6 @@ export function AdminCertificatesCrud({
             }}
           >
             <SimpleField name="name" label="Назва" />
-            <SimpleField name="slug" label="Slug" />
             <SimpleTextarea name="descriptionHtml" label="Опис" />
             <SimpleField name="sortOrder" label="Порядок" type="number" />
             <label className="flex items-center gap-2 text-sm">

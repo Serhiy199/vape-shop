@@ -3,7 +3,6 @@ import { AdminBlogCrud } from "@/features/content/components/admin-content-crud"
 import {
   listAdminBlogPosts,
   listBlogCategories,
-  listBlogTags,
 } from "@/server/repositories/content.repository";
 
 function serialize<TData>(data: TData): TData {
@@ -11,9 +10,8 @@ function serialize<TData>(data: TData): TData {
 }
 
 export default async function AdminBlogPage() {
-  const [categories, tags, posts] = await Promise.all([
+  const [categories, posts] = await Promise.all([
     listBlogCategories(),
-    listBlogTags(),
     listAdminBlogPosts(),
   ]);
 
@@ -30,12 +28,11 @@ export default async function AdminBlogPage() {
       <AdminPageHeader
         eyebrow="Контент"
         title="Блог"
-        description="Статті, категорії та теги для публічного блогу."
-        badges={["Posts", "Categories", "Tags"]}
+        description="Статті та категорії для публічного блогу."
+        badges={["Posts", "Categories"]}
       />
       <AdminBlogCrud
         categories={serialize(categories)}
-        tags={serialize(tags)}
         posts={serialize(mappedPosts)}
       />
     </div>
