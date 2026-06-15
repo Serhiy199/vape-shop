@@ -9,8 +9,15 @@ import {
   storefrontTrustItems,
 } from "@/components/storefront/storefront-config";
 import { Separator } from "@/components/ui/separator";
+import { listFooterContentPages } from "@/server/repositories/content.repository";
 
-export function StorefrontFooter() {
+export async function StorefrontFooter() {
+  const cmsInfoLinks = (await listFooterContentPages()).map((page) => ({
+    href: `/${page.slug}`,
+    label: page.title,
+  }));
+  const infoLinks = [...storefrontInfoLinks, ...cmsInfoLinks];
+
   return (
     <footer>
       <section className="mx-auto grid w-full max-w-screen-2xl gap-6 bg-background px-4 py-8 text-foreground sm:px-6 md:grid-cols-2 lg:grid-cols-4 lg:px-8">
@@ -78,7 +85,7 @@ export function StorefrontFooter() {
           </FooterColumn>
 
           <FooterColumn title="Інформація">
-            {storefrontInfoLinks.map((link) => (
+            {infoLinks.map((link) => (
               <Link key={link.href} href={link.href}>
                 {link.label}
               </Link>

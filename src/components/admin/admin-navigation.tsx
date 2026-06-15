@@ -4,14 +4,20 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { LucideIcon } from "lucide-react";
 import {
+  AwardIcon,
+  BookOpenIcon,
   BoxesIcon,
   ChevronRightIcon,
+  CircleHelpIcon,
+  FileTextIcon,
   LayoutDashboardIcon,
   MegaphoneIcon,
+  MessageSquareIcon,
   PackageIcon,
   ScanSearchIcon,
   ShieldUserIcon,
   ShoppingCartIcon,
+  StarIcon,
   TagsIcon,
   UsersIcon,
 } from "lucide-react";
@@ -74,6 +80,47 @@ const adminNavGroups: AdminNavGroup[] = [
         href: "/admin/fields",
         icon: ScanSearchIcon,
         label: "Характеристики",
+        enabled: true,
+      },
+    ],
+  },
+  {
+    label: "Контент",
+    items: [
+      {
+        href: "/admin/content/pages",
+        icon: FileTextIcon,
+        label: "Інформаційні сторінки",
+        enabled: true,
+      },
+      {
+        href: "/admin/content/contacts",
+        icon: MessageSquareIcon,
+        label: "Контакти",
+        enabled: true,
+      },
+      {
+        href: "/admin/content/blog",
+        icon: BookOpenIcon,
+        label: "Блог",
+        enabled: true,
+      },
+      {
+        href: "/admin/content/faq",
+        icon: CircleHelpIcon,
+        label: "FAQ",
+        enabled: true,
+      },
+      {
+        href: "/admin/content/reviews",
+        icon: StarIcon,
+        label: "Відгуки",
+        enabled: true,
+      },
+      {
+        href: "/admin/content/certificates",
+        icon: AwardIcon,
+        label: "Сертифікати",
         enabled: true,
       },
     ],

@@ -2647,6 +2647,16 @@ function ProductWizard({
               ))}
             </div>
 
+            <div className="flex justify-end">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => addOptionValue()}
+              >
+                Додати значення
+              </Button>
+            </div>
+
             {optionsDraft.slice(1).map((option, offset) => {
               const groupIndex = offset + 1;
               const groupErrors = optionErrors.groups?.[groupIndex];
@@ -2882,13 +2892,6 @@ function ProductWizard({
               <p className="text-muted-foreground text-sm leading-6">
                 Порядок на фронтенді відповідає порядку значень у цьому списку.
               </p>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => addOptionValue()}
-              >
-                Додати значення
-              </Button>
             </div>
           </div>
         ) : (

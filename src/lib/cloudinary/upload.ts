@@ -36,6 +36,11 @@ type RichTextImageUploadInput = {
   file: File;
 };
 
+type CertificateFileUploadInput = {
+  file: File;
+  title: string;
+};
+
 function getCloudinaryConfig(): CloudinaryConfig {
   const cloudName = process.env.CLOUDINARY_CLOUD_NAME?.trim();
   const apiKey = process.env.CLOUDINARY_API_KEY?.trim();
@@ -147,6 +152,20 @@ export function getCatalogImageUploadConstraints() {
 export function getProductOptionImageUploadConstraints() {
   return {
     ...getCloudinaryUploadConstraints(),
+    maxFilesPerRequest: 1,
+  };
+}
+
+export function getCertificateFileUploadConstraints() {
+  return {
+    allowedMimeTypes: new Set([
+      "image/jpeg",
+      "image/jpg",
+      "image/png",
+      "image/webp",
+      "application/pdf",
+    ]),
+    maxFileSizeBytes: 10 * 1024 * 1024,
     maxFilesPerRequest: 1,
   };
 }
@@ -472,4 +491,102 @@ export async function uploadRichTextImageToCloudinary({
     publicId: payload.public_id,
     url: payload.secure_url,
   };
+}
+
+export async function uploadCertificateFileToCloudinary({
+  file,
+  title,
+}: CertificateFileUploadInput) {
+  const config = getCloudinaryConfig();
+  const timestamp = Math.floor(Date.now() / 1000);
+  const folder = joinCloudinaryPath(
+    getCloudinarySiteRoot(config.uploadRoot),
+    "certificates",
+  );
+  const safeName = normalizePathSegment(title || file.name.replace(/\.[^.]+$/, ""));
+  const publicId = `${safeName || "certificate"}-${timestamp}`;
+  const resourceType = file.type === "application/pdf" ? "raw" : "image";
+
+  const signature = createUploadSignature({
+    apiSecret: config.apiSecret,
+    folder,
+    publicId,
+    timestamp,
+  });
+
+  const formData = new FormData();
+  formData.append("file", file);
+  formData.append("api_key", config.apiKey);
+  formData.append("timestamp", timestamp.toString());
+  formData.append("signature", signature);
+  formData.append("folder", folder);
+  formData.append("public_id", publicId);
+
+  const response = await fetch(
+    `https://api.cloudinary.com/v1_1/${config.cloudName}/${resourceType}/upload`,
+    {
+      body: formData,
+      method: "POST",
+    },
+  );
+
+  if (!response.ok) {
+    const payload = (await response.json().catch(() => null)) as {
+      error?: {
+        message?: string;
+      };
+    } | null;
+
+    throw new Error(
+      payload?.error?.message || "Cloudinary certificate upload failed.",
+    );
+  }
+
+  const payload = (await response.json()) as {
+    public_id: string;
+    secure_url: string;
+  };
+
+  return {
+    fileType: file.type,
+    publicId: payload.public_id,
+    url: payload.secure_url,
+  };
+}
+
+export async function deleteCloudinaryAsset(
+  publicId: string | null | undefined,
+  resourceType: "image" | "raw" = "image",
+) {
+  if (!publicId) {
+    return;
+  }
+
+  const config = getCloudinaryConfig();
+  const timestamp = Math.floor(Date.now() / 1000);
+  const signatureBase = `public_id=${publicId}&timestamp=${timestamp}${config.apiSecret}`;
+  const signature = createHash("sha1").update(signatureBase).digest("hex");
+  const formData = new FormData();
+  formData.append("public_id", publicId);
+  formData.append("api_key", config.apiKey);
+  formData.append("timestamp", timestamp.toString());
+  formData.append("signature", signature);
+
+  const response = await fetch(
+    `https://api.cloudinary.com/v1_1/${config.cloudName}/${resourceType}/destroy`,
+    {
+      body: formData,
+      method: "POST",
+    },
+  );
+
+  if (!response.ok) {
+    const payload = (await response.json().catch(() => null)) as {
+      error?: {
+        message?: string;
+      };
+    } | null;
+
+    throw new Error(payload?.error?.message || "Cloudinary delete failed.");
+  }
 }

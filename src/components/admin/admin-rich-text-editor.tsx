@@ -2,7 +2,7 @@
 
 import type { ChangeEvent } from "react";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { EditorContent, useEditor } from "@tiptap/react";
+import { EditorContent, useEditor, type JSONContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Underline from "@tiptap/extension-underline";
 import Link from "@tiptap/extension-link";
@@ -49,6 +49,7 @@ type AdminRichTextEditorProps = {
   label: string;
   minHeight?: number;
   onChange: (html: string) => void;
+  onContentChange?: (content: { html: string; json: JSONContent }) => void;
   placeholder?: string;
   required?: boolean;
   value: string;
@@ -147,6 +148,7 @@ export function AdminRichTextEditor({
   label,
   minHeight = 260,
   onChange,
+  onContentChange,
   placeholder,
   required,
   value,
@@ -202,6 +204,10 @@ export function AdminRichTextEditor({
       const nextValue = isEmptyEditorHtml(html) ? "" : html;
       setHtmlDraft(nextValue);
       onChange(nextValue);
+      onContentChange?.({
+        html: nextValue,
+        json: currentEditor.getJSON(),
+      });
     },
   });
 
@@ -316,6 +322,10 @@ export function AdminRichTextEditor({
       const normalizedValue = normalizeEditorContent(htmlDraft);
       editor.commands.setContent(normalizedValue, { emitUpdate: false });
       onChange(isEmptyEditorHtml(normalizedValue) ? "" : normalizedValue);
+      onContentChange?.({
+        html: isEmptyEditorHtml(normalizedValue) ? "" : normalizedValue,
+        json: editor.getJSON(),
+      });
       setHtmlDraft(normalizedValue);
       setIsHtmlMode(false);
       return;
@@ -574,6 +584,10 @@ export function AdminRichTextEditor({
             onChange={(event) => {
               setHtmlDraft(event.target.value);
               onChange(event.target.value);
+              onContentChange?.({
+                html: event.target.value,
+                json: editor?.getJSON() ?? { type: "doc", content: [] },
+              });
             }}
           />
         ) : (

@@ -1,6 +1,10 @@
 import type { MetadataRoute } from "next";
 
 import { prisma } from "@/lib/prisma/client";
+import {
+  listActiveContentPageSitemapEntries,
+  listPublishedBlogPostSitemapEntries,
+} from "@/server/repositories/content.repository";
 
 const SITE_URL =
   process.env.NEXT_PUBLIC_SITE_URL ??
@@ -14,37 +18,41 @@ function absoluteUrl(path: string) {
 }
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const products = await prisma.product.findMany({
-    where: {
-      isActive: true,
-      category: { isActive: true },
-      subcategory: { isActive: true },
-      OR: [{ brandId: null }, { brand: { isActive: true } }],
-    },
-    select: {
-      slug: true,
-      updatedAt: true,
-      options: {
-        orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
-        take: 1,
-        select: {
-          values: {
-            where: {
-              slug: {
-                not: null,
+  const [products, contentPages, blogPosts] = await Promise.all([
+    prisma.product.findMany({
+      where: {
+        isActive: true,
+        category: { isActive: true },
+        subcategory: { isActive: true },
+        OR: [{ brandId: null }, { brand: { isActive: true } }],
+      },
+      select: {
+        slug: true,
+        updatedAt: true,
+        options: {
+          orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
+          take: 1,
+          select: {
+            values: {
+              where: {
+                slug: {
+                  not: null,
+                },
               },
-            },
-            orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
-            select: {
-              slug: true,
+              orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
+              select: {
+                slug: true,
+              },
             },
           },
         },
       },
-    },
-  });
+    }),
+    listActiveContentPageSitemapEntries(),
+    listPublishedBlogPostSitemapEntries(),
+  ]);
 
-  return products.flatMap((product) => [
+  const productEntries = products.flatMap((product) => [
     {
       lastModified: product.updatedAt,
       url: absoluteUrl(`/product/${product.slug}`),
@@ -62,4 +70,25 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       ),
     ),
   ]);
+
+  const contentEntries = contentPages.map((page) => ({
+    lastModified: page.updatedAt,
+    url: absoluteUrl(`/${page.slug}`),
+  }));
+
+  const blogEntries = blogPosts.map((post) => ({
+    lastModified: post.updatedAt,
+    url: absoluteUrl(`/blog/${post.slug}`),
+  }));
+
+  return [
+    ...productEntries,
+    ...contentEntries,
+    { url: absoluteUrl("/contacts") },
+    { url: absoluteUrl("/blog") },
+    ...blogEntries,
+    { url: absoluteUrl("/faq") },
+    { url: absoluteUrl("/reviews") },
+    { url: absoluteUrl("/certificates") },
+  ];
 }

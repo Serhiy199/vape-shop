@@ -6,7 +6,6 @@ import { cn } from "@/lib/utils";
 
 export function StorefrontLogo({
   className,
-  compact = false,
 }: {
   className?: string;
   compact?: boolean;
@@ -20,23 +19,16 @@ export function StorefrontLogo({
       )}
       aria-label={`${storefrontBrand.name} - головна сторінка`}
     >
-      <span className="relative block h-20 w-28 overflow-hidden sm:h-24 sm:w-36">
+      <span className="relative block h-14 w-36 overflow-hidden sm:h-16 sm:w-44 lg:h-18 lg:w-52">
         <Image
           src={storefrontBrand.logoSrc}
           alt={`${storefrontBrand.name} logo`}
           fill
           priority
-          sizes="(max-width: 640px) 112px, 144px"
+          sizes="(max-width: 640px) 144px, (max-width: 1024px) 176px, 208px"
           className="object-contain object-left"
         />
       </span>
-      {!compact ? (
-        <span className="hidden leading-tight xl:block">
-          <span className="text-muted-foreground block text-xs">
-            {storefrontBrand.tagline}
-          </span>
-        </span>
-      ) : null}
     </Link>
   );
 }

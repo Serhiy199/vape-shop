@@ -94,6 +94,61 @@ const promoBanners = [
   title: string;
 }>;
 
+const contentPages = [
+  {
+    title: "Доставка та оплата",
+    slug: "delivery-and-payment",
+    excerpt: "Умови доставки, оплати та отримання замовлень.",
+    contentHtml:
+      "<p>Додайте актуальну інформацію про доставку, оплату та отримання замовлень.</p>",
+    sortOrder: 1,
+  },
+  {
+    title: "Про нас",
+    slug: "about-us",
+    excerpt: "Інформація про магазин Voodoo Vape.",
+    contentHtml:
+      "<p>Розкажіть клієнтам про магазин, команду та підхід до сервісу.</p>",
+    sortOrder: 2,
+  },
+  {
+    title: "Політика конфіденційності",
+    slug: "privacy-policy",
+    excerpt: "Як магазин обробляє персональні дані клієнтів.",
+    contentHtml:
+      "<p>Опишіть правила збору, зберігання та обробки персональних даних.</p>",
+    sortOrder: 3,
+  },
+  {
+    title: "Політика Cookie",
+    slug: "cookie-policy",
+    excerpt: "Як сайт використовує cookie.",
+    contentHtml: "<p>Опишіть, які cookie використовує сайт і для чого.</p>",
+    sortOrder: 4,
+  },
+  {
+    title: "Умови використання",
+    slug: "terms-of-use",
+    excerpt: "Правила користування сайтом.",
+    contentHtml: "<p>Опишіть умови користування сайтом і сервісами магазину.</p>",
+    sortOrder: 5,
+  },
+  {
+    title: "Гарантія та повернення",
+    slug: "warranty-and-returns",
+    excerpt: "Умови гарантії, обміну та повернення.",
+    contentHtml:
+      "<p>Опишіть умови гарантії, обміну та повернення товарів.</p>",
+    sortOrder: 6,
+  },
+] satisfies Array<{
+  contentHtml: string;
+  excerpt: string;
+  slug: string;
+  sortOrder: number;
+  title: string;
+}>;
+
 const fixedCategories: SeedCategory[] = [
   {
     name: "Пристрої",
@@ -513,12 +568,75 @@ async function seedBanners() {
   }
 }
 
+async function seedContentPages() {
+  for (const page of contentPages) {
+    await prisma.contentPage.upsert({
+      where: {
+        slug: page.slug,
+      },
+      update: {
+        contentHtml: page.contentHtml,
+        excerpt: page.excerpt,
+        isActive: true,
+        showInFooter: true,
+        showInHeader: false,
+        sortOrder: page.sortOrder,
+        title: page.title,
+      },
+      create: {
+        ...page,
+        isActive: true,
+        showInFooter: true,
+        showInHeader: false,
+      },
+    });
+  }
+}
+
+async function seedContactPageSettings() {
+  const existingSettings = await prisma.contactPageSettings.findFirst({
+    select: {
+      id: true,
+    },
+  });
+
+  const data = {
+    title: "Контакти",
+    subtitle:
+      "Наш графік роботи: Пн-Нд: 10:00-20:00. Телефонуйте! Будемо раді допомогти.",
+    workSchedule: "Пн-Нд: 10:00-20:00",
+    phone: "+380000000000",
+    email: "support@voodoovape.local",
+    address: "Україна",
+    formTitle: "Напишіть нам",
+    formEnabled: true,
+    seoTitle: "Контакти | Voodoo Vape",
+    seoDescription: "Контакти магазину Voodoo Vape.",
+  };
+
+  if (existingSettings) {
+    await prisma.contactPageSettings.update({
+      where: {
+        id: existingSettings.id,
+      },
+      data,
+    });
+    return;
+  }
+
+  await prisma.contactPageSettings.create({
+    data,
+  });
+}
+
 async function main() {
   const admin = await seedAdminUser();
   await seedCategories();
   await seedSubcategories();
   await seedSubcategoryFields();
   await seedBanners();
+  await seedContentPages();
+  await seedContactPageSettings();
 
   console.log("Seed completed successfully.");
   console.log(`Admin user: ${admin.email}`);
@@ -528,6 +646,7 @@ async function main() {
   );
   console.log("Seeded starter fields for cartridges and evaporators.");
   console.log("Seeded homepage promo banners.");
+  console.log("Seeded CMS content pages and contact page settings.");
 }
 
 main()

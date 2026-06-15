@@ -17,8 +17,18 @@ import {
 } from "@/components/storefront/storefront-config";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { listHeaderContentPages } from "@/server/repositories/content.repository";
 
-export function StorefrontHeader() {
+export async function StorefrontHeader() {
+  const cmsInfoLinks = (await listHeaderContentPages()).map((page) => ({
+    href: `/${page.slug}`,
+    label: page.title,
+  }));
+  const infoLinks = [...storefrontInfoLinks.slice(0, 4), ...cmsInfoLinks].slice(
+    0,
+    6,
+  );
+
   return (
     <header className="border-border/70 bg-background/95 sticky top-0 z-40 border-b backdrop-blur-xl">
       <div className="border-border/60 bg-foreground text-background border-b">
@@ -38,7 +48,7 @@ export function StorefrontHeader() {
             className="hidden items-center gap-4 lg:flex"
             aria-label="Корисні посилання"
           >
-            {storefrontInfoLinks.slice(0, 4).map((link) => (
+            {infoLinks.map((link) => (
               <Link
                 key={link.href}
                 href={link.href}
