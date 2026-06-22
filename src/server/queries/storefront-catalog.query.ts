@@ -442,16 +442,20 @@ function mapProductToCatalogCards(
     return [baseCard];
   }
 
-  return variantValues.map((value) => ({
-    ...baseCard,
-    href: `/product/${value.slug}`,
-    imageAlt: value.label || baseCard.imageAlt,
-    imageSrc: value.image ?? baseCard.imageSrc,
-    slug: value.slug,
-    title: value.titleOverride || `${product.title} ${value.label}`,
-    type: "variant",
-    variantValueId: value.id,
-  }));
+  const variantCards: StorefrontProductCardItem[] = variantValues.map(
+    (value) => ({
+      ...baseCard,
+      href: `/product/${value.slug}`,
+      imageAlt: value.label || baseCard.imageAlt,
+      imageSrc: value.image ?? baseCard.imageSrc,
+      slug: value.slug,
+      title: value.titleOverride || `${product.title} ${value.label}`,
+      type: "variant",
+      variantValueId: value.id,
+    }),
+  );
+
+  return [baseCard, ...variantCards];
 }
 
 type StorefrontProductQueryInput = {
