@@ -1,6 +1,7 @@
 "use client";
 
 import { StarIcon } from "lucide-react";
+import Link from "next/link";
 
 import { AddToCartButton } from "@/components/storefront/add-to-cart-button";
 import { currencyFormatter } from "@/components/storefront/product-card";
@@ -92,6 +93,7 @@ export function StorefrontProductPurchasePanel({
           option.values.length > 0 ? (
             <ProductOptionPicker
               key={option.id}
+              isSeoOption={option.id === firstOption?.id}
               option={option}
               selectedValue={selectedOptionValues[option.id] ?? null}
               onSelectOptionValue={onSelectOptionValue}
@@ -146,10 +148,12 @@ export function StorefrontProductPurchasePanel({
 }
 
 function ProductOptionPicker({
+  isSeoOption = false,
   onSelectOptionValue,
   option,
   selectedValue,
 }: {
+  isSeoOption?: boolean;
   onSelectOptionValue?: (
     option: StorefrontProductOption,
     value: StorefrontProductOptionValue,
@@ -157,6 +161,11 @@ function ProductOptionPicker({
   option: StorefrontProductOption;
   selectedValue?: StorefrontProductOptionValue | null;
 }) {
+  const optionListClassName =
+    option.displayType === "BUTTONS"
+      ? "flex flex-wrap gap-2"
+      : "grid grid-cols-[repeat(auto-fill,minmax(88px,88px))] gap-2";
+
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between gap-3">
@@ -168,7 +177,7 @@ function ProductOptionPicker({
         ) : null}
       </div>
 
-      {option.displayType === "SELECT" ? (
+      {option.displayType === "SELECT" && !isSeoOption ? (
         <select
           className="border-input bg-background h-11 w-full rounded-lg border px-3 text-sm"
           value={selectedValue?.id ?? ""}
@@ -188,14 +197,81 @@ function ProductOptionPicker({
             </option>
           ))}
         </select>
+      ) : isSeoOption ? (
+        <ul className={optionListClassName}>
+          {option.values.map((value) => {
+            const isSelected = selectedValue?.id === value.id;
+            const href = value.slug ? `/product/${value.slug}` : null;
+
+            if (option.displayType === "BUTTONS") {
+              return (
+                <li key={value.id}>
+                  {href ? (
+                    <Link
+                      aria-current={isSelected ? "page" : undefined}
+                      className={cn(
+                        "bg-background hover:border-primary/60 block rounded-lg border px-3 py-2 text-sm font-medium transition",
+                        isSelected
+                          ? "border-primary ring-primary/20 ring-2"
+                          : "border-border/70",
+                      )}
+                      href={href}
+                    >
+                      {value.label}
+                    </Link>
+                  ) : (
+                    <button
+                      className={cn(
+                        "bg-background hover:border-primary/60 rounded-lg border px-3 py-2 text-sm font-medium transition",
+                        isSelected
+                          ? "border-primary ring-primary/20 ring-2"
+                          : "border-border/70",
+                      )}
+                      onClick={() => onSelectOptionValue?.(option, value)}
+                      type="button"
+                    >
+                      {value.label}
+                    </button>
+                  )}
+                </li>
+              );
+            }
+
+            return (
+              <li key={value.id}>
+                {href ? (
+                  <Link
+                    aria-current={isSelected ? "page" : undefined}
+                    className={cn(
+                      "bg-background hover:border-primary/60 block w-[88px] rounded-lg border text-left transition",
+                      isSelected
+                        ? "border-primary ring-primary/20 ring-2"
+                        : "border-border/70",
+                    )}
+                    href={href}
+                  >
+                    <ProductOptionImageValue value={value} />
+                  </Link>
+                ) : (
+                  <button
+                    className={cn(
+                      "bg-background hover:border-primary/60 w-[88px] rounded-lg border text-left transition",
+                      isSelected
+                        ? "border-primary ring-primary/20 ring-2"
+                        : "border-border/70",
+                    )}
+                    onClick={() => onSelectOptionValue?.(option, value)}
+                    type="button"
+                  >
+                    <ProductOptionImageValue value={value} />
+                  </button>
+                )}
+              </li>
+            );
+          })}
+        </ul>
       ) : (
-        <div
-          className={cn(
-            option.displayType === "BUTTONS"
-              ? "flex flex-wrap gap-2"
-              : "grid grid-cols-[repeat(auto-fill,minmax(88px,88px))] gap-2",
-          )}
-        >
+        <div className={optionListClassName}>
           {option.values.map((value) => {
             const isSelected = selectedValue?.id === value.id;
 
@@ -229,28 +305,40 @@ function ProductOptionPicker({
                 onClick={() => onSelectOptionValue?.(option, value)}
                 type="button"
               >
-                <span className="bg-muted/70 grid h-[72px] place-items-center overflow-hidden rounded-t-lg">
-                  {value.image ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={value.image}
-                      alt={value.label}
-                      className="max-h-full max-w-full object-contain"
-                    />
-                  ) : (
-                    <span className="px-2 text-center text-xs font-medium">
-                      {value.label}
-                    </span>
-                  )}
-                </span>
-                <span className="block truncate px-1.5 py-1 text-center text-[11px] font-medium leading-4">
-                  {value.label}
-                </span>
+                <ProductOptionImageValue value={value} />
               </button>
             );
           })}
         </div>
       )}
     </div>
+  );
+}
+
+function ProductOptionImageValue({
+  value,
+}: {
+  value: StorefrontProductOptionValue;
+}) {
+  return (
+    <>
+      <span className="bg-muted/70 grid h-[72px] place-items-center overflow-hidden rounded-t-lg">
+        {value.image ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={value.image}
+            alt={value.label}
+            className="max-h-full max-w-full object-contain"
+          />
+        ) : (
+          <span className="px-2 text-center text-xs font-medium">
+            {value.label}
+          </span>
+        )}
+      </span>
+      <span className="block truncate px-1.5 py-1 text-center text-[11px] font-medium leading-4">
+        {value.label}
+      </span>
+    </>
   );
 }
