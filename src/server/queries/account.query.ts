@@ -82,10 +82,12 @@ function mapProductToCard(product: AccountProductRecord): StorefrontProductCardI
     imageAlt: primaryImage?.alt ?? product.title,
     imageSrc: primaryImage?.url,
     price: Number(product.price),
+    productId: product.id,
     rating: 5,
     reviewCount: product._count.orderItems + product._count.wishlistItems,
     slug: product.slug,
     title: product.title,
+    type: "product",
   };
 }
 

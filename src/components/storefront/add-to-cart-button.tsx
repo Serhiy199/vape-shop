@@ -51,7 +51,7 @@ export function AddToCartButton({
         imageAlt: product.imageAlt,
         imageSrc: selectedOption?.image ?? product.imageSrc,
         price: product.price,
-        productId: product.id,
+        productId: product.productId,
         selectedOptions,
         selectedOptionName: selectedOption?.name,
         selectedOptionValue: selectedOption?.label,

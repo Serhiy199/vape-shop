@@ -1,5 +1,6 @@
 "use client";
 
+import { ChevronLeftIcon, ChevronRightIcon } from "lucide-react";
 import { Autoplay, Navigation, Pagination } from "swiper/modules";
 import { Swiper, SwiperSlide } from "swiper/react";
 
@@ -15,8 +16,28 @@ export function HomeBannersSlider({ banners }: { banners: HomeBanner[] }) {
     return null;
   }
 
+  const hasNavigation = banners.length > 1;
+
   return (
     <section className="home-banners-slider" aria-label="Промо-банери">
+      {hasNavigation ? (
+        <>
+          <button
+            type="button"
+            className="home-banners-slider__button home-banners-slider__button--prev"
+            aria-label="Попередній банер"
+          >
+            <ChevronLeftIcon aria-hidden="true" className="size-5" />
+          </button>
+          <button
+            type="button"
+            className="home-banners-slider__button home-banners-slider__button--next"
+            aria-label="Наступний банер"
+          >
+            <ChevronRightIcon aria-hidden="true" className="size-5" />
+          </button>
+        </>
+      ) : null}
       <Swiper
         modules={[Autoplay, Navigation, Pagination]}
         autoplay={{
@@ -24,7 +45,14 @@ export function HomeBannersSlider({ banners }: { banners: HomeBanner[] }) {
           disableOnInteraction: false,
         }}
         loop={banners.length > 1}
-        navigation
+        navigation={
+          hasNavigation
+            ? {
+                nextEl: ".home-banners-slider__button--next",
+                prevEl: ".home-banners-slider__button--prev",
+              }
+            : false
+        }
         pagination={{
           clickable: true,
         }}

@@ -9,10 +9,13 @@ export type StorefrontProductCardItem = {
   imageAlt?: string;
   imageSrc?: string;
   price: number;
+  productId: string;
   rating?: number;
   reviewCount?: number;
   slug: string;
   title: string;
+  type: "product" | "variant";
+  variantValueId?: string;
 };
 
 export type StorefrontProductOptionValue = {

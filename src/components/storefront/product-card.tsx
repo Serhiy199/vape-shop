@@ -51,6 +51,7 @@ export function StorefrontProductCard({
   product: StorefrontProductCardItem;
 }) {
   const isAvailable = product.availability === "in_stock";
+  const isVariant = product.type === "variant";
 
   return (
     <StorefrontCard interactive className="group/card h-full p-3 sm:p-4">
@@ -129,7 +130,14 @@ export function StorefrontProductCard({
             </span>
 
             <div className="flex items-center gap-2">
-              {isAvailable ? (
+              {isAvailable && isVariant ? (
+                <Link
+                  href={product.href}
+                  className="bg-primary text-primary-foreground hover:bg-primary/90 inline-flex h-10 min-w-0 flex-1 items-center justify-center rounded-lg px-3 text-sm font-medium transition"
+                >
+                  Обрати
+                </Link>
+              ) : isAvailable ? (
                 <AddToCartButton
                   className="h-10 min-w-0 flex-1 rounded-lg"
                   product={product}
@@ -143,7 +151,7 @@ export function StorefrontProductCard({
                 </Link>
               )}
               <WishlistButton
-                productId={product.id}
+                productId={product.productId}
                 className="bg-background hover:bg-muted h-10 w-10 shrink-0 rounded-lg"
               />
             </div>

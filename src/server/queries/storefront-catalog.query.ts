@@ -170,6 +170,31 @@ const storefrontProductListSelect = {
       isPrimary: true,
     },
   },
+  options: {
+    orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
+    take: 1,
+    select: {
+      id: true,
+      name: true,
+      sortOrder: true,
+      values: {
+        where: {
+          slug: {
+            not: null,
+          },
+        },
+        orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
+        select: {
+          id: true,
+          image: true,
+          label: true,
+          slug: true,
+          sortOrder: true,
+          titleOverride: true,
+        },
+      },
+    },
+  },
   _count: {
     select: {
       orderItems: true,
@@ -393,11 +418,40 @@ function mapProductToCard(
     imageAlt: primaryImage?.alt ?? product.title,
     imageSrc: primaryImage?.url,
     price: Number(product.price),
+    productId: product.id,
     rating: 5,
     reviewCount: product._count.orderItems + product._count.wishlistItems,
     slug: product.slug,
     title: product.title,
+    type: "product",
   };
+}
+
+function mapProductToCatalogCards(
+  product: StorefrontProductListRecord,
+): StorefrontProductCardItem[] {
+  const baseCard = mapProductToCard(product);
+  const firstOption = product.options[0];
+  const variantValues =
+    firstOption?.values.filter(
+      (value): value is typeof value & { slug: string } =>
+        typeof value.slug === "string" && value.slug.trim().length > 0,
+    ) ?? [];
+
+  if (!firstOption || variantValues.length === 0) {
+    return [baseCard];
+  }
+
+  return variantValues.map((value) => ({
+    ...baseCard,
+    href: `/product/${value.slug}`,
+    imageAlt: value.label || baseCard.imageAlt,
+    imageSrc: value.image ?? baseCard.imageSrc,
+    slug: value.slug,
+    title: value.titleOverride || `${product.title} ${value.label}`,
+    type: "variant",
+    variantValueId: value.id,
+  }));
 }
 
 type StorefrontProductQueryInput = {
@@ -527,6 +581,39 @@ function productBaseWhere(
                 name: {
                   contains: search,
                   mode: "insensitive",
+                },
+              },
+            },
+            {
+              options: {
+                some: {
+                  values: {
+                    some: {
+                      slug: {
+                        not: null,
+                      },
+                      OR: [
+                        {
+                          label: {
+                            contains: search,
+                            mode: "insensitive",
+                          },
+                        },
+                        {
+                          slug: {
+                            contains: search,
+                            mode: "insensitive",
+                          },
+                        },
+                        {
+                          titleOverride: {
+                            contains: search,
+                            mode: "insensitive",
+                          },
+                        },
+                      ],
+                    },
+                  },
                 },
               },
             },
@@ -725,6 +812,7 @@ export async function listActiveStorefrontProducts(input?: {
   badge?: CatalogBadgeFilter;
   brandSlug?: string;
   categorySlug?: string;
+  expandSeoVariants?: boolean;
   limit?: number;
   priceRange?: CatalogPriceRangeFilter;
   search?: string;
@@ -738,7 +826,11 @@ export async function listActiveStorefrontProducts(input?: {
     select: storefrontProductListSelect,
   });
 
-  return products.map(mapProductToCard);
+  if (input?.expandSeoVariants === false) {
+    return products.map(mapProductToCard);
+  }
+
+  return products.flatMap(mapProductToCatalogCards);
 }
 
 export async function getStorefrontFeaturedProducts(limit = 10) {
@@ -765,12 +857,13 @@ export async function getStorefrontFeaturedProducts(limit = 10) {
     return products.map(mapProductToCard);
   }
 
-  return listActiveStorefrontProducts({ limit });
+  return listActiveStorefrontProducts({ expandSeoVariants: false, limit });
 }
 
 export async function getStorefrontNewProducts(limit = 8) {
   return listActiveStorefrontProducts({
     badge: "new",
+    expandSeoVariants: false,
     limit,
     sort: "newest",
   });
@@ -779,6 +872,7 @@ export async function getStorefrontNewProducts(limit = 8) {
 export async function getStorefrontSaleProducts(limit = 8) {
   return listActiveStorefrontProducts({
     badge: "sale",
+    expandSeoVariants: false,
     limit,
     sort: "newest",
   });

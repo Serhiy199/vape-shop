@@ -159,6 +159,7 @@ a {
     max-width: 100%;
     overflow: hidden;
     padding-block: 0.25rem 1.75rem;
+    position: relative;
   }
 
   .home-banners-slider__swiper {
@@ -203,28 +204,46 @@ a {
     width: 100%;
   }
 
-  .home-banners-slider .swiper-button-prev,
-  .home-banners-slider .swiper-button-next {
+  .home-banners-slider__button {
+    align-items: center;
     background: oklch(1 0 0 / 0.92);
     border: 1px solid oklch(0.902 0.008 84.57 / 0.9);
     border-radius: 999px;
     box-shadow: 0 10px 24px oklch(0.196 0.01 84.59 / 0.14);
     color: oklch(0.268 0.011 84.59);
+    cursor: pointer;
+    display: flex;
     height: 42px;
+    justify-content: center;
+    position: absolute;
+    top: calc(50% - 1rem);
+    transform: translateY(-50%);
+    transition:
+      background-color 160ms ease,
+      border-color 160ms ease,
+      color 160ms ease,
+      transform 160ms ease;
     width: 42px;
+    z-index: 10;
   }
 
-  .home-banners-slider .swiper-button-prev::after,
-  .home-banners-slider .swiper-button-next::after {
-    font-size: 16px;
-    font-weight: 700;
+  .home-banners-slider__button:hover {
+    background: var(--color-primary);
+    border-color: var(--color-primary);
+    color: var(--color-primary-foreground);
+    transform: translateY(-50%) scale(1.04);
   }
 
-  .home-banners-slider .swiper-button-prev {
+  .home-banners-slider__button:focus-visible {
+    outline: 3px solid oklch(0.742 0.164 64.04 / 0.35);
+    outline-offset: 3px;
+  }
+
+  .home-banners-slider__button--prev {
     left: 0.75rem;
   }
 
-  .home-banners-slider .swiper-button-next {
+  .home-banners-slider__button--next {
     right: 0.75rem;
   }
 
@@ -248,8 +267,7 @@ a {
       overflow: hidden;
     }
 
-    .home-banners-slider .swiper-button-prev,
-    .home-banners-slider .swiper-button-next {
+    .home-banners-slider__button {
       display: none;
     }
   }
