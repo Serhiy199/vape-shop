@@ -41,13 +41,13 @@ export default async function CatalogPage({ searchParams }: CatalogPageProps) {
       />
 
       <StorefrontSection tone="catalog" spacing="sm" className="pt-0">
-        <div className="grid gap-6 lg:grid-cols-[280px_minmax(0,1fr)]">
+        <div className="grid min-w-0 gap-6 lg:grid-cols-[280px_minmax(0,1fr)]">
           <CatalogFilterSidebar
             basePath="/catalog"
             filterOptions={filterOptions}
             filters={filters}
           />
-          <div className="space-y-5">
+          <div className="min-w-0 space-y-5">
             <CatalogToolbar
               basePath="/catalog"
               filterOptions={filterOptions}

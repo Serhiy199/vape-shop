@@ -65,7 +65,8 @@ const gridVariants = cva("grid", {
   variants: {
     variant: {
       categories: "grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4",
-      products: "grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4 xl:grid-cols-5",
+      products:
+        "grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-3 xl:grid-cols-4",
       content: "grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3",
       split: "grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_360px]",
     },
@@ -87,7 +88,7 @@ export const storefrontPatterns = {
     "text-muted-foreground text-xs font-semibold uppercase tracking-[0.22em]",
   bodyText: "text-muted-foreground text-sm leading-6 sm:text-base",
   productTitle:
-    "line-clamp-2 min-h-10 text-sm font-medium leading-5 text-foreground",
+    "line-clamp-2 min-h-10 break-words text-sm font-medium leading-5 text-foreground",
   price: "text-lg font-semibold tracking-tight text-foreground",
 };
 
@@ -299,7 +300,12 @@ export function StorefrontGrid({
   variant,
   ...props
 }: React.ComponentProps<"div"> & VariantProps<typeof gridVariants>) {
-  return <div className={cn(gridVariants({ variant }), className)} {...props} />;
+  return (
+    <div
+      className={cn("min-w-0 max-w-full", gridVariants({ variant }), className)}
+      {...props}
+    />
+  );
 }
 
 export function StorefrontBadge({

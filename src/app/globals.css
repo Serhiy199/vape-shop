@@ -288,6 +288,10 @@ a {
   .rich-text-editor-content {
     color: var(--color-foreground);
     line-height: 1.75;
+    max-width: 100%;
+    min-width: 0;
+    overflow-wrap: break-word;
+    word-break: normal;
   }
 
   .rich-text-content > * + *,
@@ -319,17 +323,29 @@ a {
   .rich-text-content p,
   .rich-text-editor-content p {
     margin: 0;
+    max-width: 100%;
+  }
+
+  .rich-text-content figure,
+  .rich-text-editor-content figure {
+    box-sizing: border-box;
+    margin-inline: 0;
+    max-width: 100%;
+    min-width: 0;
+    overflow: hidden;
   }
 
   .rich-text-content ul,
   .rich-text-editor-content ul {
     list-style: disc;
+    max-width: 100%;
     padding-left: 1.35rem;
   }
 
   .rich-text-content ol,
   .rich-text-editor-content ol {
     list-style: decimal;
+    max-width: 100%;
     padding-left: 1.35rem;
   }
 
@@ -359,6 +375,7 @@ a {
     display: block;
     height: auto;
     max-width: 100%;
+    object-fit: contain;
   }
 
   .rich-text-editor-content img {
@@ -380,7 +397,7 @@ a {
     display: block;
     max-width: 100%;
     overflow-x: auto;
-    width: max-content;
+    width: 100%;
   }
 
   .rich-text-content th,
@@ -391,6 +408,24 @@ a {
     min-width: 7rem;
     padding: 0.55rem 0.7rem;
     vertical-align: top;
+  }
+
+  .rich-text-content iframe,
+  .rich-text-editor-content iframe,
+  .rich-text-content video,
+  .rich-text-editor-content video {
+    aspect-ratio: 16 / 9;
+    display: block;
+    height: auto;
+    max-width: 100%;
+    width: 100%;
+  }
+
+  .rich-text-content pre,
+  .rich-text-editor-content pre {
+    max-width: 100%;
+    overflow-x: auto;
+    white-space: pre-wrap;
   }
 
   .rich-text-content th,

@@ -54,12 +54,15 @@ export function StorefrontProductCard({
   const isVariant = product.type === "variant";
 
   return (
-    <StorefrontCard interactive className="group/card h-full p-3 sm:p-4">
-      <div className="flex h-full flex-col gap-3">
-        <div className="relative">
+    <StorefrontCard
+      interactive
+      className="group/card h-full min-w-0 w-full max-w-full p-3 sm:p-4"
+    >
+      <div className="flex h-full min-w-0 flex-col gap-3">
+        <div className="relative min-w-0">
           <Link
             href={product.href}
-            className="bg-muted/70 grid aspect-square place-items-center overflow-hidden rounded-lg"
+            className="bg-muted/70 grid aspect-square min-w-0 place-items-center overflow-hidden rounded-lg"
             aria-label={product.title}
           >
             {product.imageSrc ? (
@@ -67,7 +70,7 @@ export function StorefrontProductCard({
               <img
                 src={product.imageSrc}
                 alt={product.imageAlt ?? product.title}
-                className="h-full w-full object-cover transition duration-300 group-hover/card:scale-[1.03]"
+                className="max-h-full max-w-full object-contain transition duration-300 group-hover/card:scale-[1.03]"
               />
             ) : (
               <span className="bg-card text-muted-foreground grid size-16 place-items-center rounded-lg shadow-sm">
@@ -91,9 +94,9 @@ export function StorefrontProductCard({
           ) : null}
         </div>
 
-        <div className="flex min-h-0 flex-1 flex-col gap-3">
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-3">
           <div className="space-y-2">
-            <div className="flex items-center justify-between gap-2">
+            <div className="flex min-w-0 items-center justify-between gap-2">
               <span className="text-muted-foreground truncate text-xs font-medium tracking-[0.12em] uppercase">
                 {product.brand ?? "Voodoo"}
               </span>

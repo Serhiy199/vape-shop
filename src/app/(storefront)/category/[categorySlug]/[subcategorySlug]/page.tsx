@@ -102,13 +102,13 @@ export default async function SubcategoryPage({
       />
 
       <StorefrontSection tone="catalog" spacing="sm" className="pt-0">
-        <div className="grid gap-6 lg:grid-cols-[280px_minmax(0,1fr)]">
+        <div className="grid min-w-0 gap-6 lg:grid-cols-[280px_minmax(0,1fr)]">
           <CatalogFilterSidebar
             basePath={basePath}
             filterOptions={filterOptions}
             filters={routeFilters}
           />
-          <div className="space-y-5">
+          <div className="min-w-0 space-y-5">
             <CatalogTopTabs items={brandTabs} />
             <CatalogToolbar
               basePath={basePath}
@@ -121,8 +121,8 @@ export default async function SubcategoryPage({
               emptyDescription="Додайте або активуйте товари цієї підкатегорії в адмін-панелі."
             />
             {subcategory.description ? (
-              <StorefrontCard className="p-5">
-                <div className="space-y-3">
+              <StorefrontCard className="min-w-0 max-w-full p-5">
+                <div className="min-w-0 max-w-full space-y-3">
                   <h2 className="text-xl font-semibold tracking-tight">
                     Опис підкатегорії
                   </h2>
