@@ -458,6 +458,25 @@ function mapProductToCatalogCards(
   return [baseCard, ...variantCards];
 }
 
+function mapProductsToCatalogCards(
+  products: StorefrontProductListRecord[],
+): StorefrontProductCardItem[] {
+  const baseCards: StorefrontProductCardItem[] = [];
+  const variantCards: StorefrontProductCardItem[] = [];
+
+  for (const product of products) {
+    const [baseCard, ...productVariantCards] = mapProductToCatalogCards(product);
+
+    if (baseCard) {
+      baseCards.push(baseCard);
+    }
+
+    variantCards.push(...productVariantCards);
+  }
+
+  return [...baseCards, ...variantCards];
+}
+
 type StorefrontProductQueryInput = {
   availability?: CatalogAvailabilityFilter;
   badge?: CatalogBadgeFilter;
@@ -834,7 +853,7 @@ export async function listActiveStorefrontProducts(input?: {
     return products.map(mapProductToCard);
   }
 
-  return products.flatMap(mapProductToCatalogCards);
+  return mapProductsToCatalogCards(products);
 }
 
 export async function getStorefrontFeaturedProducts(limit = 10) {

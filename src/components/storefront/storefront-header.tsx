@@ -64,7 +64,7 @@ export async function StorefrontHeader() {
       <div className="mx-auto flex w-full max-w-screen-2xl items-center gap-3 px-4 py-3 sm:px-6 lg:px-8">
         <StorefrontMobileMenu />
 
-        <StorefrontLogo />
+        <StorefrontLogo className="w-[100px] shrink-0 lg:w-[120px]" />
 
         <Link
           href="/catalog"

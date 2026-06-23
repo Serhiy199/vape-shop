@@ -26,7 +26,7 @@ export function StorefrontLogo({
           width={1270}
           height={630}
           priority
-          sizes="(max-width: 640px) 42vw, (max-width: 1024px) 220px, 260px"
+          sizes="(max-width: 1024px) 100px, 120px"
           className="h-auto w-full object-contain object-left"
         />
       </span>
