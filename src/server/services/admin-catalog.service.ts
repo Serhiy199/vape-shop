@@ -38,9 +38,9 @@ import {
   createSubcategoryField,
   createSubcategory,
   deleteSubcategoryField,
+  getBrandByName,
   getBrandById,
-  getBrandByScopedName,
-  getBrandByScopedSlug,
+  getBrandBySlug,
   getProductById,
   getProductOptionValueBySlug,
   getProductBySlug,
@@ -1197,9 +1197,7 @@ async function validateProductRelations(input: {
     };
   }
 
-  const isPreservingCurrentBrand =
-    input.brandId === input.currentBrandId &&
-    input.subcategoryId === input.currentSubcategoryId;
+  const isPreservingCurrentBrand = input.brandId === input.currentBrandId;
 
   if (!isPreservingCurrentBrand && !brand.isActive) {
     return {
@@ -1207,16 +1205,6 @@ async function validateProductRelations(input: {
       error: "Оберіть активного виробника товару.",
       fieldErrors: {
         brandId: ["Оберіть активного виробника товару."],
-      },
-    };
-  }
-
-  if (brand.subcategoryId !== input.subcategoryId) {
-    return {
-      ok: false as const,
-      error: "Виробник не належить до вибраної підкатегорії.",
-      fieldErrors: {
-        brandId: ["Виробник не належить до вибраної підкатегорії."],
       },
     };
   }
@@ -1446,10 +1434,7 @@ async function validateBrandUniqueness(
   payload: CreateBrandInput | UpdateBrandInput,
   currentId?: string,
 ) {
-  const duplicatedName = await getBrandByScopedName({
-    subcategoryId: payload.subcategoryId,
-    name: payload.name,
-  });
+  const duplicatedName = await getBrandByName({ name: payload.name });
   if (duplicatedName && duplicatedName.id !== currentId) {
     return {
       ok: false as const,
@@ -1460,10 +1445,7 @@ async function validateBrandUniqueness(
     };
   }
 
-  const duplicatedSlug = await getBrandByScopedSlug({
-    subcategoryId: payload.subcategoryId,
-    slug: payload.slug,
-  });
+  const duplicatedSlug = await getBrandBySlug({ slug: payload.slug });
   if (duplicatedSlug && duplicatedSlug.id !== currentId) {
     return {
       ok: false as const,
@@ -1491,17 +1473,6 @@ export async function createAdminBrand(input: unknown): Promise<
   }
 
   const payload: CreateBrandInput = withDefaultSeo(parsed.data);
-  const subcategory = await getSubcategoryById(payload.subcategoryId);
-
-  if (!subcategory) {
-    return {
-      ok: false,
-      error: "Потрібно вибрати існуючу підкатегорію для виробника.",
-      fieldErrors: {
-        subcategoryId: ["Потрібно вибрати існуючу підкатегорію."],
-      },
-    };
-  }
 
   const uniquenessError = await validateBrandUniqueness(payload);
   if (uniquenessError) {
@@ -1536,34 +1507,6 @@ export async function updateAdminBrand(input: unknown): Promise<
     };
   }
 
-  const subcategory = await getSubcategoryById(payload.subcategoryId);
-
-  if (!subcategory) {
-    return {
-      ok: false,
-      error: "Потрібно вибрати існуючу підкатегорію для виробника.",
-      fieldErrors: {
-        subcategoryId: ["Потрібно вибрати існуючу підкатегорію."],
-      },
-    };
-  }
-
-  if (
-    existingBrand.subcategoryId !== payload.subcategoryId &&
-    existingBrand._count.products > 0
-  ) {
-    return {
-      ok: false,
-      error:
-        "Не можна змінити підкатегорію виробника, поки до нього прив'язані товари.",
-      fieldErrors: {
-        subcategoryId: [
-          "Не можна змінити підкатегорію виробника, поки до нього прив'язані товари.",
-        ],
-      },
-    };
-  }
-
   const uniquenessError = await validateBrandUniqueness(payload, payload.id);
   if (uniquenessError) {
     return uniquenessError;
@@ -1595,7 +1538,7 @@ export async function setAdminBrandActiveStatus(input: unknown): Promise<
     };
   }
 
-  if (false) {
+  if (brand._count.products < 0) {
     return {
       ok: false,
       error:

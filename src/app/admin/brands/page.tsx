@@ -25,7 +25,7 @@ export default async function AdminBrandsPage({
   searchParams?: SearchParams;
 }) {
   const params = searchParams ? await searchParams : {};
-  const { brands, selectedBrand, subcategories } = await getAdminBrandsPageData(
+  const { brands, selectedBrand } = await getAdminBrandsPageData(
     params.selected,
   );
 
@@ -38,21 +38,13 @@ export default async function AdminBrandsPage({
     0,
   );
 
-  const subcategoryOptions = subcategories.map((subcategory) => ({
-    id: subcategory.id,
-    name: subcategory.name,
-    category: {
-      name: subcategory.category.name,
-    },
-  }));
-
   return (
     <div className="space-y-6">
       <AdminPageHeader
         eyebrow="Виробники"
-        title="Виробники за підкатегоріями"
-        description="Виробник створюється для конкретної підкатегорії та потім доступний у товарах цієї підкатегорії."
-        badges={["Brand model", "Без фізичного delete"]}
+        title="Глобальні виробники"
+        description="Виробник створюється один раз для всього магазину і може використовуватись у товарах різних категорій та підкатегорій."
+        badges={["Global brand model", "Без фізичного delete"]}
       />
 
       <AdminStatsGrid
@@ -99,7 +91,6 @@ export default async function AdminBrandsPage({
       <AdminBrandCrud
         mode="create"
         selectedBrand={null}
-        subcategories={subcategoryOptions}
       />
 
       <AdminSectionCard
@@ -113,8 +104,7 @@ export default async function AdminBrandsPage({
                 <div>
                   <p className="text-sm font-medium">Виробники каталогу</p>
                   <p className="text-muted-foreground text-sm leading-6">
-                    Виробник прив&apos;язаний до підкатегорії, а не глобально до
-                    всього магазину.
+                    Виробник доступний глобально для всіх товарів магазину.
                   </p>
                 </div>
                 <Badge variant="outline">{brands.length} записів</Badge>
@@ -141,13 +131,13 @@ export default async function AdminBrandsPage({
                     ),
                   },
                   {
-                    key: "subcategory",
-                    header: "Підкатегорія",
+                    key: "sortOrder",
+                    header: "Порядок",
                     cell: (brand) => (
                       <div className="space-y-1">
-                        <p className="text-sm">{brand.subcategory.name}</p>
+                        <p className="text-sm">{brand.sortOrder}</p>
                         <p className="text-muted-foreground text-xs">
-                          {brand.subcategory.category.name}
+                          slug: {brand.slug}
                         </p>
                       </div>
                     ),
@@ -191,9 +181,8 @@ export default async function AdminBrandsPage({
                         value: selectedBrand.slug,
                       },
                       {
-                        label: "Підкатегорія",
-                        value: selectedBrand.subcategory.name,
-                        note: selectedBrand.subcategory.category.name,
+                        label: "Порядок",
+                        value: selectedBrand.sortOrder.toString(),
                       },
                       {
                         label: "Статус",
@@ -228,9 +217,8 @@ export default async function AdminBrandsPage({
                       seoDescription: selectedBrand.seoDescription,
                       seoTitle: selectedBrand.seoTitle,
                       slug: selectedBrand.slug,
-                      subcategoryId: selectedBrand.subcategoryId,
+                      sortOrder: selectedBrand.sortOrder,
                     }}
-                    subcategories={subcategoryOptions}
                   />
                 </>
               ) : (

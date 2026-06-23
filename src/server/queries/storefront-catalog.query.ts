@@ -95,21 +95,6 @@ const storefrontBrandSelect = {
   description: true,
   seoTitle: true,
   seoDescription: true,
-  subcategory: {
-    select: {
-      id: true,
-      name: true,
-      slug: true,
-      isActive: true,
-      category: {
-        select: {
-          id: true,
-          name: true,
-          slug: true,
-        },
-      },
-    },
-  },
   _count: {
     select: {
       products: {
@@ -365,9 +350,8 @@ function mapSubcategoryToOption(
 function mapBrandToOption(brand: StorefrontBrandRecord): CatalogOption {
   return {
     count: brand._count.products,
-    href: `/category/${brand.subcategory.category.slug}/${brand.subcategory.slug}/${brand.slug}`,
+    href: `/brand/${brand.slug}`,
     label: brand.name,
-    parentSlug: brand.subcategory.slug,
     value: brand.slug,
   };
 }
@@ -669,12 +653,6 @@ export async function listActiveStorefrontBrands(limit?: number) {
   const brands = await prisma.brand.findMany({
     where: {
       isActive: true,
-      subcategory: {
-        isActive: true,
-        category: {
-          isActive: true,
-        },
-      },
       products: {
         some: {
           ...storefrontVisibleProductWhere,
@@ -748,26 +726,6 @@ export async function getActiveStorefrontSubcategoryBySlug(input: {
           slug: true,
         },
       },
-      brands: {
-        where: {
-          isActive: true,
-        },
-        orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
-        select: {
-          id: true,
-          name: true,
-          slug: true,
-          _count: {
-            select: {
-              products: {
-                where: {
-                  ...storefrontVisibleProductWhere,
-                },
-              },
-            },
-          },
-        },
-      },
       fields: {
         where: {
           isActive: true,
@@ -795,19 +753,14 @@ export async function getActiveStorefrontSubcategoryBySlug(input: {
 
 export async function getActiveStorefrontBrandBySlug(input: {
   brandSlug: string;
-  categorySlug: string;
-  subcategorySlug: string;
 }) {
   return prisma.brand.findFirst({
     where: {
       isActive: true,
       slug: input.brandSlug,
-      subcategory: {
-        isActive: true,
-        slug: input.subcategorySlug,
-        category: {
-          isActive: true,
-          slug: input.categorySlug,
+      products: {
+        some: {
+          ...storefrontVisibleProductWhere,
         },
       },
     },

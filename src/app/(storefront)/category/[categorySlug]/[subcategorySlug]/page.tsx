@@ -75,11 +75,11 @@ export default async function SubcategoryPage({
   }
 
   const basePath = `/category/${categorySlug}/${subcategorySlug}`;
-  const brandTabs = subcategory.brands.map((brand) => ({
-    count: brand._count.products,
-    href: `${basePath}/${brand.slug}`,
-    label: brand.name,
-    value: brand.slug,
+  const brandTabs = filterOptions.brands.map((brand) => ({
+    count: brand.count,
+    href: `${basePath}?brand=${brand.value}`,
+    label: brand.label,
+    value: brand.value,
   }));
 
   return (

@@ -37,6 +37,7 @@ function revalidateStorefrontCatalogPaths() {
   revalidatePath("/category");
   revalidatePath("/category/[categorySlug]", "page");
   revalidatePath("/category/[categorySlug]/[subcategorySlug]", "page");
+  revalidatePath("/brand/[brandSlug]", "page");
   revalidatePath(
     "/category/[categorySlug]/[subcategorySlug]/[brandSlug]",
     "page",

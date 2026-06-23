@@ -18,7 +18,7 @@ function absoluteUrl(path: string) {
 }
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const [products, contentPages, blogPosts] = await Promise.all([
+  const [products, brands, contentPages, blogPosts] = await Promise.all([
     prisma.product.findMany({
       where: {
         isActive: true,
@@ -46,6 +46,22 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
             },
           },
         },
+      },
+    }),
+    prisma.brand.findMany({
+      where: {
+        isActive: true,
+        products: {
+          some: {
+            isActive: true,
+            category: { isActive: true },
+            subcategory: { isActive: true },
+          },
+        },
+      },
+      select: {
+        slug: true,
+        updatedAt: true,
       },
     }),
     listActiveContentPageSitemapEntries(),
@@ -81,8 +97,14 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     url: absoluteUrl(`/blog/${post.slug}`),
   }));
 
+  const brandEntries = brands.map((brand) => ({
+    lastModified: brand.updatedAt,
+    url: absoluteUrl(`/brand/${brand.slug}`),
+  }));
+
   return [
     ...productEntries,
+    ...brandEntries,
     ...contentEntries,
     { url: absoluteUrl("/contacts") },
     { url: absoluteUrl("/blog") },

@@ -60,7 +60,6 @@ export default async function AdminProductsPage({
     isActive: brand.isActive,
     name: brand.name,
     slug: brand.slug,
-    subcategoryId: brand.subcategoryId,
   }));
 
   const mappedCategories = categories.map((category) => ({

@@ -25,7 +25,6 @@ export default async function AdminProductEditPage({
     isActive: brand.isActive,
     name: brand.name,
     slug: brand.slug,
-    subcategoryId: brand.subcategoryId,
   }));
 
   const mappedCategories = categories.map((category) => ({
@@ -78,7 +77,6 @@ export default async function AdminProductEditPage({
                 id: selectedProduct.brand.id,
                 isActive: selectedProduct.brand.isActive,
                 name: selectedProduct.brand.name,
-                subcategoryId: selectedProduct.brand.subcategoryId,
               }
             : null,
           category: {

@@ -20,27 +20,12 @@ import {
   AdminSectionCard,
 } from "@/components/admin/admin-primitives";
 import { Button } from "@/components/ui/button";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import {
   createBrandAction,
   toggleBrandStatusAction,
   updateBrandAction,
 } from "@/features/catalog/actions/admin-catalog";
-
-type SubcategoryOption = {
-  category: {
-    name: string;
-  };
-  id: string;
-  name: string;
-};
 
 type SelectedBrand = {
   description: string | null;
@@ -51,7 +36,7 @@ type SelectedBrand = {
   seoDescription: string | null;
   seoTitle: string | null;
   slug: string;
-  subcategoryId: string;
+  sortOrder: number;
 };
 
 type BrandFormValues = {
@@ -61,7 +46,7 @@ type BrandFormValues = {
   seoDescription: string;
   seoTitle: string;
   slug: string;
-  subcategoryId: string;
+  sortOrder: string;
 };
 
 type BrandFieldErrors = Partial<Record<keyof BrandFormValues, string>>;
@@ -69,12 +54,9 @@ type BrandFieldErrors = Partial<Record<keyof BrandFormValues, string>>;
 type AdminBrandCrudProps = {
   mode?: "all" | "create" | "edit";
   selectedBrand: SelectedBrand | null;
-  subcategories: SubcategoryOption[];
 };
 
-function buildCreateValues(
-  subcategories: SubcategoryOption[],
-): BrandFormValues {
+function buildCreateValues(): BrandFormValues {
   return {
     description: "",
     isActive: true,
@@ -82,7 +64,7 @@ function buildCreateValues(
     seoDescription: "",
     seoTitle: "",
     slug: "",
-    subcategoryId: subcategories[0]?.id ?? "",
+    sortOrder: "0",
   };
 }
 
@@ -94,7 +76,7 @@ function buildEditValues(selectedBrand: SelectedBrand): BrandFormValues {
     seoDescription: selectedBrand.seoDescription ?? "",
     seoTitle: selectedBrand.seoTitle ?? "",
     slug: selectedBrand.slug,
-    subcategoryId: selectedBrand.subcategoryId,
+    sortOrder: selectedBrand.sortOrder.toString(),
   };
 }
 
@@ -108,61 +90,29 @@ function mapFieldErrors(
     seoDescription: fieldErrors?.seoDescription?.[0],
     seoTitle: fieldErrors?.seoTitle?.[0],
     slug: fieldErrors?.slug?.[0],
-    subcategoryId: fieldErrors?.subcategoryId?.[0],
+    sortOrder: fieldErrors?.sortOrder?.[0],
   };
 }
 
 function BrandFormFields({
   errors,
   heading,
-  subcategories,
-  subcategoryChangeBlocked,
   values,
   onActiveChange,
   onInputChange,
-  onSubcategoryChange,
 }: {
   errors: BrandFieldErrors;
   heading: string;
-  subcategories: SubcategoryOption[];
-  subcategoryChangeBlocked?: boolean;
   values: BrandFormValues;
   onActiveChange: (value: boolean) => void;
   onInputChange: (
-    field: keyof Omit<BrandFormValues, "isActive" | "subcategoryId">,
+    field: keyof Omit<BrandFormValues, "isActive">,
     value: string,
   ) => void;
-  onSubcategoryChange: (value: string | null) => void;
 }) {
   return (
     <AdminFormSection title={heading}>
       <AdminFormGrid>
-        <AdminField label="Підкатегорія" error={errors.subcategoryId} required>
-          <Select
-            items={subcategories.map((subcategory) => ({
-              label: `${subcategory.category.name} / ${subcategory.name}`,
-              value: subcategory.id,
-            }))}
-            value={values.subcategoryId}
-            onValueChange={onSubcategoryChange}
-            disabled={subcategoryChangeBlocked}
-          >
-            <SelectTrigger
-              className="w-full"
-              aria-invalid={Boolean(errors.subcategoryId)}
-            >
-              <SelectValue placeholder="Оберіть підкатегорію" />
-            </SelectTrigger>
-            <SelectContent>
-              {subcategories.map((subcategory) => (
-                <SelectItem key={subcategory.id} value={subcategory.id}>
-                  {subcategory.category.name} / {subcategory.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </AdminField>
-
         <AdminInputField
           id={`${heading}-name`}
           label="Назва виробника"
@@ -179,6 +129,14 @@ function BrandFormFields({
           onChange={(event) => onInputChange("slug", event.target.value)}
           error={errors.slug}
           hint="Можна залишити порожнім, тоді slug згенерується з назви."
+        />
+
+        <AdminInputField
+          id={`${heading}-sort-order`}
+          label="Порядок"
+          value={values.sortOrder}
+          onChange={(event) => onInputChange("sortOrder", event.target.value)}
+          error={errors.sortOrder}
         />
 
         <AdminOptionalInputField
@@ -235,12 +193,6 @@ function BrandFormFields({
           </div>
         </AdminField>
 
-        {subcategoryChangeBlocked ? (
-          <div className="border-destructive/20 bg-destructive/8 text-destructive rounded-lg border px-4 py-3 text-sm leading-6">
-            До цього виробника вже прив&apos;язані товари. Зміну підкатегорії
-            заблоковано, щоб не розірвати структуру каталогу.
-          </div>
-        ) : null}
       </div>
     </AdminFormSection>
   );
@@ -249,7 +201,6 @@ function BrandFormFields({
 export function AdminBrandCrud({
   mode = "all",
   selectedBrand,
-  subcategories,
 }: AdminBrandCrudProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
@@ -257,10 +208,7 @@ export function AdminBrandCrud({
     "create" | "toggle" | "update" | null
   >(null);
 
-  const initialCreateValues = useMemo(
-    () => buildCreateValues(subcategories),
-    [subcategories],
-  );
+  const initialCreateValues = useMemo(() => buildCreateValues(), []);
 
   const [createValues, setCreateValues] =
     useState<BrandFormValues>(initialCreateValues);
@@ -277,17 +225,6 @@ export function AdminBrandCrud({
 
   useEffect(() => {
     const timeoutId = window.setTimeout(() => {
-      setCreateValues((current) => ({
-        ...current,
-        subcategoryId: current.subcategoryId || subcategories[0]?.id || "",
-      }));
-    }, 0);
-
-    return () => window.clearTimeout(timeoutId);
-  }, [subcategories]);
-
-  useEffect(() => {
-    const timeoutId = window.setTimeout(() => {
       setEditValues(selectedBrand ? buildEditValues(selectedBrand) : null);
       setEditErrors({});
       setEditMessage(null);
@@ -298,7 +235,7 @@ export function AdminBrandCrud({
   }, [selectedBrand]);
 
   const updateCreateField = (
-    field: keyof Omit<BrandFormValues, "isActive" | "subcategoryId">,
+    field: keyof Omit<BrandFormValues, "isActive">,
     value: string,
   ) => {
     setCreateValues((current) => ({
@@ -314,7 +251,7 @@ export function AdminBrandCrud({
   };
 
   const updateEditField = (
-    field: keyof Omit<BrandFormValues, "isActive" | "subcategoryId">,
+    field: keyof Omit<BrandFormValues, "isActive">,
     value: string,
   ) => {
     setEditValues((current) =>
@@ -332,11 +269,6 @@ export function AdminBrandCrud({
     setEditMessage(null);
     setEditSuccess(null);
   };
-
-  const subcategoryChangeBlocked =
-    Boolean(selectedBrand && editValues) &&
-    selectedBrand!.productsCount > 0 &&
-    editValues!.subcategoryId !== selectedBrand!.subcategoryId;
 
   const handleCreate = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -377,7 +309,7 @@ export function AdminBrandCrud({
   const handleUpdate = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
-    if (!selectedBrand || !editValues || subcategoryChangeBlocked) {
+    if (!selectedBrand || !editValues) {
       return;
     }
 
@@ -456,15 +388,6 @@ export function AdminBrandCrud({
     });
   };
 
-  if (!subcategories.length) {
-    return (
-      <AdminEmptyState
-        title="Спочатку створіть підкатегорію"
-        description="Виробник обов'язково прив'язується до підкатегорії, тому форма стане доступною після створення хоча б однієї підкатегорії."
-      />
-    );
-  }
-
   return (
     <div className="space-y-6">
       {mode !== "edit" ? (
@@ -476,7 +399,6 @@ export function AdminBrandCrud({
             <BrandFormFields
               errors={createErrors}
               heading="Новий виробник"
-              subcategories={subcategories}
               values={createValues}
               onActiveChange={(value) => {
                 setCreateValues((current) => ({
@@ -491,18 +413,6 @@ export function AdminBrandCrud({
                 setCreateSuccess(null);
               }}
               onInputChange={updateCreateField}
-              onSubcategoryChange={(subcategoryId) => {
-                setCreateValues((current) => ({
-                  ...current,
-                  subcategoryId: subcategoryId ?? "",
-                }));
-                setCreateErrors((current) => ({
-                  ...current,
-                  subcategoryId: undefined,
-                }));
-                setCreateMessage(null);
-                setCreateSuccess(null);
-              }}
             />
 
             <div className="flex justify-end">
@@ -523,8 +433,6 @@ export function AdminBrandCrud({
             <BrandFormFields
               errors={editErrors}
               heading="Оновлення виробника"
-              subcategories={subcategories}
-              subcategoryChangeBlocked={subcategoryChangeBlocked}
               values={editValues}
               onActiveChange={(value) => {
                 setEditValues((current) =>
@@ -543,22 +451,6 @@ export function AdminBrandCrud({
                 setEditSuccess(null);
               }}
               onInputChange={updateEditField}
-              onSubcategoryChange={(subcategoryId) => {
-                setEditValues((current) =>
-                  current
-                    ? {
-                        ...current,
-                        subcategoryId: subcategoryId ?? "",
-                      }
-                    : current,
-                );
-                setEditErrors((current) => ({
-                  ...current,
-                  subcategoryId: undefined,
-                }));
-                setEditMessage(null);
-                setEditSuccess(null);
-              }}
             />
 
             <div className="flex flex-wrap justify-end gap-2">
@@ -576,7 +468,7 @@ export function AdminBrandCrud({
               </Button>
               <Button
                 type="submit"
-                disabled={isPending || subcategoryChangeBlocked}
+                disabled={isPending}
               >
                 {activeAction === "update" ? "Зберігаємо..." : "Зберегти зміни"}
               </Button>

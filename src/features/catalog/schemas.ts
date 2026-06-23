@@ -550,8 +550,8 @@ export const updateSubcategorySchema = subcategoryBaseSchema.and(
 export const createBrandSchema = z.intersection(
   slugFromNameSchema(),
   z.object({
-    subcategoryId: idField(),
     description: optionalTrimmedLongText(),
+    sortOrder: sortOrderField(),
     isActive: z.coerce.boolean().default(true),
     seoTitle: optionalTrimmedString(160),
     seoDescription: optionalTrimmedString(320),

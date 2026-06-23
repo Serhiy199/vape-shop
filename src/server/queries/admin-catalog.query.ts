@@ -54,7 +54,6 @@ export async function getAdminSubcategoriesPageData(selectedId?: string) {
 
 export async function getAdminBrandsPageData(selectedId?: string) {
   const brands = await listAdminBrands();
-  const subcategories = await listAdminSubcategories();
   const resolvedSelectedId = resolveSelectedId(brands, selectedId);
   const selectedBrand = resolvedSelectedId
     ? await getAdminBrandById(resolvedSelectedId)
@@ -63,7 +62,6 @@ export async function getAdminBrandsPageData(selectedId?: string) {
   return {
     brands,
     selectedBrand,
-    subcategories,
   };
 }
 

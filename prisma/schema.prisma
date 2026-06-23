@@ -160,7 +160,6 @@ model Subcategory {
   createdAt      DateTime           @default(now())
   updatedAt      DateTime           @updatedAt
   category       Category           @relation(fields: [categoryId], references: [id], onDelete: Restrict)
-  brands         Brand[]
   fields         SubcategoryField[]
   products       Product[]
 
@@ -170,23 +169,21 @@ model Subcategory {
 }
 
 model Brand {
-  id             String      @id @default(cuid())
-  subcategoryId  String
+  id             String    @id @default(cuid())
   name           String
   slug           String
   description    String?
   seoTitle       String?
   seoDescription String?
-  sortOrder      Int         @default(0)
-  isActive       Boolean     @default(true)
-  createdAt      DateTime    @default(now())
-  updatedAt      DateTime    @updatedAt
-  subcategory    Subcategory @relation(fields: [subcategoryId], references: [id], onDelete: Restrict)
+  sortOrder      Int       @default(0)
+  isActive       Boolean   @default(true)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
   products       Product[]
 
-  @@unique([subcategoryId, name])
-  @@unique([subcategoryId, slug])
-  @@index([subcategoryId, sortOrder])
+  @@unique([name])
+  @@unique([slug])
+  @@index([sortOrder])
   @@index([isActive])
 }
 

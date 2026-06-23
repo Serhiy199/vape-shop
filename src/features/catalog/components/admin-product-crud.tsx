@@ -70,7 +70,6 @@ type BrandOption = {
   isActive: boolean;
   name: string;
   slug: string;
-  subcategoryId: string;
 };
 
 type FieldOption = {
@@ -98,7 +97,6 @@ type SelectedProduct = {
     id: string;
     isActive: boolean;
     name: string;
-    subcategoryId: string;
   } | null;
   category: {
     id: string;
@@ -1089,11 +1087,9 @@ function ProductWizard({
   const availableBrands = useMemo(
     () =>
       brands.filter(
-        (brand) =>
-          brand.subcategoryId === values.subcategoryId &&
-          (brand.isActive || brand.id === initialValues.brandId),
+        (brand) => brand.isActive || brand.id === initialValues.brandId,
       ),
-    [brands, initialValues.brandId, values.subcategoryId],
+    [brands, initialValues.brandId],
   );
 
   const brandItems = useMemo(
@@ -1209,7 +1205,7 @@ function ProductWizard({
 
     setValues((current) => ({
       ...current,
-      brandId: NO_BRAND_VALUE,
+      brandId: current.brandId,
       categoryId,
       subcategoryId: nextSubcategoryId,
     }));
@@ -1230,16 +1226,7 @@ function ProductWizard({
 
     setValues((current) => ({
       ...current,
-      brandId:
-        current.brandId !== NO_BRAND_VALUE &&
-        brands.some(
-          (brand) =>
-            brand.id === current.brandId &&
-            brand.subcategoryId === subcategoryId &&
-            brand.isActive,
-        )
-          ? current.brandId
-          : NO_BRAND_VALUE,
+      brandId: current.brandId,
       subcategoryId,
     }));
     setFieldErrors((current) => ({
