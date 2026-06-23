@@ -2,10 +2,7 @@ import Link from "next/link";
 import { ArrowRightIcon } from "lucide-react";
 
 import type { StorefrontCategory } from "@/components/storefront/storefront-config";
-import {
-  StorefrontBadge,
-  StorefrontCard,
-} from "@/components/storefront/storefront-primitives";
+import { StorefrontCard } from "@/components/storefront/storefront-primitives";
 import { cn } from "@/lib/utils";
 
 const toneClasses: Record<StorefrontCategory["tone"], string> = {
@@ -45,7 +42,6 @@ export function StorefrontCategoryCard({
               <Icon className="size-6" />
             </span>
           )}
-          <StorefrontBadge tone="muted">{category.stat}</StorefrontBadge>
         </div>
 
         <div className="space-y-2">

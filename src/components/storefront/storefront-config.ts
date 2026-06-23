@@ -38,7 +38,6 @@ export type StorefrontCategory = {
   image?: string;
   label: string;
   links: StorefrontCategoryLink[];
-  stat: string;
   tone: "amber" | "green" | "rose" | "slate";
 };
 
@@ -57,7 +56,6 @@ export const storefrontCategories: StorefrontCategory[] = [
         label: "Одноразові пристрої",
       },
     ],
-    stat: "Пристрої",
     tone: "amber",
   },
   {
@@ -71,7 +69,6 @@ export const storefrontCategories: StorefrontCategory[] = [
       { href: "/category/liquids/freebase-liquids", label: "Органічні рідини" },
       { href: "/category/liquids/flavors", label: "Ароматизатори" },
     ],
-    stat: "Смаки",
     tone: "green",
   },
   {
@@ -85,7 +82,6 @@ export const storefrontCategories: StorefrontCategory[] = [
       { href: "/category/components/evaporators", label: "Випарники" },
       { href: "/category/components/batteries", label: "Акумулятори" },
     ],
-    stat: "Сумісність",
     tone: "slate",
   },
 ];
