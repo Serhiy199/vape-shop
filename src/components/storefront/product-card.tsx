@@ -135,7 +135,7 @@ export function StorefrontProductCard({
             <ProductCardPurchaseControls product={product} />
           ) : (
             <div className="mt-auto space-y-3">
-              <span className={storefrontPatterns.price}>
+              <span className={cn(storefrontPatterns.price, "block text-right")}>
                 {currencyFormatter.format(product.price)}
               </span>
 

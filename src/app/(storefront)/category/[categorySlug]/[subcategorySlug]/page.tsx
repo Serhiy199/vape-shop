@@ -76,7 +76,6 @@ export default async function SubcategoryPage({
 
   const basePath = `/category/${categorySlug}/${subcategorySlug}`;
   const brandTabs = filterOptions.brands.map((brand) => ({
-    count: brand.count,
     href: `${basePath}?brand=${brand.value}`,
     label: brand.label,
     value: brand.value,
@@ -109,7 +108,7 @@ export default async function SubcategoryPage({
             filters={routeFilters}
           />
           <div className="min-w-0 space-y-5">
-            <CatalogTopTabs items={brandTabs} />
+            <CatalogTopTabs items={brandTabs} showCount={false} />
             <CatalogToolbar
               basePath={basePath}
               filterOptions={filterOptions}

@@ -159,9 +159,7 @@ export default async function StorefrontHomePage() {
                       {brand.label}
                     </span>
                     <span className={storefrontPatterns.bodyText}>
-                      {typeof brand.count === "number"
-                        ? `${brand.count} товарів у каталозі`
-                        : "Переглянути товари бренду"}
+                      Переглянути товари бренду
                     </span>
                   </span>
                   <span className="text-primary mt-auto inline-flex items-center gap-2 text-sm font-medium">

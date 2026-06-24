@@ -95,15 +95,6 @@ const storefrontBrandSelect = {
   description: true,
   seoTitle: true,
   seoDescription: true,
-  _count: {
-    select: {
-      products: {
-        where: {
-          ...storefrontVisibleProductWhere,
-        },
-      },
-    },
-  },
 } satisfies Prisma.BrandSelect;
 
 const storefrontProductListSelect = {
@@ -346,7 +337,6 @@ function mapSubcategoryToOption(
 
 function mapBrandToOption(brand: StorefrontBrandRecord): CatalogOption {
   return {
-    count: brand._count.products,
     href: `/brand/${brand.slug}`,
     label: brand.name,
     value: brand.slug,

@@ -19,6 +19,7 @@ type CatalogTopTabsProps = {
   className?: string;
   initialVisibleCount?: number;
   items: readonly CatalogTopTabItem[];
+  showCount?: boolean;
 };
 
 export function CatalogTopTabs({
@@ -26,6 +27,7 @@ export function CatalogTopTabs({
   className,
   initialVisibleCount = 5,
   items,
+  showCount = true,
 }: CatalogTopTabsProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const hasOverflow = items.length > initialVisibleCount;
@@ -56,7 +58,7 @@ export function CatalogTopTabs({
               )}
             >
               <span className="min-w-0 truncate">{item.label}</span>
-              {typeof item.count === "number" ? (
+              {showCount && typeof item.count === "number" ? (
                 <span className="text-muted-foreground ml-1 text-xs">
                   ({item.count})
                 </span>

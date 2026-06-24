@@ -481,7 +481,8 @@ function CatalogFilterContent({
                 >
                   <span>
                     {option.label}
-                    {typeof option.count === "number" ? (
+                    {group.key !== "brandSlug" &&
+                    typeof option.count === "number" ? (
                       <span className="text-muted-foreground ml-1">
                         ({option.count})
                       </span>

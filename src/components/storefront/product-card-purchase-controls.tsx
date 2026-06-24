@@ -139,7 +139,7 @@ export function ProductCardPurchaseControls({
       </div>
 
       <div className="mt-auto space-y-3">
-        <span className="block text-lg font-semibold tracking-tight">
+        <span className="block text-right text-lg font-semibold tracking-tight">
           {currencyFormatter.format(product.price)}
         </span>
 
