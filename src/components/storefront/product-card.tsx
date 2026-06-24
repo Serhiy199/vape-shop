@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ImageIcon, StarIcon } from "lucide-react";
 
 import { AddToCartButton } from "@/components/storefront/add-to-cart-button";
+import { ProductCardPurchaseControls } from "@/components/storefront/product-card-purchase-controls";
 import type {
   StorefrontProductBadge,
   StorefrontProductCardItem,
@@ -51,7 +52,9 @@ export function StorefrontProductCard({
   product: StorefrontProductCardItem;
 }) {
   const isAvailable = product.availability === "in_stock";
-  const isVariant = product.type === "variant";
+  const hasOptions = Boolean(
+    product.options?.some((option) => option.values.length > 0),
+  );
 
   return (
     <StorefrontCard
@@ -127,38 +130,41 @@ export function StorefrontProductCard({
             </div>
           </div>
 
-          <div className="mt-auto space-y-3">
-            <span className={storefrontPatterns.price}>
-              {currencyFormatter.format(product.price)}
-            </span>
-
-            <div className="flex items-center gap-2">
-              {isAvailable && isVariant ? (
-                <Link
-                  href={product.href}
-                  className="bg-primary text-primary-foreground hover:bg-primary/90 inline-flex h-10 min-w-0 flex-1 items-center justify-center rounded-lg px-3 text-sm font-medium transition"
-                >
-                  Обрати
-                </Link>
-              ) : isAvailable ? (
-                <AddToCartButton
-                  className="h-10 min-w-0 flex-1 rounded-lg"
-                  product={product}
-                />
-              ) : (
-                <Link
-                  href={product.href}
-                  className="border-border bg-background hover:bg-muted hover:text-foreground inline-flex h-10 min-w-0 flex-1 items-center justify-center rounded-lg border px-3 text-sm font-medium transition"
-                >
-                  Детальніше
-                </Link>
-              )}
+          {isAvailable && hasOptions ? (
+            <div className="grid gap-2">
+              <ProductCardPurchaseControls product={product} />
               <WishlistButton
                 productId={product.productId}
-                className="bg-background hover:bg-muted h-10 w-10 shrink-0 rounded-lg"
+                className="bg-background hover:bg-muted h-10 w-full rounded-lg"
               />
             </div>
-          </div>
+          ) : (
+            <div className="mt-auto space-y-3">
+              <span className={storefrontPatterns.price}>
+                {currencyFormatter.format(product.price)}
+              </span>
+
+              <div className="flex items-center gap-2">
+                {isAvailable ? (
+                  <AddToCartButton
+                    className="h-10 min-w-0 flex-1 rounded-lg"
+                    product={product}
+                  />
+                ) : (
+                  <Link
+                    href={product.href}
+                    className="border-border bg-background hover:bg-muted hover:text-foreground inline-flex h-10 min-w-0 flex-1 items-center justify-center rounded-lg border px-3 text-sm font-medium transition"
+                  >
+                    Детальніше
+                  </Link>
+                )}
+                <WishlistButton
+                  productId={product.productId}
+                  className="bg-background hover:bg-muted h-10 w-10 shrink-0 rounded-lg"
+                />
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </StorefrontCard>

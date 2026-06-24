@@ -157,21 +157,18 @@ const storefrontProductListSelect = {
   },
   options: {
     orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
-    take: 1,
     select: {
       id: true,
+      displayType: true,
+      isImageRequired: true,
       name: true,
       sortOrder: true,
       values: {
-        where: {
-          slug: {
-            not: null,
-          },
-        },
         orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
         select: {
           id: true,
           image: true,
+          imagePublicId: true,
           label: true,
           slug: true,
           sortOrder: true,
@@ -388,6 +385,7 @@ function mapProductToCard(
     imageSrc: primaryImage?.url,
     price: Number(product.price),
     productId: product.id,
+    options: product.options,
     rating: 5,
     reviewCount: product._count.orderItems + product._count.wishlistItems,
     slug: product.slug,

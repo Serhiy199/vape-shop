@@ -80,7 +80,7 @@ export function AddToCartButton({
         <ShoppingCartIcon className="size-4" />
       )}
       {isAvailable
-        ? disabledReason || (isAdded ? "Додано" : "До кошика")
+        ? disabledReason || (isAdded ? "Додано" : "Додати до кошика")
         : "Товар недоступний"}
     </Button>
   );

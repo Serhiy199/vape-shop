@@ -10,6 +10,7 @@ export type StorefrontProductCardItem = {
   imageSrc?: string;
   price: number;
   productId: string;
+  options?: StorefrontProductOption[];
   rating?: number;
   reviewCount?: number;
   slug: string;
