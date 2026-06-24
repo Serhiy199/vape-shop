@@ -1078,6 +1078,20 @@ export function AdminFAQCrud({ sections }: { sections: FAQSectionItem[] }) {
 
 export function AdminReviewsCrud({ reviews }: { reviews: ReviewItem[] }) {
   const { isPending, run } = useActionState();
+  const buildReviewUpdatePayload = (
+    review: ReviewItem,
+    overrides: Partial<Pick<ReviewItem, "isActive" | "isApproved">>,
+  ) => ({
+    id: review.id,
+    initials: review.initials ?? undefined,
+    isActive: overrides.isActive ?? review.isActive,
+    isApproved: overrides.isApproved ?? review.isApproved,
+    name: review.name,
+    productId: review.productId ?? undefined,
+    rating: review.rating,
+    text: review.text,
+    type: review.type,
+  });
 
   return (
     <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_420px]">
@@ -1103,15 +1117,16 @@ export function AdminReviewsCrud({ reviews }: { reviews: ReviewItem[] }) {
                     onClick={() =>
                       run(
                         () =>
-                          saveAdminReviewAction({
-                            ...review,
-                            isApproved: !review.isApproved,
-                          }),
+                          saveAdminReviewAction(
+                            buildReviewUpdatePayload(review, {
+                              isApproved: !review.isApproved,
+                            }),
+                          ),
                         "Модерацію оновлено",
                       )
                     }
                   >
-                    {review.isApproved ? "Зняти approve" : "Approve"}
+                    {review.isApproved ? "Зняти з публікації" : "Опублікувати"}
                   </Button>
                   <Button
                     type="button"
@@ -1119,10 +1134,11 @@ export function AdminReviewsCrud({ reviews }: { reviews: ReviewItem[] }) {
                     onClick={() =>
                       run(
                         () =>
-                          saveAdminReviewAction({
-                            ...review,
-                            isActive: !review.isActive,
-                          }),
+                          saveAdminReviewAction(
+                            buildReviewUpdatePayload(review, {
+                              isActive: !review.isActive,
+                            }),
+                          ),
                         "Видимість оновлено",
                       )
                     }

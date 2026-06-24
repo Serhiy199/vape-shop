@@ -581,7 +581,7 @@ export function AdminRichTextEditor({
             value={htmlDraft}
             disabled={disabled}
             placeholder={placeholder}
-            className="min-h-[260px] rounded-none border-0 font-mono text-sm shadow-none focus-visible:ring-0"
+            className="max-h-[480px] min-h-[260px] overflow-y-auto rounded-none border-0 font-mono text-sm shadow-none focus-visible:ring-0"
             style={{ minHeight }}
             onChange={(event) => {
               setHtmlDraft(event.target.value);
@@ -593,7 +593,10 @@ export function AdminRichTextEditor({
             }}
           />
         ) : (
-          <div className="min-h-[260px]" style={{ minHeight }}>
+          <div
+            className="max-h-[480px] min-h-[260px] overflow-y-auto"
+            style={{ minHeight }}
+          >
             <EditorContent id={id} editor={editor} />
           </div>
         )}

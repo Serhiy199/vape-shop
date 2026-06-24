@@ -10,6 +10,7 @@ import {
   AdminFormSection,
   AdminInputField,
 } from "@/components/admin/admin-form-primitives";
+import { AdminRichTextEditor } from "@/components/admin/admin-rich-text-editor";
 import { showAdminToast } from "@/components/admin/admin-toast";
 import {
   AdminOptionalInputField,
@@ -151,14 +152,12 @@ function BrandFormFields({
       </AdminFormGrid>
 
       <div className="mt-4 space-y-4">
-        <AdminOptionalTextareaField
+        <AdminRichTextEditor
           id={`${heading}-description`}
-          name="description"
           label="Опис"
           value={values.description}
-          onChange={(event) => onInputChange("description", event.target.value)}
+          onChange={(html) => onInputChange("description", html)}
           error={errors.description}
-          rows={3}
         />
 
         <AdminOptionalTextareaField
