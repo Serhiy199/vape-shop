@@ -9,6 +9,7 @@ import type {
 } from "@/components/storefront/product-types";
 import { Button } from "@/components/ui/button";
 import { useCart } from "@/features/cart/cart-context";
+import { WishlistButton } from "@/features/wishlist/components/wishlist-button";
 
 const currencyFormatter = new Intl.NumberFormat("uk-UA", {
   currency: "UAH",
@@ -141,21 +142,27 @@ export function ProductCardPurchaseControls({
         {currencyFormatter.format(product.price)}
       </span>
 
-      <Button
-        className="h-10 w-full min-w-0 rounded-lg"
-        onClick={(event) => {
-          event.stopPropagation();
-          handleAddToCart();
-        }}
-        type="button"
-      >
-        {isAdded ? (
-          <CheckIcon className="size-4" />
-        ) : (
-          <ShoppingCartIcon className="size-4" />
-        )}
-        {isAdded ? "Додано" : "Додати до кошика"}
-      </Button>
+      <div className="flex items-center gap-2">
+        <Button
+          className="h-10 min-w-0 flex-1 rounded-lg"
+          onClick={(event) => {
+            event.stopPropagation();
+            handleAddToCart();
+          }}
+          type="button"
+        >
+          {isAdded ? (
+            <CheckIcon className="size-4" />
+          ) : (
+            <ShoppingCartIcon className="size-4" />
+          )}
+          {isAdded ? "Додано" : "Додати до кошика"}
+        </Button>
+        <WishlistButton
+          productId={product.productId}
+          className="bg-background hover:bg-muted h-10 w-10 shrink-0 rounded-lg"
+        />
+      </div>
     </div>
   );
 }

@@ -18,6 +18,47 @@ type SelectedCartOption = {
   valueId: string;
 };
 
+function resolveVariantSelection(product: StorefrontProductCardItem) {
+  if (!product.variantValueId) {
+    return {
+      selectedOption: null,
+      selectedOptions: undefined,
+    };
+  }
+
+  const option = product.options?.find((currentOption) =>
+    currentOption.values.some((value) => value.id === product.variantValueId),
+  );
+  const value = option?.values.find(
+    (currentValue) => currentValue.id === product.variantValueId,
+  );
+
+  if (!option || !value) {
+    return {
+      selectedOption: null,
+      selectedOptions: undefined,
+    };
+  }
+
+  return {
+    selectedOption: {
+      image: value.image ?? undefined,
+      label: value.label,
+      name: option.name,
+      valueId: value.id,
+    },
+    selectedOptions: [
+      {
+        optionId: option.id,
+        optionName: option.name,
+        valueId: value.id,
+        valueName: value.label,
+        valueSlug: value.slug ?? null,
+      },
+    ],
+  };
+}
+
 export function AddToCartButton({
   className,
   disabledReason,
@@ -39,6 +80,11 @@ export function AddToCartButton({
   const [isAdded, setIsAdded] = useState(false);
   const isAvailable = product.availability === "in_stock";
   const isDisabled = !isAvailable || Boolean(disabledReason);
+  const variantSelection = resolveVariantSelection(product);
+  const resolvedSelectedOption =
+    selectedOption ?? variantSelection.selectedOption;
+  const resolvedSelectedOptions =
+    selectedOptions ?? variantSelection.selectedOptions;
 
   function handleAddToCart() {
     if (isDisabled) {
@@ -49,13 +95,13 @@ export function AddToCartButton({
       {
         availability: product.availability,
         imageAlt: product.imageAlt,
-        imageSrc: selectedOption?.image ?? product.imageSrc,
+        imageSrc: resolvedSelectedOption?.image ?? product.imageSrc,
         price: product.price,
         productId: product.productId,
-        selectedOptions,
-        selectedOptionName: selectedOption?.name,
-        selectedOptionValue: selectedOption?.label,
-        selectedOptionValueId: selectedOption?.valueId,
+        selectedOptions: resolvedSelectedOptions,
+        selectedOptionName: resolvedSelectedOption?.name,
+        selectedOptionValue: resolvedSelectedOption?.label,
+        selectedOptionValueId: resolvedSelectedOption?.valueId,
         slug: product.slug,
         title: product.title,
       },

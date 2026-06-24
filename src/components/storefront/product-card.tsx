@@ -55,6 +55,7 @@ export function StorefrontProductCard({
   const hasOptions = Boolean(
     product.options?.some((option) => option.values.length > 0),
   );
+  const shouldShowOptionSelectors = product.type === "product" && hasOptions;
 
   return (
     <StorefrontCard
@@ -130,14 +131,8 @@ export function StorefrontProductCard({
             </div>
           </div>
 
-          {isAvailable && hasOptions ? (
-            <div className="grid gap-2">
-              <ProductCardPurchaseControls product={product} />
-              <WishlistButton
-                productId={product.productId}
-                className="bg-background hover:bg-muted h-10 w-full rounded-lg"
-              />
-            </div>
+          {isAvailable && shouldShowOptionSelectors ? (
+            <ProductCardPurchaseControls product={product} />
           ) : (
             <div className="mt-auto space-y-3">
               <span className={storefrontPatterns.price}>
