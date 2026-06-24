@@ -40,11 +40,15 @@ const badgeClassNames: Record<StorefrontProductBadge, string> = {
     "border-orange-700 bg-orange-600 text-white shadow-sm ring-1 ring-white/90",
 };
 
-export const currencyFormatter = new Intl.NumberFormat("uk-UA", {
-  currency: "UAH",
+const priceNumberFormatter = new Intl.NumberFormat("uk-UA", {
   maximumFractionDigits: 0,
-  style: "currency",
 });
+
+export const currencyFormatter = {
+  format(value: number) {
+    return `${priceNumberFormatter.format(value)} грн`;
+  },
+};
 
 export function StorefrontProductCard({
   product,

@@ -11,11 +11,15 @@ import { Button } from "@/components/ui/button";
 import { useCart } from "@/features/cart/cart-context";
 import { WishlistButton } from "@/features/wishlist/components/wishlist-button";
 
-const currencyFormatter = new Intl.NumberFormat("uk-UA", {
-  currency: "UAH",
+const priceNumberFormatter = new Intl.NumberFormat("uk-UA", {
   maximumFractionDigits: 0,
-  style: "currency",
 });
+
+const currencyFormatter = {
+  format(value: number) {
+    return `${priceNumberFormatter.format(value)} грн`;
+  },
+};
 
 export function ProductCardPurchaseControls({
   product,
