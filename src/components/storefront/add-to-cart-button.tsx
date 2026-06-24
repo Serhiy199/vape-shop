@@ -113,7 +113,7 @@ export function AddToCartButton({
 
   return (
     <Button
-      className={cn("gap-2", className)}
+      className={cn("cursor-pointer gap-2", className)}
       disabled={isDisabled}
       onClick={handleAddToCart}
       size={size}

@@ -42,7 +42,7 @@ export function WishlistButton({
       <Button
         variant="outline"
         size={size}
-        className={cn("rounded-lg", className)}
+        className={cn("cursor-pointer rounded-lg", className)}
         aria-label="Додати товар в обране"
         disabled={isPending}
         onClick={handleClick}

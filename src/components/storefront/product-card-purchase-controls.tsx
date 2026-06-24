@@ -107,7 +107,7 @@ export function ProductCardPurchaseControls({
   }
 
   return (
-    <div className="mt-auto space-y-3">
+    <div className="flex min-h-0 flex-1 flex-col gap-3">
       <div className="space-y-2">
         {options.map((option) => (
           <label key={option.id} className="block space-y-1.5">
@@ -115,7 +115,7 @@ export function ProductCardPurchaseControls({
               {option.name}:
             </span>
             <select
-              className="border-input bg-background h-9 w-full rounded-lg border px-2.5 text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
+              className="border-input bg-background h-9 w-full cursor-pointer rounded-lg border px-2.5 text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
               value={selectedValueIds[option.id] ?? ""}
               onChange={(event) =>
                 handleSelectOption(option.id, event.target.value)
@@ -138,30 +138,32 @@ export function ProductCardPurchaseControls({
         ) : null}
       </div>
 
-      <span className="block text-lg font-semibold tracking-tight">
-        {currencyFormatter.format(product.price)}
-      </span>
+      <div className="mt-auto space-y-3">
+        <span className="block text-lg font-semibold tracking-tight">
+          {currencyFormatter.format(product.price)}
+        </span>
 
-      <div className="flex items-center gap-2">
-        <Button
-          className="h-10 min-w-0 flex-1 rounded-lg"
-          onClick={(event) => {
-            event.stopPropagation();
-            handleAddToCart();
-          }}
-          type="button"
-        >
-          {isAdded ? (
-            <CheckIcon className="size-4" />
-          ) : (
-            <ShoppingCartIcon className="size-4" />
-          )}
-          {isAdded ? "Додано" : "Додати до кошика"}
-        </Button>
-        <WishlistButton
-          productId={product.productId}
-          className="bg-background hover:bg-muted h-10 w-10 shrink-0 rounded-lg"
-        />
+        <div className="flex items-center gap-2">
+          <Button
+            className="h-10 min-w-0 flex-1 cursor-pointer rounded-lg"
+            onClick={(event) => {
+              event.stopPropagation();
+              handleAddToCart();
+            }}
+            type="button"
+          >
+            {isAdded ? (
+              <CheckIcon className="size-4" />
+            ) : (
+              <ShoppingCartIcon className="size-4" />
+            )}
+            {isAdded ? "Додано" : "Додати до кошика"}
+          </Button>
+          <WishlistButton
+            productId={product.productId}
+            className="bg-background hover:bg-muted h-10 w-10 shrink-0 rounded-lg"
+          />
+        </div>
       </div>
     </div>
   );

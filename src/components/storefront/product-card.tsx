@@ -148,7 +148,7 @@ export function StorefrontProductCard({
                 ) : (
                   <Link
                     href={product.href}
-                    className="border-border bg-background hover:bg-muted hover:text-foreground inline-flex h-10 min-w-0 flex-1 items-center justify-center rounded-lg border px-3 text-sm font-medium transition"
+                    className="border-border bg-background hover:bg-muted hover:text-foreground inline-flex h-10 min-w-0 flex-1 cursor-pointer items-center justify-center rounded-lg border px-3 text-sm font-medium transition"
                   >
                     Детальніше
                   </Link>
