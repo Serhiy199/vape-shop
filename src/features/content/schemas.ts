@@ -82,6 +82,11 @@ export const activeStatusSchema = idSchema.extend({
   isActive: z.boolean(),
 });
 
+export const systemPageStatusSchema = z.object({
+  isActive: z.boolean(),
+  key: z.enum(["contacts", "blog", "faq", "reviews", "certificates"]),
+});
+
 export const contactSettingsMutationSchema = z.object({
   id: optionalString,
   title: z.string().trim().min(1, "Заголовок обов'язковий"),

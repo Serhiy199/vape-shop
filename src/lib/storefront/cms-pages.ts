@@ -3,11 +3,11 @@ import type { Metadata } from "next";
 import { getActiveContentPageBySlug } from "@/server/repositories/content.repository";
 
 export const legacyContentRouteSlugs = {
-  about: "about-us",
-  delivery: "delivery-and-payment",
-  payment: "delivery-and-payment",
-  privacy: "privacy-policy",
-  terms: "terms-of-use",
+  about: "about",
+  delivery: "delivery",
+  payment: "payment",
+  privacy: "privacy",
+  terms: "terms",
 } as const;
 
 export async function getCmsContentPage(route: keyof typeof legacyContentRouteSlugs) {

@@ -19,7 +19,7 @@ function isMissingTableError(error: unknown) {
     typeof error === "object" &&
     error !== null &&
     "code" in error &&
-    error.code === "P2021"
+    (error.code === "P2021" || error.code === "P2022")
   );
 }
 
@@ -77,6 +77,51 @@ const fallbackCertificateSettings = {
   title: "Сертифікати відповідності",
   updatedAt: new Date(0),
 };
+
+export const systemPageDefinitions = [
+  { href: "/contacts", key: "contacts", sortOrder: 100, title: "Контакти" },
+  { href: "/blog", key: "blog", sortOrder: 110, title: "Блог" },
+  { href: "/faq", key: "faq", sortOrder: 120, title: "FAQ" },
+  { href: "/reviews", key: "reviews", sortOrder: 130, title: "Відгуки" },
+  {
+    href: "/certificates",
+    key: "certificates",
+    sortOrder: 140,
+    title: "Сертифікати",
+  },
+] as const;
+
+export type SystemPageKey = (typeof systemPageDefinitions)[number]["key"];
+
+const fallbackSystemPageSettings = systemPageDefinitions.map((page) => ({
+  createdAt: new Date(0),
+  id: `fallback-system-page-${page.key}`,
+  isActive: true,
+  key: page.key,
+  sortOrder: page.sortOrder,
+  title: page.title,
+  updatedAt: new Date(0),
+}));
+
+let systemPageSettingsTableExists: boolean | null = null;
+
+function resolveSystemPageDefinition(key: string) {
+  return systemPageDefinitions.find((page) => page.key === key);
+}
+
+async function hasSystemPageSettingsTable() {
+  if (systemPageSettingsTableExists !== null) {
+    return systemPageSettingsTableExists;
+  }
+
+  const result = await prisma.$queryRaw<Array<{ exists: string | null }>>`
+    SELECT to_regclass('"SystemPageSettings"')::text AS "exists"
+  `;
+
+  systemPageSettingsTableExists = Boolean(result[0]?.exists);
+
+  return systemPageSettingsTableExists;
+}
 
 export async function listAdminContentPages(search?: string) {
   return withMissingTableFallback(
@@ -160,12 +205,102 @@ export async function listFooterContentPages() {
   return withMissingTableFallback(
     () =>
       prisma.contentPage.findMany({
-        where: { isActive: true, showInFooter: true },
-        orderBy: [{ sortOrder: "asc" }, { title: "asc" }],
-        select: { slug: true, title: true },
+        where: { isActive: true },
+        orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }, { id: "asc" }],
+        select: { createdAt: true, id: true, slug: true, title: true },
       }),
     [],
   );
+}
+
+export async function listSystemPageSettings() {
+  if (!(await hasSystemPageSettingsTable())) {
+    return fallbackSystemPageSettings;
+  }
+
+  return withMissingTableFallback(
+    async () => {
+      const settings = await prisma.systemPageSettings.findMany({
+        orderBy: [{ sortOrder: "asc" }, { key: "asc" }],
+      });
+
+      const existingKeys = new Set(settings.map((item) => item.key));
+      const missingDefaults = systemPageDefinitions.filter(
+        (page) => !existingKeys.has(page.key),
+      );
+
+      if (missingDefaults.length === 0) {
+        return settings;
+      }
+
+      const created = await Promise.all(
+        missingDefaults.map((page) =>
+          prisma.systemPageSettings.create({
+            data: {
+              isActive: true,
+              key: page.key,
+              sortOrder: page.sortOrder,
+              title: page.title,
+            },
+          }),
+        ),
+      );
+
+      return [...settings, ...created].sort(
+        (first, second) =>
+          first.sortOrder - second.sortOrder ||
+          first.key.localeCompare(second.key),
+      );
+    },
+    fallbackSystemPageSettings,
+  );
+}
+
+export async function listActiveSystemPageLinks() {
+  const settings = await listSystemPageSettings();
+
+  return settings
+    .filter((page) => page.isActive)
+    .map((page) => {
+      const definition = resolveSystemPageDefinition(page.key);
+
+      return {
+        href: definition?.href ?? `/${page.key}`,
+        key: page.key,
+        label: page.title,
+        sortOrder: page.sortOrder,
+      };
+    });
+}
+
+export async function getSystemPageSettings(key: SystemPageKey) {
+  const pages = await listSystemPageSettings();
+
+  return pages.find((page) => page.key === key) ?? null;
+}
+
+export async function isSystemPageActive(key: SystemPageKey) {
+  const page = await getSystemPageSettings(key);
+
+  return page?.isActive ?? true;
+}
+
+export async function setSystemPageActiveStatus(
+  key: SystemPageKey,
+  isActive: boolean,
+) {
+  const definition = resolveSystemPageDefinition(key);
+
+  return prisma.systemPageSettings.upsert({
+    where: { key },
+    update: { isActive },
+    create: {
+      isActive,
+      key,
+      sortOrder: definition?.sortOrder ?? 0,
+      title: definition?.title ?? key,
+    },
+  });
 }
 
 export async function listHeaderContentPages() {

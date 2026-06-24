@@ -1,6 +1,10 @@
 import { AdminPageHeader } from "@/components/admin/admin-primitives";
-import { AdminBlogCrud } from "@/features/content/components/admin-content-crud";
 import {
+  AdminBlogCrud,
+  AdminSystemPageStatus,
+} from "@/features/content/components/admin-content-crud";
+import {
+  getSystemPageSettings,
   listAdminBlogPosts,
   listBlogCategories,
 } from "@/server/repositories/content.repository";
@@ -10,9 +14,10 @@ function serialize<TData>(data: TData): TData {
 }
 
 export default async function AdminBlogPage() {
-  const [categories, posts] = await Promise.all([
+  const [categories, posts, pageStatus] = await Promise.all([
     listBlogCategories(),
     listAdminBlogPosts(),
+    getSystemPageSettings("blog"),
   ]);
 
   const mappedPosts = posts.map((post) => ({
@@ -31,6 +36,9 @@ export default async function AdminBlogPage() {
         description="Статті та категорії для публічного блогу."
         badges={["Posts", "Categories"]}
       />
+      {pageStatus ? (
+        <AdminSystemPageStatus page={serialize(pageStatus)} />
+      ) : null}
       <AdminBlogCrud
         categories={serialize(categories)}
         posts={serialize(mappedPosts)}

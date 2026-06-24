@@ -28,6 +28,7 @@ import {
   savePublicContactRequest,
   savePublicReview,
   toggleAdminContentPage,
+  toggleAdminSystemPage,
   type ContentMutationResult,
 } from "@/server/services/admin-content.service";
 
@@ -48,9 +49,15 @@ function revalidateContent() {
   revalidatePath("/admin/content/certificates");
   revalidatePath("/contacts");
   revalidatePath("/blog");
+  revalidatePath("/delivery");
+  revalidatePath("/payment");
+  revalidatePath("/about");
+  revalidatePath("/privacy");
+  revalidatePath("/terms");
   revalidatePath("/faq");
   revalidatePath("/reviews");
   revalidatePath("/certificates");
+  revalidatePath("/[slug]", "page");
   revalidatePath("/sitemap.xml");
 }
 
@@ -78,6 +85,10 @@ export async function deleteContentPageAction(input: unknown) {
 
 export async function toggleContentPageAction(input: unknown) {
   return mutateAdmin(() => toggleAdminContentPage(input));
+}
+
+export async function toggleSystemPageAction(input: unknown) {
+  return mutateAdmin(() => toggleAdminSystemPage(input));
 }
 
 export async function saveContactSettingsAction(input: unknown) {

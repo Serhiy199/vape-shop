@@ -2,6 +2,7 @@ import type { MetadataRoute } from "next";
 
 import { prisma } from "@/lib/prisma/client";
 import {
+  listActiveSystemPageLinks,
   listActiveContentPageSitemapEntries,
   listPublishedBlogPostSitemapEntries,
 } from "@/server/repositories/content.repository";
@@ -18,7 +19,7 @@ function absoluteUrl(path: string) {
 }
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const [products, brands, contentPages, blogPosts] = await Promise.all([
+  const [products, brands, contentPages, systemPages, blogPosts] = await Promise.all([
     prisma.product.findMany({
       where: {
         isActive: true,
@@ -65,6 +66,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       },
     }),
     listActiveContentPageSitemapEntries(),
+    listActiveSystemPageLinks(),
     listPublishedBlogPostSitemapEntries(),
   ]);
 
@@ -92,25 +94,28 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     url: absoluteUrl(`/${page.slug}`),
   }));
 
-  const blogEntries = blogPosts.map((post) => ({
-    lastModified: post.updatedAt,
-    url: absoluteUrl(`/blog/${post.slug}`),
-  }));
+  const isBlogActive = systemPages.some((page) => page.href === "/blog");
+  const blogEntries = isBlogActive
+    ? blogPosts.map((post) => ({
+        lastModified: post.updatedAt,
+        url: absoluteUrl(`/blog/${post.slug}`),
+      }))
+    : [];
 
   const brandEntries = brands.map((brand) => ({
     lastModified: brand.updatedAt,
     url: absoluteUrl(`/brand/${brand.slug}`),
   }));
 
+  const systemEntries = systemPages.map((page) => ({
+    url: absoluteUrl(page.href),
+  }));
+
   return [
     ...productEntries,
     ...brandEntries,
     ...contentEntries,
-    { url: absoluteUrl("/contacts") },
-    { url: absoluteUrl("/blog") },
+    ...systemEntries,
     ...blogEntries,
-    { url: absoluteUrl("/faq") },
-    { url: absoluteUrl("/reviews") },
-    { url: absoluteUrl("/certificates") },
   ];
 }

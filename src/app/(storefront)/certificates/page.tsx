@@ -1,14 +1,20 @@
 import type { Metadata } from "next";
+import { notFound } from "next/navigation";
 
 import { CmsPageShell } from "@/components/storefront/cms-content";
 import { SafeRichTextContent } from "@/components/storefront/safe-rich-text-content";
 import { StorefrontCard } from "@/components/storefront/storefront-primitives";
 import {
   ensureCertificateSettings,
+  isSystemPageActive,
   listActiveCertificateGroups,
 } from "@/server/repositories/content.repository";
 
 export async function generateMetadata(): Promise<Metadata> {
+  if (!(await isSystemPageActive("certificates"))) {
+    return {};
+  }
+
   const settings = await ensureCertificateSettings();
 
   return {
@@ -18,6 +24,10 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function CertificatesPage() {
+  if (!(await isSystemPageActive("certificates"))) {
+    notFound();
+  }
+
   const [settings, groups] = await Promise.all([
     ensureCertificateSettings(),
     listActiveCertificateGroups(),

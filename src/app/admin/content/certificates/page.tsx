@@ -1,7 +1,11 @@
 import { AdminPageHeader } from "@/components/admin/admin-primitives";
-import { AdminCertificatesCrud } from "@/features/content/components/admin-content-crud";
+import {
+  AdminCertificatesCrud,
+  AdminSystemPageStatus,
+} from "@/features/content/components/admin-content-crud";
 import {
   ensureCertificateSettings,
+  getSystemPageSettings,
   listCertificateGroups,
 } from "@/server/repositories/content.repository";
 
@@ -10,9 +14,10 @@ function serialize<TData>(data: TData): TData {
 }
 
 export default async function AdminCertificatesPage() {
-  const [settings, groups] = await Promise.all([
+  const [settings, groups, pageStatus] = await Promise.all([
     ensureCertificateSettings(),
     listCertificateGroups(),
+    getSystemPageSettings("certificates"),
   ]);
 
   return (
@@ -23,6 +28,9 @@ export default async function AdminCertificatesPage() {
         description="Керуйте вступним текстом, групами та файлами сертифікатів."
         badges={["Documents", "Cloudinary"]}
       />
+      {pageStatus ? (
+        <AdminSystemPageStatus page={serialize(pageStatus)} />
+      ) : null}
       <AdminCertificatesCrud
         settings={serialize(settings)}
         groups={serialize(groups)}

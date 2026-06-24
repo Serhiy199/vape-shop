@@ -1,13 +1,22 @@
 import { AdminPageHeader } from "@/components/admin/admin-primitives";
-import { AdminFAQCrud } from "@/features/content/components/admin-content-crud";
-import { listFAQSections } from "@/server/repositories/content.repository";
+import {
+  AdminFAQCrud,
+  AdminSystemPageStatus,
+} from "@/features/content/components/admin-content-crud";
+import {
+  getSystemPageSettings,
+  listFAQSections,
+} from "@/server/repositories/content.repository";
 
 function serialize<TData>(data: TData): TData {
   return JSON.parse(JSON.stringify(data)) as TData;
 }
 
 export default async function AdminFAQPage() {
-  const sections = await listFAQSections();
+  const [sections, pageStatus] = await Promise.all([
+    listFAQSections(),
+    getSystemPageSettings("faq"),
+  ]);
 
   return (
     <div className="space-y-6">
@@ -17,6 +26,9 @@ export default async function AdminFAQPage() {
         description="Структуровані розділи та питання для сторінки FAQ."
         badges={["Sections", "Items"]}
       />
+      {pageStatus ? (
+        <AdminSystemPageStatus page={serialize(pageStatus)} />
+      ) : null}
       <AdminFAQCrud sections={serialize(sections)} />
     </div>
   );

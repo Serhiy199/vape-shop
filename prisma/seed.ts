@@ -97,41 +97,49 @@ const promoBanners = [
 const contentPages = [
   {
     title: "Доставка та оплата",
-    slug: "delivery-and-payment",
+    slug: "delivery",
     excerpt: "Умови доставки, оплати та отримання замовлень.",
     contentHtml:
       "<p>Додайте актуальну інформацію про доставку, оплату та отримання замовлень.</p>",
     sortOrder: 1,
   },
   {
-    title: "Про нас",
-    slug: "about-us",
-    excerpt: "Інформація про магазин Voodoo Vape.",
+    title: "Оплата",
+    slug: "payment",
+    excerpt: "Способи оплати та підтвердження замовлень.",
     contentHtml:
-      "<p>Розкажіть клієнтам про магазин, команду та підхід до сервісу.</p>",
+      "<p>Додайте актуальну інформацію про оплату карткою, післяплату або інші способи оплати.</p>",
     sortOrder: 2,
   },
   {
+    title: "Про нас",
+    slug: "about",
+    excerpt: "Інформація про магазин Voodoo Vape.",
+    contentHtml:
+      "<p>Розкажіть клієнтам про магазин, команду та підхід до сервісу.</p>",
+    sortOrder: 3,
+  },
+  {
     title: "Політика конфіденційності",
-    slug: "privacy-policy",
+    slug: "privacy",
     excerpt: "Як магазин обробляє персональні дані клієнтів.",
     contentHtml:
       "<p>Опишіть правила збору, зберігання та обробки персональних даних.</p>",
-    sortOrder: 3,
+    sortOrder: 4,
   },
   {
     title: "Політика Cookie",
     slug: "cookie-policy",
     excerpt: "Як сайт використовує cookie.",
     contentHtml: "<p>Опишіть, які cookie використовує сайт і для чого.</p>",
-    sortOrder: 4,
+    sortOrder: 5,
   },
   {
     title: "Умови використання",
-    slug: "terms-of-use",
+    slug: "terms",
     excerpt: "Правила користування сайтом.",
     contentHtml: "<p>Опишіть умови користування сайтом і сервісами магазину.</p>",
-    sortOrder: 5,
+    sortOrder: 6,
   },
   {
     title: "Гарантія та повернення",
@@ -139,12 +147,24 @@ const contentPages = [
     excerpt: "Умови гарантії, обміну та повернення.",
     contentHtml:
       "<p>Опишіть умови гарантії, обміну та повернення товарів.</p>",
-    sortOrder: 6,
+    sortOrder: 7,
   },
 ] satisfies Array<{
   contentHtml: string;
   excerpt: string;
   slug: string;
+  sortOrder: number;
+  title: string;
+}>;
+
+const systemPages = [
+  { key: "contacts", title: "Контакти", sortOrder: 100 },
+  { key: "blog", title: "Блог", sortOrder: 110 },
+  { key: "faq", title: "FAQ", sortOrder: 120 },
+  { key: "reviews", title: "Відгуки", sortOrder: 130 },
+  { key: "certificates", title: "Сертифікати", sortOrder: 140 },
+] satisfies Array<{
+  key: string;
   sortOrder: number;
   title: string;
 }>;
@@ -629,6 +649,25 @@ async function seedContactPageSettings() {
   });
 }
 
+async function seedSystemPageSettings() {
+  for (const page of systemPages) {
+    await prisma.systemPageSettings.upsert({
+      where: {
+        key: page.key,
+      },
+      update: {
+        isActive: true,
+        sortOrder: page.sortOrder,
+        title: page.title,
+      },
+      create: {
+        ...page,
+        isActive: true,
+      },
+    });
+  }
+}
+
 async function main() {
   const admin = await seedAdminUser();
   await seedCategories();
@@ -637,6 +676,7 @@ async function main() {
   await seedBanners();
   await seedContentPages();
   await seedContactPageSettings();
+  await seedSystemPageSettings();
 
   console.log("Seed completed successfully.");
   console.log(`Admin user: ${admin.email}`);

@@ -8,7 +8,6 @@ import { StorefrontLogo } from "@/components/storefront/storefront-logo";
 import { StorefrontSearchForm } from "@/components/storefront/storefront-search-form";
 import {
   storefrontCategories,
-  storefrontInfoLinks,
   storefrontMainNavigation,
 } from "@/components/storefront/storefront-config";
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -23,7 +22,14 @@ import {
 } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
 
-export function StorefrontMobileMenu() {
+type StorefrontMobileMenuProps = {
+  infoLinks: Array<{
+    href: string;
+    label: string;
+  }>;
+};
+
+export function StorefrontMobileMenu({ infoLinks }: StorefrontMobileMenuProps) {
   return (
     <Sheet>
       <SheetTrigger
@@ -111,7 +117,7 @@ export function StorefrontMobileMenu() {
           <Separator />
 
           <nav className="grid gap-2" aria-label="Інформаційні сторінки">
-            {storefrontInfoLinks.map((link) => (
+            {infoLinks.map((link) => (
               <Link
                 key={link.href}
                 href={link.href}

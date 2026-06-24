@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { notFound } from "next/navigation";
 import { MailIcon, MapPinIcon, PhoneIcon } from "lucide-react";
 
 import {
@@ -8,9 +9,16 @@ import {
 } from "@/components/storefront/cms-content";
 import { StorefrontCard } from "@/components/storefront/storefront-primitives";
 import { ContactRequestForm } from "@/features/content/components/public-content-forms";
-import { ensureContactSettings } from "@/server/repositories/content.repository";
+import {
+  ensureContactSettings,
+  isSystemPageActive,
+} from "@/server/repositories/content.repository";
 
 export async function generateMetadata(): Promise<Metadata> {
+  if (!(await isSystemPageActive("contacts"))) {
+    return {};
+  }
+
   const settings = await ensureContactSettings();
 
   return {
@@ -20,6 +28,10 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function ContactsPage() {
+  if (!(await isSystemPageActive("contacts"))) {
+    notFound();
+  }
+
   const settings = await ensureContactSettings();
 
   return (

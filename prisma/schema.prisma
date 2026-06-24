@@ -351,6 +351,18 @@ model ContentPage {
   @@index([showInHeader, sortOrder])
 }
 
+model SystemPageSettings {
+  id        String   @id @default(cuid())
+  key       String   @unique
+  title     String
+  isActive  Boolean  @default(true)
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([isActive, sortOrder])
+}
+
 model ContactPageSettings {
   id                    String   @id @default(cuid())
   title                 String   @default("Контакти")

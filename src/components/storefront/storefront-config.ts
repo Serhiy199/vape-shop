@@ -86,16 +86,6 @@ export const storefrontCategories: StorefrontCategory[] = [
   },
 ];
 
-export const storefrontInfoLinks = [
-  { href: "/delivery", label: "Доставка" },
-  { href: "/payment", label: "Оплата" },
-  { href: "/contacts", label: "Контакти" },
-  { href: "/about", label: "Про нас" },
-  { href: "/faq", label: "FAQ" },
-  { href: "/privacy", label: "Конфіденційність" },
-  { href: "/terms", label: "Умови" },
-];
-
 export const storefrontTrustItems = [
   {
     description: "Безкоштовна доставка від 1500 грн",

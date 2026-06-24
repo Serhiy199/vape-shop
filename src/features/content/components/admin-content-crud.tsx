@@ -32,6 +32,7 @@ import {
   saveAdminReviewAction,
   setContactRequestStatusAction,
   toggleContentPageAction,
+  toggleSystemPageAction,
 } from "@/features/content/actions/content";
 import { slugifyText } from "@/lib/text/slug";
 
@@ -50,6 +51,12 @@ type ContentPageItem = {
   showInHeader: boolean;
   slug: string;
   sortOrder: number;
+  title: string;
+};
+
+type SystemPageSettingsItem = {
+  isActive: boolean;
+  key: string;
   title: string;
 };
 
@@ -232,6 +239,48 @@ function ToggleRow({
       <span>{label}</span>
       <Switch checked={checked} onCheckedChange={onChange} />
     </label>
+  );
+}
+
+export function AdminSystemPageStatus({
+  page,
+}: {
+  page: SystemPageSettingsItem;
+}) {
+  const { isPending, run } = useActionState();
+  const [isActive, setIsActive] = useState(page.isActive);
+
+  const updateStatus = (checked: boolean) => {
+    setIsActive(checked);
+    run(
+      () =>
+        toggleSystemPageAction({
+          isActive: checked,
+          key: page.key,
+        }),
+      checked ? "Сторінку активовано" : "Сторінку деактивовано",
+    );
+  };
+
+  return (
+    <Card>
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h2 className="text-lg font-semibold">Статус сторінки</h2>
+          <p className="text-muted-foreground text-sm">
+            {page.title}: керує показом у footer та доступністю route на storefront.
+          </p>
+        </div>
+        <label className="border-border/70 bg-muted/30 flex items-center justify-between gap-3 rounded-lg border px-3 py-2 text-sm sm:min-w-48">
+          <span>{isActive ? "Активна" : "Неактивна"}</span>
+          <Switch
+            checked={isActive}
+            disabled={isPending}
+            onCheckedChange={updateStatus}
+          />
+        </label>
+      </div>
+    </Card>
   );
 }
 

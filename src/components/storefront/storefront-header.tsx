@@ -11,20 +11,24 @@ import { StorefrontCartLink } from "@/components/storefront/cart-link";
 import { StorefrontLogo } from "@/components/storefront/storefront-logo";
 import { StorefrontMobileMenu } from "@/components/storefront/mobile-menu";
 import { StorefrontSearchForm } from "@/components/storefront/storefront-search-form";
-import {
-  storefrontBrand,
-  storefrontInfoLinks,
-} from "@/components/storefront/storefront-config";
+import { storefrontBrand } from "@/components/storefront/storefront-config";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { listHeaderContentPages } from "@/server/repositories/content.repository";
+import {
+  listActiveSystemPageLinks,
+  listHeaderContentPages,
+} from "@/server/repositories/content.repository";
 
 export async function StorefrontHeader() {
   const cmsInfoLinks = (await listHeaderContentPages()).map((page) => ({
     href: `/${page.slug}`,
     label: page.title,
   }));
-  const infoLinks = [...storefrontInfoLinks.slice(0, 4), ...cmsInfoLinks].slice(
+  const systemInfoLinks = (await listActiveSystemPageLinks()).map((page) => ({
+    href: page.href,
+    label: page.label,
+  }));
+  const infoLinks = [...cmsInfoLinks, ...systemInfoLinks].slice(
     0,
     6,
   );
@@ -62,7 +66,7 @@ export async function StorefrontHeader() {
       </div>
 
       <div className="mx-auto flex w-full max-w-screen-2xl items-center gap-3 px-4 py-3 sm:px-6 lg:px-8">
-        <StorefrontMobileMenu />
+        <StorefrontMobileMenu infoLinks={infoLinks} />
 
         <StorefrontLogo className="w-[100px] shrink-0 lg:w-[120px]" />
 

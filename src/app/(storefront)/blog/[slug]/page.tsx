@@ -7,6 +7,7 @@ import { StorefrontCard } from "@/components/storefront/storefront-primitives";
 import {
   getPublishedBlogPost,
   incrementBlogPostViews,
+  isSystemPageActive,
 } from "@/server/repositories/content.repository";
 
 type BlogPostPageProps = {
@@ -18,6 +19,10 @@ type BlogPostPageProps = {
 export async function generateMetadata({
   params,
 }: BlogPostPageProps): Promise<Metadata> {
+  if (!(await isSystemPageActive("blog"))) {
+    return {};
+  }
+
   const { slug } = await params;
   const post = await getPublishedBlogPost(slug);
 
@@ -37,6 +42,10 @@ export async function generateMetadata({
 }
 
 export default async function BlogPostPage({ params }: BlogPostPageProps) {
+  if (!(await isSystemPageActive("blog"))) {
+    notFound();
+  }
+
   const { slug } = await params;
   const post = await getPublishedBlogPost(slug);
 

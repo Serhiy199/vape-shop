@@ -18,6 +18,7 @@ import {
   idSchema,
   publicReviewSchema,
   reviewMutationSchema,
+  systemPageStatusSchema,
 } from "@/features/content/schemas";
 import { slugifyText } from "@/lib/text/slug";
 import {
@@ -35,6 +36,7 @@ import {
   getContentPageBySlug,
   setContactRequestStatus,
   setContentPageActiveStatus,
+  setSystemPageActiveStatus,
   updateCertificateSettings,
   updateContactSettings,
   upsertBlogCategory,
@@ -184,6 +186,17 @@ export async function toggleAdminContentPage(input: unknown) {
   const data = parsed.data;
 
   return ok(await setContentPageActiveStatus(data.id, data.isActive));
+}
+
+export async function toggleAdminSystemPage(input: unknown) {
+  const parsed = await parseInput(systemPageStatusSchema, input);
+
+  if (!parsed.success) {
+    return parsed.result;
+  }
+  const data = parsed.data;
+
+  return safelyMutate(() => setSystemPageActiveStatus(data.key, data.isActive));
 }
 
 export async function saveAdminContactSettings(input: unknown) {

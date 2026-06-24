@@ -1,10 +1,14 @@
 import type { Metadata } from "next";
+import { notFound } from "next/navigation";
 import { ReviewType } from "@prisma/client";
 
 import { CmsPageShell } from "@/components/storefront/cms-content";
 import { StorefrontCard } from "@/components/storefront/storefront-primitives";
 import { ReviewSubmitForm } from "@/features/content/components/public-content-forms";
-import { listPublicReviews } from "@/server/repositories/content.repository";
+import {
+  isSystemPageActive,
+  listPublicReviews,
+} from "@/server/repositories/content.repository";
 
 export const metadata: Metadata = {
   description: "Відгуки клієнтів про магазин і товари Voodoo Vape.",
@@ -12,6 +16,10 @@ export const metadata: Metadata = {
 };
 
 export default async function ReviewsPage() {
+  if (!(await isSystemPageActive("reviews"))) {
+    notFound();
+  }
+
   const [storeReviews, productReviews] = await Promise.all([
     listPublicReviews(ReviewType.STORE),
     listPublicReviews(ReviewType.PRODUCT),

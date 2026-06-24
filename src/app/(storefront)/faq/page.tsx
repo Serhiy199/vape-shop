@@ -1,9 +1,13 @@
 import type { Metadata } from "next";
+import { notFound } from "next/navigation";
 
 import { CmsPageShell } from "@/components/storefront/cms-content";
 import { SafeRichTextContent } from "@/components/storefront/safe-rich-text-content";
 import { StorefrontCard } from "@/components/storefront/storefront-primitives";
-import { listActiveFAQSections } from "@/server/repositories/content.repository";
+import {
+  isSystemPageActive,
+  listActiveFAQSections,
+} from "@/server/repositories/content.repository";
 
 export const metadata: Metadata = {
   description: "FAQ - питання та відповіді магазину Voodoo Vape.",
@@ -11,6 +15,10 @@ export const metadata: Metadata = {
 };
 
 export default async function FAQPage() {
+  if (!(await isSystemPageActive("faq"))) {
+    notFound();
+  }
+
   const sections = await listActiveFAQSections();
   const jsonLd = {
     "@context": "https://schema.org",

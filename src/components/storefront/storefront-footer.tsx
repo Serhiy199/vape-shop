@@ -4,19 +4,25 @@ import { MailIcon, MapPinIcon, PhoneIcon } from "lucide-react";
 import { StorefrontLogo } from "@/components/storefront/storefront-logo";
 import {
   storefrontCategories,
-  storefrontInfoLinks,
   storefrontServiceLinks,
   storefrontTrustItems,
 } from "@/components/storefront/storefront-config";
 import { Separator } from "@/components/ui/separator";
-import { listFooterContentPages } from "@/server/repositories/content.repository";
+import {
+  listActiveSystemPageLinks,
+  listFooterContentPages,
+} from "@/server/repositories/content.repository";
 
 export async function StorefrontFooter() {
   const cmsInfoLinks = (await listFooterContentPages()).map((page) => ({
     href: `/${page.slug}`,
     label: page.title,
   }));
-  const infoLinks = [...storefrontInfoLinks, ...cmsInfoLinks];
+  const systemInfoLinks = (await listActiveSystemPageLinks()).map((page) => ({
+    href: page.href,
+    label: page.label,
+  }));
+  const infoLinks = [...cmsInfoLinks, ...systemInfoLinks];
 
   return (
     <footer>

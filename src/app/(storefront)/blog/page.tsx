@@ -1,11 +1,13 @@
 import Link from "next/link";
 import type { Metadata } from "next";
+import { notFound } from "next/navigation";
 
 import { CmsPageShell } from "@/components/storefront/cms-content";
 import { StorefrontCard } from "@/components/storefront/storefront-primitives";
 import {
   listBlogCategories,
   listBlogTags,
+  isSystemPageActive,
   listPublishedBlogPosts,
 } from "@/server/repositories/content.repository";
 
@@ -15,6 +17,10 @@ export const metadata: Metadata = {
 };
 
 export default async function BlogPage() {
+  if (!(await isSystemPageActive("blog"))) {
+    notFound();
+  }
+
   const [posts, categories, tags] = await Promise.all([
     listPublishedBlogPosts(),
     listBlogCategories(),

@@ -1,6 +1,6 @@
-import { StorefrontContentPage } from "@/components/storefront/content-page";
+import { notFound } from "next/navigation";
+
 import { CatalogAction, CmsPageShell, CmsRichContent } from "@/components/storefront/cms-content";
-import { storefrontContentPages } from "@/lib/storefront/content-pages";
 import { buildCmsMetadata, getCmsContentPage } from "@/lib/storefront/cms-pages";
 
 export async function generateMetadata() {
@@ -10,17 +10,17 @@ export async function generateMetadata() {
 export default async function PaymentPage() {
   const page = await getCmsContentPage("payment");
 
-  if (page) {
-    return (
-      <CmsPageShell
-        title={page.title}
-        description={page.excerpt}
-        actions={<CatalogAction />}
-      >
-        <CmsRichContent heroImage={page.heroImage} html={page.contentHtml} />
-      </CmsPageShell>
-    );
+  if (!page) {
+    notFound();
   }
 
-  return <StorefrontContentPage page={storefrontContentPages.payment} />;
+  return (
+    <CmsPageShell
+      title={page.title}
+      description={page.excerpt}
+      actions={<CatalogAction />}
+    >
+      <CmsRichContent heroImage={page.heroImage} html={page.contentHtml} />
+    </CmsPageShell>
+  );
 }
