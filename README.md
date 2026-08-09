@@ -90,3 +90,4 @@ Detailed structure is documented in `docs/project-structure.md`.
 
 логін: admin@voodoovape.local
 пароль: Admin12345!
+# HobbyLovKa-e-commerce
